@@ -90,7 +90,7 @@ public class UIHelper {
 
                         if(newAlpha == 0 && value == 0) {
                             executor.execute(() -> {
-                                view.setVisibility(View.GONE);
+                                view.setVisibility(View.INVISIBLE);
                             });
                         }
                     });

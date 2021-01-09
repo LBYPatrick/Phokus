@@ -1,5 +1,6 @@
 package com.lbynet.Phokus;
 
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.hardware.camera2.CaptureRequest;
 
@@ -17,6 +18,7 @@ import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.frames.EventListener;
+import com.lbynet.Phokus.ui.UIHelper;
 import com.lbynet.Phokus.utils.SAL;
 
 public class CameraControl {
@@ -25,7 +27,8 @@ public class CameraControl {
                    isRecording_ = false,
                    isCameraBound = false,
                    isWidescreen =  false,
-                   isFrontFacing = false;
+                   isFrontFacing = false,
+                   isWsOnly = false;
 
     static double minFocalLength = 0;
     static CameraSelector cs;
@@ -37,6 +40,8 @@ public class CameraControl {
     static PreviewView previewView_ = null,
                        previewViewW_ = null;
     static Context context_;
+    static ValueAnimator pvwAnimator = null,
+                         pvAnimator = null;
 
     public static void initiate(PreviewView previewView, PreviewView previewViewWide) {
         //TODO
@@ -59,38 +64,92 @@ public class CameraControl {
     }
 
     public static void bindCamera() {
+        bindCamera(new EventListener() {});
+    }
+
+    public static void bindCamera(EventListener event) {
 
         isCameraBound = false;
 
-        preview = new Preview.Builder()
-                .setTargetAspectRatio(
+        event.onEventBegan("Start binding camera.");
 
-                        //AspectRatio.RATIO_16_9
-                        (isWidescreen || isVideoMode_) ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3
-        ).build();
+        boolean isPreviewW = (isWidescreen || isVideoMode_);
 
         cs = new CameraSelector.Builder()
                 .requireLensFacing(isFrontFacing?
                         CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
 
-        ImageCapture.Builder icBuilder = new ImageCapture.Builder();
+
+        if(preview == null) {
+            preview = new Preview.Builder().build();
+        }
+
+        if(pvwAnimator != null){
+            pvwAnimator.cancel();
+            pvAnimator.cancel();
+        }
+
+        if(isWidescreen) {
+            pvwAnimator = UIHelper.setViewAlpha(previewViewW_, 0,1);
+            pvAnimator = UIHelper.setViewAlpha(previewView_, 0,0);
+        }
+        else {
+            pvwAnimator = UIHelper.setViewAlpha(previewViewW_, 0,0);
+            pvAnimator = UIHelper.setViewAlpha(previewView_, 0,1);
+        }
+
+        ImageCapture.Builder icBuilder = new ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY);
 
         //TODO: Add custom params for ImageCapture here
 
         new Camera2Interop.Extender<>(icBuilder)
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE,CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
+                    .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE)
+                    .setCaptureRequestOption(CaptureRequest.CONTROL_AWB_MODE, CaptureRequest.CONTROL_AWB_MODE_OFF)
+                    .setCaptureRequestOption(CaptureRequest.COLOR_CORRECTION_MODE, CaptureRequest.COLOR_CORRECTION_MODE_HIGH_QUALITY)
+                    .setCaptureRequestOption(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_MINIMAL)
+                    .setCaptureRequestOption(CaptureRequest.EDGE_MODE, CaptureRequest.EDGE_MODE_HIGH_QUALITY);
 
-        ic = icBuilder.build();
+            ic = icBuilder.build();
 
-        pcp.unbindAll();
+            pcp.unbindAll();
 
-        camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,preview, ic);
+            camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs, preview, ic);
 
-        preview.setSurfaceProvider(previewView_.getSurfaceProvider());
+        preview.setSurfaceProvider((isWidescreen? previewViewW_ : previewView_).getSurfaceProvider());
 
         isCameraBound = true;
 
+        event.onEvenFinished(true,"Finish binding camera.");
+
+        isWsOnly = false;
+    }
+
+    public static void toggleWideScreen(EventListener event) {
+
+        event.onEventBegan("Start toggling widescreen");
+
+        isWidescreen = !isWidescreen;
+        isWsOnly = true;
+
+        if(pvwAnimator != null){
+            pvwAnimator.cancel();
+            pvAnimator.cancel();
+        }
+
+        if(isWidescreen) {
+            pvwAnimator = UIHelper.setViewAlpha(previewViewW_, 0,1);
+            pvAnimator = UIHelper.setViewAlpha(previewView_, 0,0);
+        }
+        else {
+            pvwAnimator = UIHelper.setViewAlpha(previewViewW_, 0,0);
+            pvAnimator = UIHelper.setViewAlpha(previewView_, 0,1);
+        }
+
+        preview.setSurfaceProvider((isWidescreen? previewViewW_ : previewView_).getSurfaceProvider());
+
+        event.onEvenFinished(true,"");
     }
 
     public static void setVideoMode(boolean isVideoMode, EventListener listener) {

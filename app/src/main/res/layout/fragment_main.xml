@@ -6,21 +6,50 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".MainFragment">
 
-    <com.lukelorusso.verticalseekbar.VerticalSeekBar
-
-        android:id="@+id/slider_zoom"
-        android:layout_height="match_parent"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
-        app:layout_constraintDimensionRatio="1:5"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_height="match_parent"
+        android:id="@+id/cl_left_button_container"
         app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintDimensionRatio="1:5"
+        >
 
-        android:valueFrom="0.0"
-        android:valueTo="100.0"
-        android:stepSize="10.0"
-        android:elevation="3dp"
-        />
+        <Button
+            android:id="@+id/btn_zoom"
+            android:text="Zoom"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/btn_exposure"
+            />
+
+        <Button
+            android:id="@+id/btn_exposure"
+            android:text="EV"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1:1"
+            android:layout_marginBottom="10dp"
+            app:layout_constraintTop_toBottomOf="@id/btn_zoom"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/btn_widescreen"
+            />
+
+        <Button
+            android:id="@+id/btn_widescreen"
+            android:text="WS"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toBottomOf="@id/btn_exposure"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
 
@@ -29,8 +58,9 @@
         android:layout_width="0dp"
         android:layout_height="match_parent"
         app:layout_constraintDimensionRatio="4:3"
+        android:paddingHorizontal="10dp"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toRightOf="@id/slider_zoom"
+        app:layout_constraintLeft_toRightOf="@id/cl_left_button_container"
         >
 
         <androidx.camera.view.PreviewView
@@ -68,7 +98,6 @@
         />
 
     <LinearLayout
-        android:layout_marginLeft="10dp"
         android:id="@+id/ll_right_button_container"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -93,11 +122,10 @@
 
         <Button
             android:id="@+id/btn_shoot"
-            android:text="SHOOT_BUTTON"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            />
+            android:text="SHOOT_BUTTON" />
 
 
     </LinearLayout>

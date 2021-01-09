@@ -7,8 +7,13 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+
+import com.lbynet.Phokus.frames.EventListener;
+import com.lbynet.Phokus.utils.SAL;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -26,6 +31,7 @@ public class MainFragment extends Fragment {
     private String mParam1;
     private String mParam2;
     private View rootView = null;
+    private boolean isWidescreenButtonBusy = false;
 
     public MainFragment() {
         // Required empty public constructor
@@ -69,7 +75,37 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         rootView = view;
 
-        CameraControl.initiate(requireContext(),rootView.findViewById(R.id.pv_preview));
+        CameraControl.initiate(rootView.findViewById(R.id.pv_preview),rootView.findViewById(R.id.pv_preview_w));
 
+        rootView.findViewById(R.id.btn_widescreen).setOnClickListener(this::onWidescreenButtonClicked);
+    }
+
+    boolean onWidescreenButtonClicked(View v) {
+
+        SAL.print("Button clicked");
+
+        if(isWidescreenButtonBusy) return true;
+
+        Button button = (Button) v;
+
+        CameraControl.toggleWideScreen(new EventListener() {
+                @Override
+                public boolean onEventBegan(String extra) {
+                    button.setClickable(false);
+                    isWidescreenButtonBusy = true;
+                    SAL.print("Button Locked");
+                    return true;
+                }
+
+                @Override
+                public boolean onEvenFinished(boolean isSuccess, String extra) {
+                    button.setClickable(true);
+                    isWidescreenButtonBusy = false;
+                    SAL.print("Button Unlocked");
+                    return true;
+                }
+            });
+
+        return true;
     }
 }

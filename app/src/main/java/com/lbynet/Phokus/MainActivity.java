@@ -7,6 +7,7 @@ import android.Manifest;
 import android.os.Bundle;
 
 import com.lbynet.Phokus.utils.SAL;
+import com.lbynet.Phokus.utils.SysInfo;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -14,6 +15,9 @@ public class MainActivity extends AppCompatActivity {
 
     final public static String [] PERMISSIONS = {
             Manifest.permission.CAMERA,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.RECORD_AUDIO,
     };
 
     @Override
@@ -45,12 +49,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void onCreated() {
 
+        SysInfo.initialize(this);
+
         MainFragment mainFrag = new MainFragment();
 
         getSupportFragmentManager()
                 .beginTransaction()
-                .add(R.id.fl_fragment_placeholder,mainFrag)
-                .addToBackStack("DEFAULT_STACK")
+                .replace(R.id.fl_fragment_placeholder,mainFrag)
+                //.addToBackStack("DEFAULT_STACK")
                 .commit();
 
     }

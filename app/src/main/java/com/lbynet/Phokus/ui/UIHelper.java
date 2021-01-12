@@ -1,28 +1,19 @@
 package com.lbynet.Phokus.ui;
 
-import android.animation.Animator;
-import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.app.Activity;
-import android.app.WallpaperManager;
 import android.content.Context;
-import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.graphics.drawable.BitmapDrawable;
-import android.view.Display;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
-import com.lbynet.Phokus.R;
-import com.lbynet.Phokus.frames.ColorListener;
+import com.lbynet.Phokus.listener.ColorListener;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
 
@@ -147,4 +138,10 @@ public class UIHelper {
         else if(degrees > 225 && degrees <= 315) { return Surface.ROTATION_90; }
         else { return Surface.ROTATION_0; }
     }
+
+    public static void runLater(Context context, Runnable r) {
+        ContextCompat.getMainExecutor(context).execute(r);
+    }
+
+
 }

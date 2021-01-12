@@ -46,6 +46,17 @@
             app:layout_constraintDimensionRatio="1:1"
             app:layout_constraintTop_toBottomOf="@id/btn_exposure"
             app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/btn_facing"
+            />
+
+        <Button
+            android:id="@+id/btn_facing"
+            android:text="FACING"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="1:1"
+            app:layout_constraintTop_toBottomOf="@id/btn_widescreen"
+            app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             />
 
@@ -72,20 +83,8 @@
             app:layout_constraintRight_toRightOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintDimensionRatio="4:3"
+            app:scaleType="fitCenter"
             />
-
-        <androidx.camera.view.PreviewView
-            android:id="@+id/pv_preview_w"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:visibility="gone"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintDimensionRatio="16:9"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

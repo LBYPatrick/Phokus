@@ -31,7 +31,6 @@ public class MainFragment extends Fragment {
     private String mParam1;
     private String mParam2;
     private View rootView = null;
-    private boolean isWidescreenButtonBusy = false;
 
     public MainFragment() {
         // Required empty public constructor
@@ -75,16 +74,34 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         rootView = view;
 
-        CameraControl.initiate(rootView.findViewById(R.id.pv_preview),rootView.findViewById(R.id.pv_preview_w));
+        CameraControl.initiate(rootView.findViewById(R.id.pv_preview));
 
         rootView.findViewById(R.id.btn_widescreen).setOnClickListener(this::onWidescreenButtonClicked);
+        rootView.findViewById(R.id.btn_facing).setOnClickListener(this::onFacingButtonClicked);
+    }
+
+    boolean onFacingButtonClicked(View v) {
+
+        Button b = (Button) v;
+
+        CameraControl.toggleCameraFacing(new EventListener() {
+            @Override
+            public boolean onEventBegan(String extra) {
+                b.setClickable(false);
+                return super.onEventBegan(extra);
+            }
+
+            @Override
+            public boolean onEventFinished(boolean isSuccess, String extra) {
+                b.setClickable(true);
+                return super.onEventFinished(isSuccess,extra);
+            }
+        });
+
+        return true;
     }
 
     boolean onWidescreenButtonClicked(View v) {
-
-        SAL.print("Button clicked");
-
-        if(isWidescreenButtonBusy) return true;
 
         Button button = (Button) v;
 
@@ -92,15 +109,13 @@ public class MainFragment extends Fragment {
                 @Override
                 public boolean onEventBegan(String extra) {
                     button.setClickable(false);
-                    isWidescreenButtonBusy = true;
                     SAL.print("Button Locked");
                     return true;
                 }
 
                 @Override
-                public boolean onEvenFinished(boolean isSuccess, String extra) {
+                public boolean onEventFinished(boolean isSuccess, String extra) {
                     button.setClickable(true);
-                    isWidescreenButtonBusy = false;
                     SAL.print("Button Unlocked");
                     return true;
                 }

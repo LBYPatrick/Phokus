@@ -3,13 +3,16 @@ package com.lbynet.Phokus.ui;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.graphics.Point;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.widget.Toast;
 
+import androidx.annotation.IntRange;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
@@ -106,6 +109,16 @@ public class UIHelper {
 
     }
 
+    public static int [] getColors(Context context, int... resIDs) {
+        int [] r = new int [resIDs.length];
+
+        for(int i = 0; i < resIDs.length; ++i) {
+            r[i] = ContextCompat.getColor(context,resIDs[i]);
+        }
+
+        return r;
+    }
+
     public static ValueAnimator getColorAnimator(ColorListener listener,
                                                  int durationInMs,
                                                  boolean isNonLinear,
@@ -121,7 +134,7 @@ public class UIHelper {
             }
         });
 
-        if(isNonLinear) { animator.setInterpolator(new AccelerateDecelerateInterpolator()); }
+        if(isNonLinear) { animator.setInterpolator(new DecelerateInterpolator()); }
 
         return animator;
     }
@@ -143,5 +156,10 @@ public class UIHelper {
         ContextCompat.getMainExecutor(context).execute(r);
     }
 
+    public static ColorStateList makeCSLwithID(Context context, int resId) {
+
+        return ContextCompat.getColorStateList(context,resId);
+
+    }
 
 }

@@ -3,11 +3,11 @@ package com.lbynet.Phokus;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.graphics.Color;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Environment;
 import android.util.Range;
+import android.util.Size;
 import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.NonNull;
@@ -34,21 +34,24 @@ import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.listener.EventListener;
+import com.lbynet.Phokus.listener.LumaListener;
+import com.lbynet.Phokus.ui.UIHelper;
+import com.lbynet.Phokus.utils.CameraUtils;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
+import com.lbynet.Phokus.utils.Timer;
 
 import java.io.File;
-import java.util.concurrent.ExecutionException;
+import java.nio.ByteBuffer;
 
 @SuppressLint("RestrictedApi")
 public class CameraControl {
 
     final static float [] AVAIL_ZOOM_LENGTHS = {28,35,50,70,85};
     final static int [] AVAIL_VIDEO_FPS = {24,25,30,48,50,60};
-    final static int DEFAULT_VIDEO_FPS = 25;
+    final static int DEFAULT_VIDEO_FPS = AVAIL_VIDEO_FPS[2];
 
-    private static boolean isVideoMode_ = false,
-            isCameraBound = false,
+    private static boolean isFilming_ = false,
             isWidescreen_ = false,
             isFrontFacing_ = false,
             isFocusBusy_ = false;
@@ -70,6 +73,9 @@ public class CameraControl {
     private static ProcessCameraProvider pcp = null;
     private static PreviewView previewView_ = null;
     private static Context context_;
+    private static Timer iaTimer = new Timer("ImageAnalysis Timer");
+    private static int [] lumaBucket_ = {0,0,0,0,0,0};
+    private static LumaListener lumaListener_ = new LumaListener() {};
 
 
     public static void initialize(PreviewView previewView) {
@@ -91,27 +97,15 @@ public class CameraControl {
 
 
         try {
-            //Get main camera's focal length
-            CameraCharacteristics ccMain = CameraManagerCompat
-                    .from(context_)
-                    .unwrap()
-                    .getCameraCharacteristics("0");
 
-            float focalLength = ccMain.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)[0],
-                    cropFactor  = MathTools.getCropFactor(ccMain.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE));
-
-            SAL.print("Main Camera Focal Length(Full Frame Equivalent): " + (focalLength * cropFactor) + "mm");
-
-            minFocalLength_ = focalLength * cropFactor;
+            minFocalLength_ = CameraUtils.getFocalLength(context_,0) * CameraUtils.getCropFactor(context_,0);
             lastZoomFocalLength_ = minFocalLength_;
 
-            //Get front-facing camera's focal length
-            if(CameraManagerCompat.from(context_).unwrap().getCameraIdList().length >= 2) {
-                CameraCharacteristics ccFront = CameraManagerCompat.from(context_).unwrap().getCameraCharacteristics("1");
+            SAL.print("Main Camera Focal Length(Full Frame Equivalent): " + minFocalLength_ + "mm");
 
-                frontFacingFocalLength_ = ccFront.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)[0] //Focal Length
-                                            * MathTools.getCropFactor(
-                                                    ccFront.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE)); //Crop factor
+            //Get front-facing camera's focal length
+            if(CameraUtils.getCameraCount(context_) >= 2) {
+                frontFacingFocalLength_ = CameraUtils.getFocalLength(context_,1) * CameraUtils.getCropFactor(context_,1);
             }
 
             SAL.print("Front-facing camera Focal Length(Full Frame Equivalent): " + frontFacingFocalLength_ + "mm");
@@ -122,60 +116,110 @@ public class CameraControl {
     }
 
     public static void bindCamera() {
-        bindCamera(new EventListener() {
-        });
+        bindCamera(new EventListener() {});
     }
 
     @SuppressLint("RestrictedApi")
     public static void bindCamera(EventListener listener) {
 
-        isCameraBound = false;
-
         listener.onEventBegan("Start binding camera.");
 
-        //CameraSelector
+        pcp.unbindAll();
+
+        /**
+         * CameraSelector instance
+         */
         cs = new CameraSelector.Builder()
                 .requireLensFacing(isFrontFacing_ ?
                         CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
 
-        if (preview == null) {
-            preview = makePreview(isWidescreen_ || isVideoMode_);
-            preview.setSurfaceProvider(previewView_.getSurfaceProvider());
+        /**
+         * Preview use case
+         */
+        preview = makePreview();
+        preview.setSurfaceProvider(previewView_.getSurfaceProvider());
+        camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview);
 
-            camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview);
+        /**
+         * ImageCapture use case
+         */
+        ic = makeImageCapture();
+        camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,ic);
 
-        }
+        /**
+         * ImageAnalysis use case
+         */
+        ia = makeImageAnalysis();
+        camera = pcp.bindToLifecycle((LifecycleOwner)context_, cs, ia);
 
-        //TODO: Put ImageCapture stuff here
+        lumaListener_.onEventBegan("Start obtaining luma information.");
 
-
-        //ImageCapture use case
-        if (ic != null) { pcp.unbind(ic); }
-
-        ImageCapture.Builder icBuilder = new ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY);
-
-        new Camera2Interop.Extender<>(icBuilder)
-                //.setCaptureRequestOption(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_MINIMAL)
-                .setCaptureRequestOption(CaptureRequest.EDGE_MODE,CaptureRequest.EDGE_MODE_OFF)
-                .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,Integer.valueOf(100).byteValue());
-                //.setCaptureRequestOption(CaptureRequest.EDGE_MODE, CaptureRequest.EDGE_MODE_HIGH_QUALITY);
-
-        ic = icBuilder.build();
-        camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, ic);
-
-
-        //VideoCapture use case
-        VideoCapture vc2 = makeVideoCapture();
-
-        if(vc != null) pcp.unbind(vc);
-
-        vc = vc2;
-        camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, vc);
-
-        isCameraBound = true;
         listener.onEventFinished(true, "Finish binding camera.");
+    }
+
+    public static void analyzeCurrentFrame(@NonNull ImageProxy ip) {
+        //TODO: Finish this
+
+        new Thread( () -> {
+            /**
+             * Get YUV planes.
+             * Plane 0: "Y" plane -- luma plane
+             * Plane 1: "Cb" plane -- blue projection plane
+             * Plane 2: "Cr" plane -- red projection plane
+             */
+            ImageProxy.PlaneProxy lumaPlane = ip.getPlanes()[0],
+                    bPlane = ip.getPlanes()[1],
+                    rPlane = ip.getPlanes()[2];
+
+            ByteBuffer bb = lumaPlane.getBuffer();
+
+            int[] bucket = {0, 0, 0, 0, 0 ,0};
+
+            int max = Integer.MIN_VALUE,
+                min = Integer.MAX_VALUE;
+
+            while (bb.remaining() != 0) {
+
+                int temp = bb.get() + 128; //0-255
+
+                if (temp > max) max = temp;
+                if (temp < min) min = temp;
+
+                if(temp == 0)  bucket[0] += 1;
+                else if(temp == 255) bucket[5] += 1;
+                else if(MathTools.isValueInRange(temp,1,64)) bucket[1] +=1;
+                else if(MathTools.isValueInRange(temp,65,128)) bucket[2] +=1;
+                else if(MathTools.isValueInRange(temp,129,192)) bucket[3] +=1;
+                else if(MathTools.isValueInRange(temp,193,254)) bucket[4] +=1;
+            }
+
+            if(Math.abs(max - min) > 20) {
+                for(int i = 0; i < 6; ++i) {
+                    lumaBucket_[i] += bucket[i];
+                }
+            }
+
+            if(iaTimer.getElaspedTimeInMs() > 1000) {
+
+                lumaListener_.onDataUpdate(lumaBucket_.clone());
+
+                for(int i = 0; i < lumaBucket_.length; ++i) {
+                    lumaBucket_[i] = 0;
+                }
+
+                iaTimer.start();
+            }
+            /*
+            SAL.print("Luma: " + Arrays.toString(bucket) + " min: " + min +" max: " + max);
+            SAL.print("Size: " + lumaPlane.getRowStride() + " x " + (bucket[0] + bucket[1] + bucket[2] + bucket[3]) / lumaPlane.getRowStride());
+            */
+            /**
+             * Close imageProxy (NEVER close the underlying Image instance directly as noted by Google)
+             */
+            ip.close();
+
+        }).start();
     }
 
     public static void toggleCameraFacing(EventListener listener) {
@@ -202,12 +246,10 @@ public class CameraControl {
 
             runLater( () -> {
                 pcp.unbindAll();
-
-                camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview, ic,vc);
+                camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview, ia, ic);
                 listener.onEventFinished(true, "Finished switching camera facing");
             });
         }).start();
-
     }
 
     public static float getMinFocalLength() {
@@ -222,10 +264,6 @@ public class CameraControl {
 
         listener.onEventBegan("Start toggling widescreen");
 
-        if (isWidescreen_ && isVideoMode_) {
-            listener.onEventFinished(false, "Video mode, cannot switch widescreen mode");
-            return;
-        }
         isWidescreen_ = !isWidescreen_;
         updateWidescreen(listener);
     }
@@ -233,10 +271,9 @@ public class CameraControl {
     public static void updateWidescreen(EventListener listener) {
 
         new Thread( () -> {
-
             runLater( () -> {
                 Preview oldPreview = preview;
-                preview = makePreview(isWidescreen_ || isVideoMode_);
+                preview = makePreview();
                 preview.setSurfaceProvider(previewView_.getSurfaceProvider());
                 pcp.unbind(oldPreview);
                 camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview);
@@ -314,9 +351,7 @@ public class CameraControl {
         zoomByFocalLength(zoomLength, new EventListener() {
             @Override
             public boolean onEventFinished(boolean isSuccess, String extra) {
-
                 listener.onEventFinished(true, "Zoom done");
-
                 return super.onEventFinished(isSuccess, extra);
             }
         });
@@ -340,7 +375,7 @@ public class CameraControl {
 
             ValueAnimator animator = ValueAnimator.ofFloat(lastZoomFocalLength_ / minFocalLength_, zoomRatio);
 
-            final int duration = 300;
+            final int duration = 0;
 
             animator.setDuration(duration);
             animator.setInterpolator(new DecelerateInterpolator());
@@ -371,32 +406,54 @@ public class CameraControl {
 
             listener.onEventBegan("");
 
-            isVideoMode_ = !isVideoMode_;
+            isFilming_ = !isFilming_;
 
-            if(isVideoMode_) {
+            if(isFilming_) {
 
-                vc.setTargetRotation(majorRotation_);
+                //Unbind ImageAnalysis
+                runLater(() -> { pcp.unbind(ia);});
+                while(pcp.isBound(ia)) { SAL.sleepFor(1); }
 
-                vc.startRecording(new VideoCapture.OutputFileOptions.Builder(new File(getOutputPath() + "/test.mp4")).build()
-                        , ContextCompat.getMainExecutor(context_),new VideoCapture.OnVideoSavedCallback() {
+                //Bind VideoCapture
+                vc = makeVideoCapture();
+                runLater(() -> {pcp.bindToLifecycle((LifecycleOwner) context_,cs,vc);});
+                while(!pcp.isBound(vc)) { SAL.sleepFor(1); }
 
-                    @Override
-                    public void onVideoSaved(@NonNull VideoCapture.OutputFileResults outputFileResults) {
-                        SAL.print("Video saved.");
-                    }
+                //Update Preview
+                if(!isWidescreen()) { updateWidescreen(new EventListener() {});}
 
-                    @Override
-                    public void onError(int videoCaptureError, @NonNull String message, @Nullable Throwable cause) {
-                        SAL.print("Error occured. cause: " + message);
-                    }
+                runLater( () -> {
+
+                    vc.setTargetRotation(majorRotation_);
+
+                    vc.startRecording(new VideoCapture.OutputFileOptions.Builder(new File(getOutputPath() + "/test.mp4")).build()
+                            , ContextCompat.getMainExecutor(context_), new VideoCapture.OnVideoSavedCallback() {
+
+                                @Override
+                                public void onVideoSaved(@NonNull VideoCapture.OutputFileResults outputFileResults) {
+                                    SAL.print("Video saved.");
+                                }
+
+                                @Override
+                                public void onError(int videoCaptureError, @NonNull String message, @Nullable Throwable cause) {
+                                    SAL.print("Error occured. cause: " + message);
+                                }
+                            });
+
+                    listener.onEventUpdated("START");
                 });
             }
             else {
                 vc.stopRecording();
+                listener.onEventUpdated("END");
+
+                ia = makeImageAnalysis();
+                runLater(() -> {
+                    pcp.unbind(vc);
+                    pcp.bindToLifecycle((LifecycleOwner) context_,cs,ia);});
             }
 
             if(!isWidescreen_) updateWidescreen(listener);
-
 
             listener.onEventFinished(true, "");
         }).start();
@@ -421,15 +478,7 @@ public class CameraControl {
             }
             else ++fpsIndex;
 
-            VideoCapture vc2 = makeVideoCapture();
-
-            runLater(() -> {
-                pcp.unbind(vc);
-                vc = vc2;
-                camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,vc);
-
-                listener.onEventFinished(true, "Video framerate changed to " + videoFps_ + "fps.");
-            });
+            listener.onEventFinished(true, "Video framerate changed to " + videoFps_ + "fps.");
 
         }).start();
     }
@@ -451,10 +500,11 @@ public class CameraControl {
     }
 
     //Helper methods
-    public static Preview makePreview(boolean isWidescreen) {
+    public static Preview makePreview() {
 
         Preview.Builder builder = new Preview.Builder()
-                .setTargetAspectRatio((isWidescreen || isVideoMode_) ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
+                //.setTargetResolution(new Size(3840, (isWidescreen_ || isVideoMode_)? 2160 : (3840 * 3 / 4));
+                .setTargetAspectRatio((isWidescreen_ || isFilming_) ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
 
         //new Camera2Interop.Extender<>(builder).setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range<Integer>(30,60));
 
@@ -467,7 +517,6 @@ public class CameraControl {
                 .setVideoFrameRate(videoFps_)
                 .setBitRate(100 * 1024 * 1024); //100 Mbps
 
-
         new Camera2Interop.Extender<>(builder)
                 .setCaptureRequestOption(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON)
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range(videoFps_,videoFps_));
@@ -477,6 +526,18 @@ public class CameraControl {
         r.setTargetRotation(majorRotation_);
 
         return r;
+    }
+
+    public static ImageCapture makeImageCapture() {
+
+        ImageCapture.Builder icBuilder = new ImageCapture.Builder()
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY);
+        new Camera2Interop.Extender<>(icBuilder)
+                //.setCaptureRequestOption(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_MINIMAL)
+                .setCaptureRequestOption(CaptureRequest.EDGE_MODE,CaptureRequest.EDGE_MODE_HIGH_QUALITY)
+                .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,Integer.valueOf(100).byteValue());
+
+        return icBuilder.build();
     }
 
     public static void focusToPoint(float x, float y,EventListener listener) {
@@ -517,10 +578,26 @@ public class CameraControl {
         }).start();
     }
 
+    public static ImageAnalysis makeImageAnalysis() {
+        ImageAnalysis.Builder builder = new ImageAnalysis.Builder()
+                //.setTargetResolution(new Size(3840, (isWidescreen_ || isVideoMode_)? 2160 : (3840 * 3 / 4)))
+                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST);
+
+        ImageAnalysis temp = builder.build();
+
+        //temp.setAnalyzer(ContextCompat.getMainExecutor(context_),CameraControl::analyzeCurrentFrame);
+
+        return temp;
+    }
+
+    public static void setLumaListener(LumaListener listener) {
+        lumaListener_ = listener;
+    }
+
     public static boolean isFrontFacing() {
         return isFrontFacing_;
     }
-    public static boolean isWidescreen() {return isWidescreen_ || isVideoMode_;}
+    public static boolean isWidescreen() {return isWidescreen_;}
     public static boolean isManualWideScreen() {return isWidescreen_;}
 
 }

@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="horizontal"
+    tools:context=".MainFragment">
+
+    <!-- Viewfinder area-->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:layout_constraintDimensionRatio="16:9"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        android:id="@+id/container_viewfinder"
+        >
+
+        <androidx.camera.view.PreviewView
+            android:id="@+id/preview"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:scaleType="fitCenter"
+            />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_sandwich"
+            android:elevation="3dp"
+            android:layout_margin="10dp"
+            android:layout_width="50dp"
+            android:layout_height="0dp"
+            app:cardBackgroundColor="@color/button_general"
+            app:cardCornerRadius="10dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintDimensionRatio="1:1"
+            />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_zoom"
+            android:layout_width="100dp"
+            android:layout_height="0dp"
+            android:elevation="3dp"
+            android:layout_margin="10dp"
+            android:layout_marginTop="20dp"
+            app:cardBackgroundColor="@color/button_general"
+            app:cardCornerRadius="10dp"
+            app:layout_constraintTop_toBottomOf="@id/card_sandwich"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintDimensionRatio="16:9"
+            >
+
+            <TextView
+                android:id="@+id/text_zoom"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="5dp"
+                android:textSize="15sp"
+                android:text="255.0 MM"
+                android:gravity="center"
+                />
+
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_ev"
+            android:layout_width="100dp"
+            android:layout_height="0dp"
+            android:elevation="3dp"
+            android:layout_margin="10dp"
+            android:layout_marginTop="20dp"
+            app:cardBackgroundColor="@color/button_general"
+            app:cardCornerRadius="10dp"
+            app:layout_constraintTop_toBottomOf="@id/card_zoom"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintDimensionRatio="16:9"
+            >
+
+            <TextView
+                android:id="@+id/text_ev"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_margin="5dp"
+                android:textSize="15sp"
+                android:text="0.0 EV"
+                android:gravity="center"
+                />
+
+        </androidx.cardview.widget.CardView>
+
+        <View
+            android:id="@+id/focus_circle"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            app:layout_constraintLeft_toLeftOf="@id/preview"
+            app:layout_constraintTop_toTopOf="@id/preview"
+            android:foreground="@drawable/focus_circle"
+            />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/card_settings"
+            android:elevation="3dp"
+            android:layout_margin="10dp"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            app:cardBackgroundColor="@color/button_general"
+            app:cardCornerRadius="10dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintRight_toRightOf="parent"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- Right button area -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/container_right"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:layout_constraintDimensionRatio="1:5"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:layout_marginEnd="10dp"
+        >
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/button_record"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:cardCornerRadius="20dp"
+            app:cardBackgroundColor="@color/record_inactive"
+            app:layout_constraintBottom_toTopOf="@id/button_capture"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_weight="1"/>
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="@id/button_record"
+            app:layout_constraintBottom_toBottomOf="@id/button_record"
+            app:layout_constraintLeft_toLeftOf="@id/button_record"
+            app:layout_constraintRight_toRightOf="@id/button_record"
+            android:foreground="@drawable/btn_video_finish"
+            android:layout_margin="20dp"
+            />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="@id/button_record"
+            app:layout_constraintBottom_toBottomOf="@id/button_record"
+            app:layout_constraintLeft_toLeftOf="@id/button_record"
+            app:layout_constraintRight_toRightOf="@id/button_record"
+            android:foreground="@drawable/btn_video_idle"
+            app:layout_constraintDimensionRatio="912.95:500"
+            android:layout_margin="20dp"
+            />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/button_capture"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="10dp"
+            app:cardCornerRadius="20dp"
+            app:layout_constraintVertical_weight="4"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/button_record"
+            app:cardBackgroundColor="@color/capture_inactive"
+            />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintTop_toTopOf="@id/button_capture"
+            app:layout_constraintBottom_toBottomOf="@id/button_capture"
+            app:layout_constraintLeft_toLeftOf="@id/button_capture"
+            app:layout_constraintRight_toRightOf="@id/button_capture"
+            app:layout_constraintDimensionRatio="1:1"
+            android:layout_margin="20dp"
+            android:foreground="@drawable/btn_capture_idle"/>
+
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

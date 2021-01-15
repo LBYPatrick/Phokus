@@ -21,7 +21,23 @@ public class MathTools {
         else { return value; }
     }
 
+    public static boolean isValueInRange(int value, int low, int high) {
+        return low > high ?
+                    (value >= high && value <= low)
+                :   (value >= low && value <= high);
+    }
+
     public static float getCropFactor(SizeF cmosDimensions) {
         return fullFrameCmosSize / (float)(Math.sqrt(Math.pow(cmosDimensions.getWidth(),2) + Math.pow(cmosDimensions.getWidth() /3 * 2,2)));
+    }
+
+    public static int sumOf(int... values) {
+        int sum = 0;
+
+        for(int i : values) {
+            sum += i;
+        }
+
+        return sum;
     }
 }

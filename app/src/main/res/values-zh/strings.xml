@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="mode_photo">照相</string>
+    <string name="mode_video">视频</string>
+</resources>

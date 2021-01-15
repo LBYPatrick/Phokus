@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.Manifest;
 import android.os.Bundle;
+import android.view.View;
 
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.SysInfo;
@@ -12,6 +13,9 @@ import com.lbynet.Phokus.utils.SysInfo;
 public class MainActivity extends AppCompatActivity {
 
     final static String TAG = MainActivity.class.getSimpleName();
+    MainFragment mainFrag_ = null;
+
+    boolean requirePermission = true;
 
     final public static String [] PERMISSIONS = {
             Manifest.permission.CAMERA,
@@ -25,9 +29,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.layout_main);
 
-        requestPermissions(PERMISSIONS,1);
+        mainFrag_ = null;
+
+        if(requirePermission) {
+            requestPermissions(PERMISSIONS,1);
+            requirePermission = false;
+        }
+
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        SAL.print("onResume");
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        requirePermission = true;
+
+        SAL.print("onPause");
+    }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
@@ -47,17 +71,32 @@ public class MainActivity extends AppCompatActivity {
         onCreated();
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        getWindow().getDecorView().setSystemUiVisibility(
+                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
+    }
+
     public void onCreated() {
 
-        SysInfo.initialize(this);
+        if(mainFrag_ == null) {
 
-        MainFragment mainFrag = new MainFragment();
+            SysInfo.initialize(this);
 
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(R.id.fl_fragment_placeholder,mainFrag)
-                //.addToBackStack("DEFAULT_STACK")
-                .commit();
+            mainFrag_ = new MainFragment();
+
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .replace(R.id.fl_fragment_placeholder, mainFrag_)
+                    //.addToBackStack("DEFAULT_STACK")
+                    .commit();
+        }
+
+        else {
+            //mainFrag_.onResume();
+        }
 
     }
 }

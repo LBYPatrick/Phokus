@@ -4,4 +4,21 @@
     <color name="colorPrimaryDark">#808080</color>
     <color name="colorAccent">#FF9800</color>
     <color name="black_overlay">#66000000</color>
+
+    <color name="decorBarColor">#A10000</color>
+    <color name="photo_mode_button">#FFFFFF</color>
+    <color name="video_mode_button">#A10000</color>
+
+    <color name="record_inactive">#40FFFFFF</color>
+    <color name="record_active">#DA1C03</color>
+    <color name="capture_inactive">#66FFFFFF</color>
+    <color name="capture_busy">#FFC800</color>
+
+    <color name="button_general">#40FFFFFF</color>
+
+    <color name="negative_ev">#982B00</color>
+    <color name="positive_ev">#6F9800</color>
+
+    <color name="focus_busy">#80FFFFFF</color>
+    <color name="focus_success">#FF00FF00</color>
 </resources>

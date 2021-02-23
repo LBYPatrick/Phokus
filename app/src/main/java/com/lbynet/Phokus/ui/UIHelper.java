@@ -88,9 +88,6 @@ public class UIHelper {
                             });
                         }
                     });
-
-
-
                 }
         );
 

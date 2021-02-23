@@ -6,10 +6,8 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.camera.core.Preview;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import android.view.LayoutInflater;
@@ -41,12 +39,18 @@ public class MainFragment extends Fragment {
     // TODO: Rename and change types of parameters
     private String mParam1;
     private String mParam2;
-    private CardView cardZoom;
+    private CardView cardZoom,
+                     cardRecord,
+                     cardCapture;
+    private PreviewView preview;
     private View rootView = null,
-                 focusCircle = null;
+                 focusCircle = null,
+                 iconRecordStart = null,
+                 iconRecordStop  = null,
+                 iconCaptureIdle = null;
     private OrientationEventListener oel = null;
     private double previewFullWidth = 0,
-                compressedWidth = 0,
+                previewCompressedWidth = 0,
                 previewFullHeight = 0;
     public MainFragment() {
         // Required empty public constructor
@@ -109,23 +113,6 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         rootView = view;
 
-        PreviewView preview = rootView.findViewById(R.id.preview);
-
-        preview.post(() -> {
-            preview.measure(View.MeasureSpec.EXACTLY,View.MeasureSpec.EXACTLY);
-
-            previewFullWidth = preview.getWidth();
-            previewFullHeight = preview.getHeight();
-            compressedWidth = previewFullWidth * 0.75;
-
-            ViewGroup.LayoutParams params = preview.getLayoutParams();
-            params.width = (int)compressedWidth;
-            preview.setLayoutParams(params);
-
-        });
-
-        CameraControl.initialize(rootView.findViewById(R.id.preview));
-
         SysInfo.addBMSListener(new BMSListener() {
             @Override
             public boolean onUpdate(Intent intent) {
@@ -137,16 +124,53 @@ public class MainFragment extends Fragment {
         });
 
 
-        cardZoom = rootView.findViewById(R.id.card_zoom);
-        ((TextView)cardZoom.findViewById(R.id.text_zoom)).setText((int)CameraControl.getMinFocalLength() + "mm");
-        cardZoom.setOnClickListener(this::onZoomButtonClicked);
-
-        rootView.findViewById(R.id.preview).setOnTouchListener(this::onPreviewTouched);
-
-        focusCircle = rootView.findViewById(R.id.focus_circle);
-        focusCircle.setVisibility(View.INVISIBLE);
+        findViews();
+        setupViewVisibility();
+        setupListeners();
+        setupMisc();
+        CameraControl.initialize(rootView.findViewById(R.id.preview));
     }
 
+    void findViews() {
+        cardZoom = rootView.findViewById(R.id.card_zoom);
+
+        focusCircle = rootView.findViewById(R.id.focus_circle);
+        iconCaptureIdle = rootView.findViewById(R.id.v_caputre_idle);
+        iconRecordStop = rootView.findViewById(R.id.v_record_stop);
+        iconRecordStart = rootView.findViewById(R.id.v_record_start);
+        cardRecord = rootView.findViewById(R.id.card_record);
+        cardCapture = rootView.findViewById(R.id.card_capture);
+        preview = rootView.findViewById(R.id.preview);
+    }
+
+    void setupViewVisibility() {
+        UIHelper.setViewAlpha(focusCircle,0,0);
+        UIHelper.setViewAlpha(iconRecordStop,0,0);
+    }
+
+    void setupListeners() {
+        cardZoom.setOnClickListener(this::onZoomButtonClicked);
+        preview.setOnTouchListener(this::onPreviewTouched);
+        cardRecord.setOnClickListener(this::onRecordClicked);
+    }
+
+    void setupMisc() {
+
+        ((TextView)cardZoom.findViewById(R.id.text_zoom)).setText((int)CameraControl.getMinFocalLength() + "mm");
+
+        preview.post(() -> {
+            preview.measure(View.MeasureSpec.EXACTLY,View.MeasureSpec.EXACTLY);
+
+            previewFullWidth = preview.getWidth();
+            previewFullHeight = preview.getHeight();
+            previewCompressedWidth = previewFullWidth * 0.75;
+
+            ViewGroup.LayoutParams params = preview.getLayoutParams();
+            params.width = (int) previewCompressedWidth;
+            preview.setLayoutParams(params);
+
+        });
+    }
 
     boolean onZoomButtonClicked(View v) {
         CardView b = (CardView) v;
@@ -192,11 +216,10 @@ public class MainFragment extends Fragment {
             return true;
         }
 
-        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) rootView.findViewById(R.id.focus_circle).getLayoutParams();
-
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) focusCircle.getLayoutParams();
         params.setMargins((int)motionEvent.getX() - 70, (int)motionEvent.getY() -70,0,0);
 
-        rootView.findViewById(R.id.focus_circle).setLayoutParams(params);
+        focusCircle.setLayoutParams(params);
 
         CameraControl.focusToPoint(motionEvent.getX(), motionEvent.getY(), new EventListener() {
             @Override
@@ -227,6 +250,60 @@ public class MainFragment extends Fragment {
                 return super.onEventUpdated(extra);
             }
         });
+        return true;
+    }
+
+    boolean onRecordClicked(View v) {
+
+        int [] colors = UIHelper.getColors(requireContext(),R.color.record_inactive,R.color.record_active);
+
+        CameraControl.toggleRecording(new EventListener() {
+            @Override
+            public boolean onEventBegan(String extra) {
+
+                UIHelper.runLater(requireContext(), () -> {cardRecord.setClickable(false);});
+
+                return super.onEventBegan(extra);
+            }
+
+            @Override
+            public boolean onEventUpdated(String extra) {
+
+                if(extra.equals("START") || extra.equals("END")) {
+                    boolean isFilming = extra.equals("START");
+
+                    UIHelper.setViewAlpha(iconRecordStop, 200, isFilming ? 1 : 0);
+                    UIHelper.setViewAlpha(iconRecordStart, 200, isFilming ? 0 : 1);
+
+                    UIHelper.runLater(requireContext(), () -> {
+
+                        UIHelper.getColorAnimator(new ColorListener() {
+                            @Override
+                            public void onColorUpdated(int newColor) {
+                                UIHelper.runLater(requireContext(), () -> {
+                                    cardRecord.setCardBackgroundColor(newColor);
+                                });
+                            }
+                        }, 200, true, isFilming ? colors : new int[]{colors[1], colors[0]}).start();
+                        cardRecord.setClickable(true);
+
+                    });
+                }
+                else if(extra.equals("Updating widescreen")) {
+                    UIHelper.runLater(requireContext(),() -> {
+
+                        ViewGroup.LayoutParams params = preview.getLayoutParams();
+
+                        params.width = (int)((CameraControl.isFilming() || CameraControl.isWidescreen()) ? previewFullWidth : previewCompressedWidth);
+
+                        preview.setLayoutParams(params);
+                    });
+                }
+
+                return super.onEventUpdated(extra);
+            }
+        });
+
         return true;
     }
 }

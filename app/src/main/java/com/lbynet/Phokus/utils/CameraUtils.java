@@ -16,7 +16,7 @@ public class CameraUtils {
     public static HashMap<Integer,Float> focalLengthMap = new HashMap<>(),
                                          cropFactorMap = new HashMap<>();
     final public static String TAG = CameraUtils.class.getSimpleName();
-
+    
     public enum LogScheme {
         CLOG,
         SLOG;

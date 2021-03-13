@@ -5,15 +5,21 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Environment;
+import android.print.PrintAttributes;
 import android.util.Range;
+import android.util.Size;
 import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.camera.camera2.internal.Camera2UseCaseConfigFactory;
+import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.Camera2Interop;
+import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.CameraX;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageAnalysis;
@@ -45,7 +51,7 @@ public class CameraControl {
 
     final static float[] AVAIL_ZOOM_LENGTHS = {28, 35, 50, 70, 85};
     final static int[] AVAIL_VIDEO_FPS = {24, 25, 30, 48, 50, 60};
-    final static int DEFAULT_VIDEO_FPS = AVAIL_VIDEO_FPS[2];
+    final static int DEFAULT_VIDEO_FPS = AVAIL_VIDEO_FPS[1];
 
     private static boolean isFilming_ = false,
             isWidescreen_ = false,
@@ -61,7 +67,7 @@ public class CameraControl {
             minorRotation_ = 0,
             videoFps_ = DEFAULT_VIDEO_FPS,
             zoomIndex = 0,
-            fpsIndex = 2;
+            fpsIndex = 1;
     private static CameraSelector cs;
     private static ImageCapture ic;
     private static ImageAnalysis ia;
@@ -73,9 +79,9 @@ public class CameraControl {
     private static Context context_;
     private static Timer iaTimer = new Timer("ImageAnalysis Timer");
     private static int[] lumaBucket_ = {0, 0, 0, 0, 0, 0};
-    private static LumaListener lumaListener_ = new LumaListener() {
-    };
+    private static LumaListener lumaListener_ = new LumaListener() {};
 
+    private static CaptureRequestOptions.Builder cro = new CaptureRequestOptions.Builder();
 
     public static void initialize(PreviewView previewView) {
         context_ = previewView.getContext();
@@ -115,8 +121,7 @@ public class CameraControl {
     }
 
     public static void bindCamera() {
-        bindCamera(new EventListener() {
-        });
+        bindCamera(new EventListener() {});
     }
 
     @SuppressLint("RestrictedApi")
@@ -367,6 +372,7 @@ public class CameraControl {
 
         listener.onEventBegan("Zooming from " + lastZoomFocalLength_ + "mm to " + mm + "mm.");
 
+        //TODO: Currently this snippet only works for rear-facing camera, make it also work for front
         new Thread(() -> {
             listener.onEventBegan("");
             if (mm < minFocalLength_) {
@@ -375,7 +381,6 @@ public class CameraControl {
             }
             final float zoomRatio = mm / minFocalLength_;
 
-            //TODO: Zoom
             androidx.camera.core.CameraControl cc = camera.getCameraControl();
 
             ValueAnimator animator = ValueAnimator.ofFloat(lastZoomFocalLength_ / minFocalLength_, zoomRatio);
@@ -434,6 +439,9 @@ public class CameraControl {
                     SAL.sleepFor(1);
                 }
 
+                updateVideoSettings();
+                flushCameraRequest();
+
                 runLater(() -> {
 
                     vc.setTargetRotation(majorRotation_);
@@ -463,7 +471,11 @@ public class CameraControl {
                     pcp.unbind(vc);
                     pcp.bindToLifecycle((LifecycleOwner) context_, cs, ia);
                 });
+
+                updateVideoSettings();
+                flushCameraRequest();
             }
+
 
             listener.onEventFinished(true, "");
         }).start();
@@ -497,7 +509,9 @@ public class CameraControl {
     }
 
     public static void updateRotation(int rotation, EventListener listener) {
-        listener.onEventBegan("Updating rotation: " + rotation);
+
+
+        //listener.onEventBegan("Updating rotation: " + rotation);
 
         minorRotation_ = rotation;
 
@@ -505,7 +519,7 @@ public class CameraControl {
             majorRotation_ = rotation;
         }
 
-        listener.onEventFinished(true, "Finished updating rotation.");
+        //listener.onEventFinished(true, "Finished updating rotation.");
     }
 
     //Helper methods
@@ -524,35 +538,10 @@ public class CameraControl {
 
         VideoCapture.Builder builder = new VideoCapture.Builder()
                 .setVideoFrameRate(videoFps_)
-                .setBitRate(100 * 1024 * 1024); //100 Mbps
-
-        new Camera2Interop.Extender<>(builder)
-
-                //Video stabilization on/off
-                .setCaptureRequestOption(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
-                        isVideoStbEnabled_ ? CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
-                                : CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF)
-
-                //Video target fps
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range(videoFps_, videoFps_))
-
-                //LOG curve
-                /**
-                 * Experimental
-                 */
-                .setCaptureRequestOption(CaptureRequest.TONEMAP_MODE,
-                        isLogEnabled_ ? CaptureRequest.TONEMAP_MODE_CONTRAST_CURVE
-                                : CaptureRequest.TONEMAP_MODE_HIGH_QUALITY)
-
-                .setCaptureRequestOption(CaptureRequest.TONEMAP_CURVE, CameraUtils.makeToneMapCurve(
-                        CameraUtils.LogScheme.CLOG, CameraUtils.getCameraCharacteristics(context_, isFrontFacing() ? 1 : 0)))
-
-                .setCaptureRequestOption(CaptureRequest.EDGE_MODE,
-                        isLogEnabled_ ? CaptureRequest.EDGE_MODE_OFF
-                                : CaptureRequest.EDGE_MODE_HIGH_QUALITY);
+                .setBitRate(100 * 1024 * 1024) //100 Mbps
+                .setTargetResolution(new Size(3840, 2160));
 
         VideoCapture r = builder.build();
-        r.setTargetRotation(majorRotation_);
 
         return r;
     }
@@ -561,10 +550,6 @@ public class CameraControl {
 
         ImageCapture.Builder icBuilder = new ImageCapture.Builder()
                 .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY);
-        new Camera2Interop.Extender<>(icBuilder)
-                //.setCaptureRequestOption(CaptureRequest.NOISE_REDUCTION_MODE, CaptureRequest.NOISE_REDUCTION_MODE_MINIMAL)
-                //.setCaptureRequestOption(CaptureRequest.EDGE_MODE, CaptureRequest.EDGE_MODE_HIGH_QUALITY)
-                .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, Integer.valueOf(100).byteValue());
 
         return icBuilder.build();
     }
@@ -616,6 +601,74 @@ public class CameraControl {
         temp.setAnalyzer(ContextCompat.getMainExecutor(context_), CameraControl::analyzeCurrentFrame);
 
         return temp;
+    }
+
+    private static void updateAllCameraConfig() {
+        updateVideoSettings();
+        updatePhotoSettings();
+    }
+
+    private static void updateVideoSettings() {
+        update3A();
+        updateLogMode();
+
+        cro.setCaptureRequestOption(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                isVideoStbEnabled_ ? CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
+                : CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
+
+    }
+
+    private static void updatePhotoSettings() {
+
+        cro.setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,Integer.valueOf(100).byteValue());
+
+    }
+
+    private static void updateLogMode() {
+
+        boolean isLog = isLogEnabled_ && isFilming_;
+
+        cro.setCaptureRequestOption(CaptureRequest.TONEMAP_MODE,
+                isLog ? CaptureRequest.TONEMAP_MODE_CONTRAST_CURVE
+                        : CaptureRequest.TONEMAP_MODE_HIGH_QUALITY)
+
+                .setCaptureRequestOption(CaptureRequest.TONEMAP_CURVE, CameraUtils.makeToneMapCurve(
+                        CameraUtils.LogScheme.CLOG, CameraUtils.getCameraCharacteristics(context_, isFrontFacing() ? 1 : 0)))
+
+                .setCaptureRequestOption(CaptureRequest.EDGE_MODE,
+                        isLog ? CaptureRequest.EDGE_MODE_OFF
+                                : CaptureRequest.EDGE_MODE_HIGH_QUALITY);
+    }
+
+    private static void update3A() {
+
+
+        cro.setCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE,videoFps_ % 25 == 0 ?
+                                        CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_50HZ:
+                                        CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_60HZ);
+
+
+        cro.setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range(isFilming_ ? videoFps_ : 0,videoFps_));
+
+        cro.setCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK, isFilming_)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, isFilming_)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+
+
+    }
+
+    @SuppressLint("UnsafeExperimentalUsageError")
+    private static void flushCameraRequest() {
+        try {
+
+            Camera2CameraControl.from(camera.getCameraControl()).addCaptureRequestOptions(cro.build()).get();
+            cro = new CaptureRequestOptions.Builder();
+
+            SAL.print("Finish flushing");
+
+        } catch (Exception e) {
+            SAL.print(e);
+        }
     }
 
     public static void setLumaListener(LumaListener listener) {

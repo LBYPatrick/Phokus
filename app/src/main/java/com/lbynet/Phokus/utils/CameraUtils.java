@@ -90,6 +90,11 @@ public class CameraUtils {
         return r;
     }
 
+    public static float get35FocalLength(Context context, int cameraId) {
+
+        return getCropFactor(context,cameraId) * getFocalLength(context,cameraId);
+    }
+
 
     public static TonemapCurve makeToneMapCurve(CameraCharacteristics cc) {
         return makeToneMapCurve(LogScheme.CLOG, cc);

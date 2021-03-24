@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <string name="mode_photo">照相</string>
-    <string name="mode_video">视频</string>
+    <string name="hint_zoom">焦段</string>
+    <string name="hint_af_mode">对焦模式</string>
+    <string name="hint_wb">白平衡</string>
+    <string name="hint_fps">帧速率</string>
+    <string name="hint_ae_lock">曝光锁定</string>
+    <string name="hint_recording_busy">正在录制</string>
+    <string name="hint_recording_idle">可进行录制</string>
+    <string name="hint_guide_overlay">参考线</string>
 </resources>

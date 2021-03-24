@@ -29,9 +29,7 @@ public class DelayedAnimation {
                 SAL.sleepFor(10);
             }
 
-            if(isInterrupted) {
-                return;
-            }
+            if(isInterrupted) return;
 
             executor_.execute(animator_::start);
         }).start();

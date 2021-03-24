@@ -14,4 +14,30 @@
 
     </style>
 
+    <style name="ViewFinderData" parent="Widget.AppCompat.TextView">
+        <item name="android:layout_width">75dp</item>
+        <item name="android:layout_height">30sp</item>
+        <item name="android:textColor">#FFFFFF</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:elevation">3dp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:gravity">center</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
+    <style name="ViewFinderHint" parent="Widget.AppCompat.TextView">
+        <item name="android:layout_width">75dp</item>
+        <item name="android:layout_height">22sp</item>
+        <item name="android:textColor">#BFFFFFFF</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:elevation">3dp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:layout_marginStart">10dp</item>
+        <item name="android:gravity">bottom|center_horizontal</item>
+    </style>
+
+    <style name="FixedMDTextButton" parent="Widget.MaterialComponents.Button.TextButton">
+        <item name="android:outlineAmbientShadowColor">#00FFFFFF</item>
+        <item name="android:outlineSpotShadowColor">#00FFFFFF</item>
+    </style>
 </resources>

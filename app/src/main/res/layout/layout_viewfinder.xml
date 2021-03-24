@@ -150,7 +150,7 @@
             app:layout_constraintBottom_toBottomOf="@id/card_record"
             app:layout_constraintLeft_toLeftOf="@id/card_record"
             app:layout_constraintRight_toRightOf="@id/card_record"
-            android:foreground="@drawable/btn_video_stop"
+            android:foreground="@drawable/ic_video_stop"
             android:layout_margin="20dp"
             android:elevation="5dp"
             />
@@ -163,7 +163,7 @@
             app:layout_constraintBottom_toBottomOf="@id/card_record"
             app:layout_constraintLeft_toLeftOf="@id/card_record"
             app:layout_constraintRight_toRightOf="@id/card_record"
-            android:foreground="@drawable/btn_video_idle"
+            android:foreground="@drawable/ic_video_idle"
             app:layout_constraintDimensionRatio="912.95:500"
             android:layout_margin="20dp"
             android:elevation="5dp"

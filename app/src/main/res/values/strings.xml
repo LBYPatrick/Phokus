@@ -1,6 +1,12 @@
 <resources>
     <string name="app_name" translatable="false">Phokus</string>
-
-    <string name="mode_photo">PHOTO</string>
-    <string name="mode_video">VIDEO</string>
+    <string name="app_name_debug" translatable="false">Phokus DEBUG</string>
+    <string name="hint_zoom">ZOOM</string>
+    <string name="hint_af_mode">AF MODE</string>
+    <string name="hint_wb">WB</string>
+    <string name="hint_fps">FPS</string>
+    <string name="hint_ae_lock">AE LOCK</string>
+    <string name="hint_recording_busy">RECORDING</string>
+    <string name="hint_recording_idle">READY</string>
+    <string name="hint_guide_overlay">GUIDE</string>
 </resources>

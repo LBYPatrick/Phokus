@@ -156,7 +156,7 @@ public class MainFragment extends Fragment {
 
     void setupMisc() {
 
-        ((TextView)cardZoom.findViewById(R.id.text_zoom)).setText((int)CameraControl.getMinFocalLength() + "mm");
+        ((TextView)cardZoom.findViewById(R.id.text_zoom)).setText((int)CameraControl.getEquivalentFocalLength(0) + "mm");
 
         preview.post(() -> {
             preview.measure(View.MeasureSpec.EXACTLY,View.MeasureSpec.EXACTLY);

@@ -29,27 +29,18 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.layout_main);
 
-        mainFrag_ = null;
-
-        if(requirePermission) {
-            requestPermissions(PERMISSIONS,1);
-            requirePermission = false;
-        }
-
+        requestPermissions(PERMISSIONS,1);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
         SAL.print("onResume");
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        requirePermission = true;
-
         SAL.print("onPause");
     }
 
@@ -68,7 +59,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        onCreated();
+        onPermissionGranted();
     }
 
     @Override
@@ -79,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY);
     }
 
-    public void onCreated() {
+    public void onPermissionGranted() {
 
         if(mainFrag_ == null) {
 
@@ -92,10 +83,6 @@ public class MainActivity extends AppCompatActivity {
                     .replace(R.id.fl_fragment_placeholder, mainFrag_)
                     //.addToBackStack("DEFAULT_STACK")
                     .commit();
-        }
-
-        else {
-            //mainFrag_.onResume();
         }
 
     }

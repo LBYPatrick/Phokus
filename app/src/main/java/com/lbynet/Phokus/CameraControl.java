@@ -61,8 +61,7 @@ public class CameraControl {
             isLogEnabled_ = true;
 
     private static float minFocalLength_ = 0,
-            lastZoomFocalLength_ = 0,
-            frontFacingFocalLength_ = 0;
+            lastZoomFocalLength_ = 0;
     private static int majorRotation_ = 0,
             minorRotation_ = 0,
             videoFps_ = DEFAULT_VIDEO_FPS,
@@ -99,25 +98,6 @@ public class CameraControl {
                 SAL.print(e);
             }
         }, ContextCompat.getMainExecutor(context_));
-
-
-        try {
-
-            minFocalLength_ = CameraUtils.getFocalLength(context_, 0) * CameraUtils.getCropFactor(context_, 0);
-            lastZoomFocalLength_ = minFocalLength_;
-
-            SAL.print("Main Camera Focal Length(Full Frame Equivalent): " + minFocalLength_ + "mm");
-
-            //Get front-facing camera's focal length
-            if (CameraUtils.getCameraCount(context_) >= 2) {
-                frontFacingFocalLength_ = CameraUtils.getFocalLength(context_, 1) * CameraUtils.getCropFactor(context_, 1);
-            }
-
-            SAL.print("Front-facing camera Focal Length(Full Frame Equivalent): " + frontFacingFocalLength_ + "mm");
-
-        } catch (Exception e) {
-            SAL.print(e);
-        }
     }
 
     public static void bindCamera() {
@@ -241,7 +221,7 @@ public class CameraControl {
             isFrontFacing_ = isFrontFacing;
 
             //Reset zoom parameters
-            lastZoomFocalLength_ = minFocalLength_;
+            lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_,isFrontFacing_? 1 : 0);
             zoomIndex = 0;
 
             cs = new CameraSelector.Builder()
@@ -257,8 +237,8 @@ public class CameraControl {
         }).start();
     }
 
-    public static float getMinFocalLength() {
-        return minFocalLength_;
+    public static float getEquivalentFocalLength(int cameraId) {
+        return CameraUtils.get35FocalLength(context_, cameraId);
     }
 
     public static void runLater(Runnable r) {
@@ -318,10 +298,6 @@ public class CameraControl {
             });
 
         }).start();
-    }
-
-    public static float getFrontFacingFocalLength() {
-        return frontFacingFocalLength_;
     }
 
     public static void updateCropRect(int zoomRatio) {
@@ -426,9 +402,7 @@ public class CameraControl {
                 runLater(() -> {
                     pcp.unbind(ia);
                 });
-                while (pcp.isBound(ia)) {
-                    SAL.sleepFor(1);
-                }
+                while (pcp.isBound(ia)) SAL.sleepFor(1);
 
                 //Bind VideoCapture
                 vc = makeVideoCapture();

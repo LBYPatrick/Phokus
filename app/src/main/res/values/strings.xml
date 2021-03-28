@@ -6,7 +6,14 @@
     <string name="hint_wb">WB</string>
     <string name="hint_fps">FPS</string>
     <string name="hint_ae_lock">AE LOCK</string>
-    <string name="hint_recording_busy">RECORDING</string>
-    <string name="hint_recording_idle">READY</string>
     <string name="hint_guide_overlay">GUIDE</string>
+    <string name="hint_info">INFO</string>
+
+    <string name="data_af_mode_one_shot">ONE SHOT</string>
+    <string name="data_af_mode_zone_servo">ZONE SERVO</string>
+    <string name="data_wb_auto">AUTO</string>
+    <string name="data_ae_lock_off">OFF</string>
+    <string name="data_ae_lock_on">LOCKED</string>
+    <string name="data_recording_busy">RECORDING</string>
+    <string name="data_recording_idle">READY</string>
 </resources>

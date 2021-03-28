@@ -110,7 +110,6 @@ public class CameraControl {
         listener.onEventBegan("Start binding camera.");
 
         pcp.unbindAll();
-
         /**
          * CameraSelector instance
          */
@@ -118,6 +117,8 @@ public class CameraControl {
                 .requireLensFacing(isFrontFacing_ ?
                         CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
+
+        camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs);
 
         /**
          * Preview use case
@@ -300,9 +301,6 @@ public class CameraControl {
         }).start();
     }
 
-    public static void updateCropRect(int zoomRatio) {
-    }
-
     public static void toggleZoom(EventListener listener) {
 
         listener.onEventBegan("Start zooming...");
@@ -398,21 +396,6 @@ public class CameraControl {
 
             if (isFilming_) {
 
-                //Unbind ImageAnalysis
-                runLater(() -> {
-                    pcp.unbind(ia);
-                });
-                while (pcp.isBound(ia)) SAL.sleepFor(1);
-
-                //Bind VideoCapture
-                vc = makeVideoCapture();
-                runLater(() -> {
-                    pcp.bindToLifecycle((LifecycleOwner) context_, cs, vc);
-                });
-                while (!pcp.isBound(vc)) {
-                    SAL.sleepFor(1);
-                }
-
                 updateVideoSettings();
                 flushCameraRequest();
 
@@ -440,16 +423,9 @@ public class CameraControl {
                 vc.stopRecording();
                 listener.onEventUpdated("END");
 
-                ia = makeImageAnalysis();
-                runLater(() -> {
-                    pcp.unbind(vc);
-                    pcp.bindToLifecycle((LifecycleOwner) context_, cs, ia);
-                });
-
                 updateVideoSettings();
                 flushCameraRequest();
             }
-
 
             listener.onEventFinished(true, "");
         }).start();
@@ -463,8 +439,6 @@ public class CameraControl {
     public static void toggleVideoFps(EventListener listener) {
 
         new Thread(() -> {
-
-
             videoFps_ = AVAIL_VIDEO_FPS[fpsIndex];
 
             listener.onEventBegan("Changing video framerate to " + videoFps_ + "fps...");
@@ -472,6 +446,11 @@ public class CameraControl {
             if (fpsIndex == AVAIL_VIDEO_FPS.length - 1) {
                 fpsIndex = 0;
             } else ++fpsIndex;
+
+
+            pcp.unbind(vc);
+            vc = makeVideoCapture();
+            camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,vc);
 
             listener.onEventFinished(true, "Video framerate changed to " + videoFps_ + "fps.");
 

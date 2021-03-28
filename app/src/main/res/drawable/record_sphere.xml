@@ -4,6 +4,8 @@
     android:useLevel="false"
     >
 
-    <solid android:color="#FF0000"/>
+    <solid
+        android:color="#FF0000"
+        />
 
 </shape>

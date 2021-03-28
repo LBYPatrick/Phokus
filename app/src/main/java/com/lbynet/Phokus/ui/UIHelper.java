@@ -5,6 +5,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Point;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
@@ -20,6 +21,7 @@ import com.lbynet.Phokus.listener.ColorListener;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
 
+import java.util.HashMap;
 import java.util.concurrent.Executor;
 
 public class UIHelper {
@@ -30,6 +32,7 @@ public class UIHelper {
     static DelayedAnimation animation = null;
     static Executor toastExecutor_ = null;
     static CardView toastView_ = null;
+    static HashMap<View, Boolean> hapticViewMap = new HashMap<>();
 
     public static void printSystemToast(Activity activity, String msg, boolean isLongTime) {
         activity.runOnUiThread( () -> {
@@ -157,6 +160,19 @@ public class UIHelper {
 
         return ContextCompat.getColorStateList(context,resId);
 
+    }
+
+    public static boolean hapticFeedback(View view, MotionEvent e) {
+
+        final int action = e.getActionMasked();
+        final boolean isDown = action == MotionEvent.ACTION_DOWN;
+
+        if((hapticViewMap.containsKey(view) && hapticViewMap.get(view)) && isDown) { return true; }
+        else {
+            SAL.simulatePress(view.getContext(),!isDown);
+            hapticViewMap.put(view,isDown);
+            return isDown;
+        }
     }
 
 }

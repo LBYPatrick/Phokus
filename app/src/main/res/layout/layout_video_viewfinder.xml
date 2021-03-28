@@ -50,6 +50,7 @@
         app:layout_constraintTop_toTopOf="@id/pv_preview"
         android:foreground="@drawable/focus_circle"
         android:visibility="invisible"
+        android:elevation="3dp"
         />
 
     <TextView
@@ -80,7 +81,7 @@
     <TextView
         style="@style/ViewFinderData"
         android:id="@+id/data_af_mode"
-        android:text="ONE SHOT"
+        android:text="@string/data_af_mode_one_shot"
         android:textSize="10sp"
         app:layout_constraintLeft_toLeftOf="@id/hint_af_mode"
         app:layout_constraintTop_toBottomOf="@id/hint_af_mode"
@@ -113,7 +114,7 @@
     <TextView
         style="@style/ViewFinderData"
         android:id="@+id/data_wb"
-        android:text="5200K"
+        android:text="@string/data_wb_auto"
         app:layout_constraintLeft_toLeftOf="@id/hint_wb"
         app:layout_constraintTop_toBottomOf="@id/hint_wb"
         />
@@ -128,7 +129,7 @@
     <TextView
         style="@style/ViewFinderData"
         android:id="@+id/btn_ae_lock"
-        android:text="OFF"
+        android:text="@string/data_ae_lock_off"
         app:layout_constraintTop_toBottomOf="@id/hint_ae_lock"
         app:layout_constraintLeft_toLeftOf="@id/hint_ae_lock"
         />
@@ -148,30 +149,33 @@
         android:elevation="3dp"
         />
 
+    <!-- Stuff that are at the bottom of the screen -->
     <TextView
-        android:id="@+id/hint_recording"
+        android:id="@+id/data_recording_text"
         android:layout_width="wrap_content"
         android:layout_height="52dp"
         android:paddingVertical="10dp"
         android:layout_marginRight="20dp"
         android:textSize="20dp"
-        android:text="@string/hint_recording_idle"
+        android:text="@string/data_recording_idle"
         android:elevation="3dp"
         app:layout_constraintBottom_toBottomOf="@id/pv_preview"
         app:layout_constraintRight_toRightOf="@id/pv_preview"
         android:gravity="center_vertical|start"
         />
 
-    <View
+    <ImageView
+        android:id="@+id/data_recording_icon"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintDimensionRatio="1:1"
-        app:layout_constraintRight_toLeftOf="@id/hint_recording"
-        app:layout_constraintTop_toTopOf="@id/hint_recording"
-        app:layout_constraintBottom_toBottomOf="@id/hint_recording"
-        android:foreground="@drawable/record_sphere"
-        android:foregroundTint="#80FFFFFF"
-        android:layout_margin="10dp"
+        app:layout_constraintRight_toLeftOf="@id/data_recording_text"
+        app:layout_constraintTop_toTopOf="@id/data_recording_text"
+        app:layout_constraintBottom_toBottomOf="@id/data_recording_text"
+        android:src="@drawable/record_sphere"
+        app:tint="#80FFFFFF"
+        android:layout_marginEnd="5dp"
+        android:layout_marginVertical="15dp"
         android:elevation="3dp"
         />
 
@@ -194,10 +198,25 @@
         android:layout_width="wrap_content"
         android:layout_height="40dp"
         android:autoSizeTextType="uniform"
+        android:layout_marginLeft="10dp"
         android:textColor="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="@id/v_settings"
         app:layout_constraintLeft_toRightOf="@id/v_settings"
         android:elevation="3dp"
+        />
+
+    <Button
+        style="@style/FixedMDTextButton"
+        android:id="@+id/btn_info"
+        android:text="@string/hint_info"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:autoSizeTextType="uniform"
+        android:textColor="#FFFFFF"
+        app:layout_constraintBottom_toBottomOf="@id/v_settings"
+        app:layout_constraintLeft_toRightOf="@id/btn_guide"
+        android:elevation="3dp"
+        android:layout_marginLeft="10dp"
         />
 
 

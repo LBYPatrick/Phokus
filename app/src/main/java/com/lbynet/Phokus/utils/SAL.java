@@ -2,20 +2,30 @@ package com.lbynet.Phokus.utils;
 
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.util.Log;
 
+import androidx.annotation.IntRange;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Locale;
 
 /*
 SAL stands for "Software Abstract Layer", a class that mainly addresses differences in operating systems.
+This class dates back to 2019 when I first started playing around with android,
+when my first project aimed for all-platform compatibility.
  */
 public class SAL {
+
+    final public static String TAG = SAL.class.getCanonicalName();
 
     public enum MsgType {
         ERROR,
@@ -141,5 +151,44 @@ public class SAL {
         print(MsgType.VERBOSE,
                 "printUri",
                 "Filename (by query): " + query.getString(query.getColumnIndex(OpenableColumns.DISPLAY_NAME)));
+    }
+
+    public static Locale getLocale() {
+        return Resources.getSystem().getConfiguration().getLocales().get(0);
+    }
+
+    public static boolean isChinese() {
+
+        Locale language = getLocale();
+
+        SAL.print("Locale:" + language.toLanguageTag());
+
+        return language.toLanguageTag().equals("zh-CN") || language.toLanguageTag().equals("zh-Hans-CN") || language.toLanguageTag().equals("zh-TW");
+    }
+
+    public static boolean simulatePress(Context context, boolean isRelease) {
+        return vibrate(context, isRelease ? 30 : 10, isRelease);
+    }
+
+    public static boolean vibrate(Context context, int durationInMs, boolean isTick) {
+        Vibrator v =  (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
+
+        if(v != null) {
+            v.vibrate(
+                    VibrationEffect.createOneShot(
+                            durationInMs,
+                            isTick ?
+                                    VibrationEffect.EFFECT_TICK
+                                    : VibrationEffect.DEFAULT_AMPLITUDE));
+            SAL.print(TAG,"Vibration executed: "
+                    + durationInMs
+                    + "ms of "
+                    + (isTick? "tick." : "regular vibration."));
+            return true;
+        }
+        else {
+            SAL.print(TAG,"Failed to vibrate because no vibrator is available.");
+            return false;
+        }
     }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#000000</color>
-    <color name="colorPrimaryDark">#808080</color>
+    <color name="colorPrimary">#808080</color>
+    <color name="colorPrimaryDark">#202020</color>
     <color name="colorAccent">#9E0000</color>
     <color name="black_overlay">#66000000</color>
 
@@ -16,9 +16,10 @@
 
     <color name="button_general">#40FFFFFF</color>
 
-    <color name="negative_ev">#982B00</color>
-    <color name="positive_ev">#6F9800</color>
-
     <color name="focus_busy">#80FFFFFF</color>
     <color name="focus_success">#FF00FF00</color>
+
+    <color name="card_inactive">#00000000</color>
+    <color name="card_active">#155A91</color>
+
 </resources>

@@ -8,7 +8,7 @@
     <string name="hint_ae_lock">AE LOCK</string>
     <string name="hint_guide_overlay">GUIDE</string>
     <string name="hint_info">INFO</string>
-
+    <string name="hint_ev">EV</string>
     <string name="data_af_mode_one_shot">ONE SHOT</string>
     <string name="data_af_mode_zone_servo">ZONE SERVO</string>
     <string name="data_wb_auto">AUTO</string>

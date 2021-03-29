@@ -14,4 +14,5 @@
     <string name="data_ae_lock_on">锁定</string>
     <string name="data_af_mode_zone_servo">区域连续</string>
     <string name="hint_info">高级参数</string>
+    <string name="hint_ev">曝光补偿</string>
 </resources>

@@ -10,6 +10,7 @@ public class Timer {
     public Timer(String name) {
         this.name = name;
         startTime = System.currentTimeMillis();
+        isBusy = true;
     }
 
     public Timer() {
@@ -31,7 +32,9 @@ public class Timer {
     }
 
     public long getElaspedTimeInMs() {
-        endTime = System.currentTimeMillis();
+
+        if(isBusy) endTime = System.currentTimeMillis();;
+
         return endTime - startTime;
     }
 

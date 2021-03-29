@@ -40,4 +40,27 @@ public class MathTools {
 
         return sum;
     }
+
+    public static int [] sliceTime(double ms) {
+
+        return new int [] {
+                (int)Math.floor(ms / 1000 / 3600), //Hour
+                (int)Math.floor((ms / 1000 /60) % 60), //Minute
+                (int)Math.floor((ms / 1000) % 60), //Second
+                (int)Math.floor(ms % 100) //Tens of ms
+        };
+
+    }
+
+    public static void formatTime(double ms, String [] buffer) {
+        int [] time = sliceTime(ms);
+
+        if(buffer.length < 4) return;
+
+        for(int i = 0; i < 4; ++i) {
+            if (time[i] < 10) {
+                buffer[i] = "0" + time[i];
+            } else buffer[i] = Integer.toString(time[i]);
+        }
+    }
 }

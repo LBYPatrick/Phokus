@@ -191,33 +191,36 @@
         android:elevation="3dp"
         />
 
-    <Button
-        style="@style/FixedMDTextButton"
-        android:id="@+id/btn_guide"
-        android:text="@string/hint_guide_overlay"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:autoSizeTextType="uniform"
+    <androidx.cardview.widget.CardView
+        style="@style/BottomCard"
+        android:id="@+id/card_guide"
         android:layout_marginLeft="10dp"
-        android:textColor="#FFFFFF"
         app:layout_constraintBottom_toBottomOf="@id/v_settings"
         app:layout_constraintLeft_toRightOf="@id/v_settings"
-        android:elevation="3dp"
-        />
+        app:cardBackgroundColor="@color/card_active"
+        >
 
-    <Button
-        style="@style/FixedMDTextButton"
-        android:id="@+id/btn_info"
-        android:text="@string/hint_info"
-        android:layout_width="wrap_content"
-        android:layout_height="40dp"
-        android:autoSizeTextType="uniform"
-        android:textColor="#FFFFFF"
+        <TextView
+            style="@style/BottomText"
+            android:text="@string/hint_guide_overlay"/>
+
+    </androidx.cardview.widget.CardView>
+
+
+    <androidx.cardview.widget.CardView
+        style="@style/BottomCard"
+        android:id="@+id/card_info"
         app:layout_constraintBottom_toBottomOf="@id/v_settings"
-        app:layout_constraintLeft_toRightOf="@id/btn_guide"
-        android:elevation="3dp"
+        app:layout_constraintLeft_toRightOf="@id/card_guide"
         android:layout_marginLeft="10dp"
-        />
+        app:cardBackgroundColor="@color/card_inactive"
+        >
+
+        <TextView
+            style="@style/BottomText"
+            android:text="@string/hint_info"/>
+
+    </androidx.cardview.widget.CardView>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -5,14 +5,21 @@
     <string name="hint_wb">白平衡</string>
     <string name="hint_fps">帧速率</string>
     <string name="hint_ae_lock">曝光锁定</string>
-    <string name="data_recording_busy">正在录制</string>
-    <string name="data_recording_idle">可进行录制</string>
+    <string name="hint_info">高级参数</string>
+    <string name="hint_ev">曝光补偿</string>
     <string name="hint_guide_overlay">参考线</string>
+    <string name="hint_last_file">已保存片段: </string>
+
+    <string name="data_tilt_perfect">完美</string>
+
+    <string name="data_recording_busy">正在录制</string>
+    <string name="data_recording_idle">轻触开始录制</string>
     <string name="data_af_mode_one_shot">单次自动</string>
     <string name="data_wb_auto">自动</string>
     <string name="data_ae_lock_off">禁用</string>
     <string name="data_ae_lock_on">锁定</string>
     <string name="data_af_mode_zone_servo">区域连续</string>
-    <string name="hint_info">高级参数</string>
-    <string name="hint_ev">曝光补偿</string>
+    <string name="hint_pitch">左右旋转</string>
+    <string name="hint_yaw">前后倾斜</string>
+    <string name="hint_roll">左右倾斜</string>
 </resources>

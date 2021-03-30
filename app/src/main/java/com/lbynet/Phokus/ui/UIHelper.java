@@ -17,6 +17,7 @@ import androidx.annotation.IntRange;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
+import com.lbynet.Phokus.R;
 import com.lbynet.Phokus.listener.ColorListener;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
@@ -173,6 +174,18 @@ public class UIHelper {
             hapticViewMap.put(view,isDown);
             return isDown;
         }
+    }
+
+    public static void updateCardColor(CardView card, boolean isEnabled) {
+        int [] colors = UIHelper.getColors(card.getContext(), R.color.card_inactive,R.color.card_active);
+
+        //Update data_record_icon's color
+        UIHelper.getColorAnimator(new ColorListener() {
+            @Override
+            public void onColorUpdated(int newColor) {
+                card.setCardBackgroundColor(newColor);
+            }
+        }, 100, true, (isEnabled ? colors : new int[]{colors[1], colors[0]})).start();
     }
 
 }

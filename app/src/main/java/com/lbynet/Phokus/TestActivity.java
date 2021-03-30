@@ -5,13 +5,13 @@ import androidx.cardview.widget.CardView;
 import androidx.core.widget.ImageViewCompat;
 
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.android.material.slider.Slider;
 import com.lbynet.Phokus.listener.ColorListener;
 import com.lbynet.Phokus.ui.UIHelper;
 import com.lbynet.Phokus.utils.MathTools;
@@ -20,15 +20,22 @@ import com.lbynet.Phokus.utils.Timer;
 
 public class TestActivity extends AppCompatActivity {
 
+    /**
+     * Views
+     */
     private View guideOverlay = null;
     private TextView recordText = null,
                      elapsedTimeText = null;
     private CardView guideCard = null,
-                     infoCard  = null;
+                     infoCard  = null,
+                     evCard    = null;
     private ImageView recordIcon = null;
+    private Slider  evSlider   = null;
+
     private boolean isGuideActionDown_ = false,
                     isRecording_ = false,
-                    isInfoEnabled_ = false;
+                    isInfoEnabled_ = false,
+                    isEvEnabled_ = false;
     private static Timer recordTimer = new Timer("Record Timer");
 
     @Override
@@ -53,6 +60,11 @@ public class TestActivity extends AppCompatActivity {
         guideOverlay = findViewById(R.id.v_guide_overlay);
         elapsedTimeText = findViewById(R.id.tv_record_time);
 
+        evCard = findViewById(R.id.card_ev);
+        evSlider = findViewById(R.id.slider_ev);
+
+        evCard.setOnTouchListener(this::onEvTouched);
+
     }
 
     @Override
@@ -70,7 +82,7 @@ public class TestActivity extends AppCompatActivity {
         boolean isVisibile = guideOverlay.getAlpha() != 0;
 
         //Update card color
-        updateCardColor(guideCard, !isVisibile);
+        UIHelper.updateCardColor(guideCard, !isVisibile);
 
         //Show/hide overlay
         UIHelper.setViewAlpha(guideOverlay,100,isVisibile ? 0 : 1);
@@ -86,7 +98,6 @@ public class TestActivity extends AppCompatActivity {
         isRecording_ = !isRecording_;
 
         int [] colors = UIHelper.getColors(this, R.color.record_inactive,R.color.record_active);
-
         //Update data_record_icon's color
         UIHelper.getColorAnimator(new ColorListener() {
             @Override
@@ -143,20 +154,20 @@ public class TestActivity extends AppCompatActivity {
 
         isInfoEnabled_ = !isInfoEnabled_;
 
-        updateCardColor(infoCard,isInfoEnabled_);
+        UIHelper.updateCardColor(infoCard,isInfoEnabled_);
 
         return true;
     }
 
-    void updateCardColor(CardView card, boolean isEnabled) {
-        int [] colors = UIHelper.getColors(this, R.color.card_inactive,R.color.card_active);
+    boolean onEvTouched(View v, MotionEvent e) {
 
-        //Update data_record_icon's color
-        UIHelper.getColorAnimator(new ColorListener() {
-            @Override
-            public void onColorUpdated(int newColor) {
-                card.setCardBackgroundColor(newColor);
-            }
-        }, 100, true, (isEnabled ? colors : new int[]{colors[1], colors[0]})).start();
+        if(!UIHelper.hapticFeedback(evCard,e)) return false;
+
+        isEvEnabled_ = !isEvEnabled_;
+
+        UIHelper.updateCardColor(evCard,isEvEnabled_);
+
+        UIHelper.setViewAlpha(evSlider,100,isEvEnabled_ ? 1 : 0, true);
+        return true;
     }
 }

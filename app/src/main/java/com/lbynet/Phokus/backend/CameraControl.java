@@ -1,25 +1,21 @@
-package com.lbynet.Phokus;
+package com.lbynet.Phokus.backend;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.camera2.CaptureRequest;
 import android.os.Environment;
-import android.print.PrintAttributes;
 import android.util.Range;
 import android.util.Size;
 import android.view.animation.DecelerateInterpolator;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.camera.camera2.internal.Camera2UseCaseConfigFactory;
 import androidx.camera.camera2.interop.Camera2CameraControl;
-import androidx.camera.camera2.interop.Camera2Interop;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
-import androidx.camera.core.CameraX;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageAnalysis;
@@ -51,22 +47,22 @@ public class CameraControl {
 
     final static float[] AVAIL_ZOOM_LENGTHS = {28, 35, 50, 70, 85};
     final static int[] AVAIL_VIDEO_FPS = {24, 25, 30, 48, 50, 60};
-    final static int DEFAULT_VIDEO_FPS = AVAIL_VIDEO_FPS[1];
 
     private static boolean isFilming_ = false,
             isWidescreen_ = false,
             isFrontFacing_ = false,
             isFocusBusy_ = false,
             isVideoStbEnabled_ = true,
-            isLogEnabled_ = true;
+            isLogEnabled_ = true,
+            isVideoMode_ = false;
 
     private static float minFocalLength_ = 0,
             lastZoomFocalLength_ = 0;
     private static int majorRotation_ = 0,
             minorRotation_ = 0,
-            videoFps_ = DEFAULT_VIDEO_FPS,
-            zoomIndex = 0,
-            fpsIndex = 1;
+            fpsIndex = 4,
+            videoFps_ = AVAIL_VIDEO_FPS[fpsIndex],
+            zoomIndex = 0;
     private static CameraSelector cs;
     private static ImageCapture ic;
     private static ImageAnalysis ia;
@@ -562,6 +558,7 @@ public class CameraControl {
     }
 
     private static void updateVideoSettings() {
+
         update3A();
         updateLogMode();
 
@@ -605,7 +602,11 @@ public class CameraControl {
 
         cro.setCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK, isFilming_)
                 .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, isFilming_)
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_AUTO);
+                .setCaptureRequestOption(
+                        CaptureRequest.CONTROL_AF_MODE,
+                        isVideoMode_ ?
+                            CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
+                            : CaptureRequest.CONTROL_AF_MODE_AUTO);
 
 
     }

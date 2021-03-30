@@ -17,6 +17,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.lbynet.Phokus.backend.CameraControl;
 import com.lbynet.Phokus.listener.BMSListener;
 import com.lbynet.Phokus.listener.ColorListener;
 import com.lbynet.Phokus.listener.EventListener;

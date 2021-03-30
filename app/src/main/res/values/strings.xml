@@ -1,6 +1,8 @@
 <resources>
     <string name="app_name" translatable="false">Phokus</string>
     <string name="app_name_debug" translatable="false">Phokus DEBUG</string>
+
+    <!-- ViewFinder -->
     <string name="hint_zoom">ZOOM</string>
     <string name="hint_af_mode">AF MODE</string>
     <string name="hint_wb">WB</string>
@@ -9,11 +11,20 @@
     <string name="hint_guide_overlay">GUIDE</string>
     <string name="hint_info">INFO</string>
     <string name="hint_ev">EV</string>
+
     <string name="data_af_mode_one_shot">ONE SHOT</string>
     <string name="data_af_mode_zone_servo">ZONE SERVO</string>
     <string name="data_wb_auto">AUTO</string>
     <string name="data_ae_lock_off">OFF</string>
     <string name="data_ae_lock_on">LOCKED</string>
     <string name="data_recording_busy">RECORDING</string>
-    <string name="data_recording_idle">READY</string>
+    <string name="data_recording_idle">TAP TO RECORD</string>
+
+    <!-- Info Panel -->
+    <string name="hint_pitch">PITCH</string>
+    <string name="hint_yaw">YAW</string>
+    <string name="hint_roll">ROLL</string>
+    <string name="hint_last_file">Saved clip: </string>
+    <string name="data_tilt_perfect">PERFECT</string>
+
 </resources>

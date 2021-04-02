@@ -7,6 +7,7 @@ import android.Manifest;
 import android.os.Bundle;
 import android.view.View;
 
+import com.lbynet.Phokus.backend.Constants;
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.SysInfo;
 
@@ -17,19 +18,12 @@ public class MainActivity extends AppCompatActivity {
 
     boolean requirePermission = true;
 
-    final public static String [] PERMISSIONS = {
-            Manifest.permission.CAMERA,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.RECORD_AUDIO,
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.layout_main);
 
-        requestPermissions(PERMISSIONS,1);
+        requestPermissions(Constants.PERMISSIONS,1);
     }
 
     @Override

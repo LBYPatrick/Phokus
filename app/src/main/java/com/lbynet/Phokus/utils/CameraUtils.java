@@ -1,12 +1,21 @@
 package com.lbynet.Phokus.utils;
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
+import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.TonemapCurve;
+import android.provider.MediaStore;
+import android.util.Range;
+import android.util.Rational;
 
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageProxy;
+import androidx.camera.core.VideoCapture;
 
+import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.HashMap;
 
@@ -15,8 +24,11 @@ public class CameraUtils {
     public static HashMap<Integer, CameraCharacteristics> ccMap = new HashMap<>();
     public static HashMap<Integer,Float> focalLengthMap = new HashMap<>(),
                                          cropFactorMap = new HashMap<>();
+    public static HashMap<Integer,float []> evMap = new HashMap<>();
     final public static String TAG = CameraUtils.class.getSimpleName();
-    
+    private static int numImageFromTheSameSec = 0;
+    private static long lastImageTime = -1;
+
     public enum LogScheme {
         CLOG,
         SLOG;
@@ -168,6 +180,89 @@ public class CameraUtils {
         SAL.print("Array: " + Arrays.toString(ptArray) + "\n");
 
         return new TonemapCurve(ptArray,ptArray,ptArray);
+    }
+
+    public static VideoCapture.OutputFileOptions getVideoOFO(Context context, String filename) {
+
+        ContentValues values = new ContentValues();
+
+        final String extension = filename.substring(filename.lastIndexOf('.') + 1,filename.length());
+
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+        values.put(MediaStore.MediaColumns.TITLE,filename);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, "video/" + extension);
+
+        return new VideoCapture.OutputFileOptions.Builder(context.getContentResolver(),
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                values).build();
+
+    }
+
+    public static VideoCapture.OutputFileOptions getVideoOFO(Context context) {
+        return getVideoOFO(context, getVideoFilename());
+    }
+
+    public static String getVideoFilename()  {
+        //TODO: Finish this
+        return "THIS_IS_A_VIDEO.mp4";
+    }
+
+    public static String getPhotoFilename() {
+
+        long timestamp = System.currentTimeMillis();
+
+        final String time = new SimpleDateFormat("yyyyLLdd_HHmmss").format(timestamp);
+
+        StringBuilder sb = new StringBuilder().append("IMG_").append(time);
+
+        if(timestamp == lastImageTime) {
+            numImageFromTheSameSec += 1;
+            sb.append("_" + Integer.toString(numImageFromTheSameSec));
+        }
+        else { numImageFromTheSameSec = 0; }
+
+        lastImageTime = timestamp;
+
+        String output = sb.append(".jpg").toString();
+
+        return output;
+    }
+
+    public static ImageCapture.OutputFileOptions getImageOFO(Context context) {
+        return getImageOFO(context,getPhotoFilename());
+    }
+    public static ImageCapture.OutputFileOptions getImageOFO(Context context, String filename) {
+        ContentValues values = new ContentValues();
+
+        final String extension = filename.substring(filename.lastIndexOf('.') + 1,filename.length());
+
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
+        values.put(MediaStore.MediaColumns.TITLE,filename);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, "image/" + extension);
+
+        return new ImageCapture.OutputFileOptions.Builder(context.getContentResolver(),
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                values).build();
+    }
+
+    public static float [] getEvInfo(Context context,int cameraId) {
+
+        if(evMap.containsKey(cameraId)) return evMap.get(cameraId);
+
+        CameraCharacteristics cc = getCameraCharacteristics(context,cameraId);
+
+        float [] r = new float[3];
+
+        r[0] = ((Rational)cc.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP)).floatValue();
+
+        Range<Integer> range = (Range<Integer>)cc.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
+
+        r[1] = range.getLower();
+        r[2] = range.getUpper();
+
+        evMap.put(cameraId,r);
+
+        return r;
     }
 
 }

@@ -1,18 +1,25 @@
 package com.lbynet.Phokus.utils;
 
 import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.provider.MediaStore;
 import android.provider.OpenableColumns;
 import android.provider.Settings;
 import android.util.Log;
 
 import androidx.annotation.IntRange;
+import androidx.camera.core.ImageCapture;
+import androidx.camera.core.VideoCapture;
+import androidx.camera.view.video.OutputFileOptions;
+import androidx.core.content.ContextCompat;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -22,6 +29,10 @@ import java.util.Locale;
 SAL stands for "Software Abstract Layer", a class that mainly addresses differences in operating systems.
 This class dates back to 2019 when I first started playing around with android,
 when my first project aimed for all-platform compatibility.
+ */
+
+/**
+ * And this class mainly addresses whatever Android sucks at.
  */
 public class SAL {
 
@@ -190,5 +201,13 @@ public class SAL {
             SAL.print(TAG,"Failed to vibrate because no vibrator is available.");
             return false;
         }
+    }
+
+    public static void runFileScan(Context context, Uri newFile) {
+        ContextCompat.getMainExecutor(context).execute(() -> {
+            Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+            mediaScanIntent.setData(newFile);
+            context.sendBroadcast(mediaScanIntent);
+        });
     }
 }

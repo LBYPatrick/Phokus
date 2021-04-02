@@ -15,7 +15,7 @@
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintRight_toRightOf="parent"
-        android:elevation="1dp"
+        android:elevation="2dp"
         />
 
     <!-- An empty mask for debugging purposes only-->
@@ -29,6 +29,7 @@
         android:foreground="#FFFFFF"
         android:alpha="0.2"
         android:elevation="2dp"
+        android:visibility="invisible"
         />
 
     <!-- Stuff that are on top of the screen -->
@@ -252,23 +253,9 @@
         android:valueFrom="-3"
         android:valueTo="3"
         android:value="0"
-        app:trackColorActive="@color/card_active"/>
+        app:trackColorActive="@color/card_active"
+        android:visibility="gone"/>
 
     <!--Info Panel -->
-
-    <fragment
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:id="@+id/fragment_info"
-        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
-        app:layout_constraintTop_toTopOf="@id/pv_preview"
-        app:layout_constraintBottom_toBottomOf="@id/pv_preview"
-        app:layout_constraintRight_toRightOf="@id/pv_preview"
-        android:layout_marginVertical="52dp"
-        class="com.lbynet.Phokus.SensorInfoFragment"
-        tools:layout="@layout/fragment_sensor_info"
-        android:elevation="3dp"
-        />
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

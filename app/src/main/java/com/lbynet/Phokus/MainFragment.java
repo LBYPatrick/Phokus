@@ -114,7 +114,7 @@ public class MainFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         rootView = view;
 
-        SysInfo.addBMSListener(new BMSListener() {
+        SysInfo.addListener(new BMSListener() {
             @Override
             public boolean onUpdate(Intent intent) {
                 int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL,0);

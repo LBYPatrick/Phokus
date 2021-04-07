@@ -36,7 +36,7 @@
         <item name="android:gravity">bottom|center_horizontal</item>
     </style>
 
-    <style name="FixedMDTextButton" parent="Widget.MaterialComponents.Button.TextButton">
+    <style name="FixedMDOutlinedButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
         <item name="android:outlineAmbientShadowColor">#00FFFFFF</item>
         <item name="android:outlineSpotShadowColor">#00FFFFFF</item>
     </style>

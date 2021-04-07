@@ -234,6 +234,7 @@
         >
 
         <TextView
+            android:id="@+id/tv_ev_text"
             style="@style/BottomText"
             android:text="@string/hint_ev"/>
 
@@ -249,13 +250,10 @@
         android:layout_marginBottom="52dp"
         android:elevation="3dp"
         android:layout_marginHorizontal="20dp"
-        android:stepSize="0.5"
         android:valueFrom="-3"
         android:valueTo="3"
         android:value="0"
         app:trackColorActive="@color/card_active"
         android:visibility="gone"/>
-
-    <!--Info Panel -->
 
 </androidx.constraintlayout.widget.ConstraintLayout>

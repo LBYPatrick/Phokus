@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.TonemapCurve;
 import android.provider.MediaStore;
 import android.util.Range;
@@ -257,12 +258,65 @@ public class CameraUtils {
 
         Range<Integer> range = (Range<Integer>)cc.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE);
 
-        r[1] = range.getLower();
-        r[2] = range.getUpper();
+        r[1] = range.getLower() * r[0];
+        r[2] = range.getUpper() * r[0];
 
         evMap.put(cameraId,r);
 
         return r;
+    }
+
+    public static RggbChannelVector getRggbVectorWithTemp(int tempInKeivin) {
+        float tempIndex = tempInKeivin / 100;
+        float red;
+        float green;
+        float blue;
+
+        //Calculate red
+        if (tempIndex <= 66)
+            red = 255;
+        else {
+            red = tempIndex - 60;
+            red = (float) (329.698727446 * (Math.pow((double) red, -0.1332047592)));
+            if (red < 0)
+                red = 0;
+            if (red > 255)
+                red = 255;
+        }
+
+
+        //Calculate green
+        if (tempIndex <= 66) {
+            green = tempIndex;
+            green = (float) (99.4708025861 * Math.log(green) - 161.1195681661);
+            if (green < 0)
+                green = 0;
+            if (green > 255)
+                green = 255;
+        } else {
+            green = tempIndex - 60;
+            green = (float) (288.1221695283 * (Math.pow((double) green, -0.0755148492)));
+            if (green < 0)
+                green = 0;
+            if (green > 255)
+                green = 255;
+        }
+
+        //calculate blue
+        if (tempIndex >= 66)
+            blue = 255;
+        else if (tempIndex <= 19)
+            blue = 0;
+        else {
+            blue = tempIndex - 10;
+            blue = (float) (138.5177312231 * Math.log(blue) - 305.0447927307);
+            if (blue < 0)
+                blue = 0;
+            if (blue > 255)
+                blue = 255;
+        }
+
+        return new RggbChannelVector((red / 255) * 2, (green / 255), (green / 255), (blue / 255) * 2);
     }
 
 }

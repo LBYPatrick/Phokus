@@ -133,7 +133,7 @@ public class CameraControl {
         camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,preview, (isVideoMode_ ? vc : ic));
 
         new Thread( () -> {
-            SAL.sleepFor(5000);
+            SAL.sleepFor(1000);
             updateAllCameraConfig();
             UIHelper.runLater(context_, CameraControl::flushCaptureRequest);
         }).start();
@@ -624,7 +624,7 @@ public class CameraControl {
     @SuppressLint("UnsafeExperimentalUsageError")
     public static void updateEV(double ev) {
 
-        float [] evInfo = CameraUtils.getEvInfo(context_,isFrontFacing_ ? 1 : 0);
+        float [] evInfo = CameraUtils.getEvInfo(context_,isFrontFacing() ? 1 : 0);
 
         if(ev < evInfo[1] || ev > evInfo[2]) {
             SAL.print(TAG,"EV " + ev + " is out of range.");
@@ -636,6 +636,9 @@ public class CameraControl {
 
     }
 
+    public static float [] getEVConfig() {
+        return CameraUtils.getEvInfo(context_,isFrontFacing() ? 1 : 0);
+    }
     public static void setVideoMode(boolean isVideoMode) {
         isVideoMode_ = isVideoMode;
     }

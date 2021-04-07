@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.MotionEvent;
+import android.view.OrientationEventListener;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -37,13 +38,15 @@ public class TestActivity extends AppCompatActivity {
      */
     private View guideOverlay = null;
     private TextView recordText = null,
-                     elapsedTimeText = null;
+                     elapsedTimeText = null,
+                     evCardText = null;
     private CardView guideCard = null,
                      infoCard  = null,
                      evCard    = null;
     private PreviewView previewView = null;
     private ImageView recordIcon = null;
     private Slider  evSlider   = null;
+    private OrientationEventListener oel = null;
 
     private boolean isGuideActionDown_ = false,
                     isRecording_ = false,
@@ -58,28 +61,7 @@ public class TestActivity extends AppCompatActivity {
         setTheme(R.style.AppTheme);
         setContentView(R.layout.layout_video_viewfinder);
             
-        guideCard = findViewById(R.id.card_guide);
-        guideCard.setOnTouchListener(this::onGuideTouched);
-
-        infoCard = findViewById(R.id.card_info);
-        infoCard.setOnTouchListener(this::onInfoTouched);
-
-
-        recordText = findViewById(R.id.data_recording_text);
-        recordIcon = findViewById(R.id.data_recording_icon);
-
-        recordText.setOnTouchListener(this::onRecordTouched);
-        recordIcon.setOnTouchListener(this::onRecordTouched);
-
-        guideOverlay = findViewById(R.id.v_guide_overlay);
-        elapsedTimeText = findViewById(R.id.tv_record_time);
-
-        evCard = findViewById(R.id.card_ev);
-        evSlider = findViewById(R.id.slider_ev);
-        evCard.setOnTouchListener(this::onEvTouched);
-        evSlider.addOnChangeListener(this::onEvBarChanged);
-
-        previewView = findViewById(R.id.pv_preview);
+        setupViews();
 
         requestPermissions(Constants.PERMISSIONS,1);
 
@@ -98,6 +80,34 @@ public class TestActivity extends AppCompatActivity {
                 return super.onUpdate(data);
             }
         });
+
+        oel = new OrientationEventListener(this) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                CameraControl.updateRotation(UIHelper.getSurfaceOrientation(orientation), new EventListener() {});
+            }
+        };
+    }
+
+    public void setupViews() {
+        guideCard = findViewById(R.id.card_guide);
+        infoCard = findViewById(R.id.card_info);
+        recordText = findViewById(R.id.data_recording_text);
+        recordIcon = findViewById(R.id.data_recording_icon);
+        guideOverlay = findViewById(R.id.v_guide_overlay);
+        elapsedTimeText = findViewById(R.id.tv_record_time);
+        evCard = findViewById(R.id.card_ev);
+        evSlider = findViewById(R.id.slider_ev);
+        evCardText = findViewById(R.id.tv_ev_text);
+        previewView = findViewById(R.id.pv_preview);
+
+        guideCard.setOnTouchListener(this::onGuideTouched);
+        infoCard.setOnTouchListener(this::onInfoTouched);
+        recordText.setOnTouchListener(this::onRecordTouched);
+        recordIcon.setOnTouchListener(this::onRecordTouched);
+        evCard.setOnTouchListener(this::onEvTouched);
+        evSlider.addOnChangeListener(this::onEvBarChanged);
+
     }
 
     @Override
@@ -122,12 +132,14 @@ public class TestActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         SysInfo.onResume();
+        oel.enable(); 
     }
 
     @Override
     protected void onPause() {
         super.onPause();
         SysInfo.onPause();
+        oel.disable();
     }
 
     @Override
@@ -141,6 +153,12 @@ public class TestActivity extends AppCompatActivity {
     void onPermissionGranted() {
         CameraControl.setVideoMode(true);
         CameraControl.initialize(previewView);
+
+        float [] evConfig = CameraControl.getEVConfig();
+
+        evSlider.setValueFrom(evConfig[1]);
+        evSlider.setValueTo(evConfig[2]);
+
     }
 
     boolean onGuideTouched(View v, MotionEvent event) {
@@ -257,7 +275,8 @@ public class TestActivity extends AppCompatActivity {
     }
 
     boolean onEvBarChanged(@NonNull Slider slider, float value, boolean fromUser) {
-        //TODO: Finish this
+        CameraControl.updateEV(value);
+        evCardText.setText(String.format("%.2f EV",value));
         return true;
     }
 }

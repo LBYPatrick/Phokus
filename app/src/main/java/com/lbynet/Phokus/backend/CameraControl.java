@@ -4,7 +4,6 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.camera2.CaptureRequest;
-import android.media.MediaScannerConnection;
 import android.os.Environment;
 import android.util.Range;
 import android.util.Size;
@@ -17,7 +16,6 @@ import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
-import androidx.camera.core.ExposureState;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.core.ImageAnalysis;
@@ -62,13 +60,13 @@ public class CameraControl {
             isAELock_ = false,
             isAWBLock_ = false;
 
-    private static float minFocalLength_ = 0,
-            lastZoomFocalLength_ = 0;
+    private static float lastZoomFocalLength_ = 0;
     private static int majorRotation_ = 0,
             minorRotation_ = 0,
-            fpsIndex = 4,
-            videoFps_ = AVAIL_VIDEO_FPS[fpsIndex],
-            zoomIndex = 0;
+            fpsIndex = 5,
+            videoFps_ = AVAIL_VIDEO_FPS[fpsIndex - 1],
+            zoomIndex = 0,
+            cameraId = 0;
     private static CameraSelector cs;
     private static ImageCapture ic;
     private static ImageAnalysis ia;
@@ -95,6 +93,7 @@ public class CameraControl {
                 pcp = future.get();
                 previewView_ = previewView;
                 bindCamera();
+                lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_,cameraId);
 
             } catch (Exception e) {
                 SAL.print(e);
@@ -128,7 +127,7 @@ public class CameraControl {
         if(isVideoMode_) vc = makeVideoCapture();
         else ic = makeImageCapture();
 
-        //Let's not worry about imageAnalysis for now
+        //TODO:Let's not worry about imageAnalysis for now
 
         camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,preview, (isVideoMode_ ? vc : ic));
 
@@ -218,8 +217,10 @@ public class CameraControl {
 
             isFrontFacing_ = isFrontFacing;
 
+            cameraId = isFrontFacing() ? 1 : 0;
+
             //Reset zoom parameters
-            lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_,isFrontFacing_? 1 : 0);
+            lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_,cameraId);
             zoomIndex = 0;
 
             cs = new CameraSelector.Builder()
@@ -237,6 +238,10 @@ public class CameraControl {
 
     public static float getEquivalentFocalLength(int cameraId) {
         return CameraUtils.get35FocalLength(context_, cameraId);
+    }
+
+    public static float getLastFocalLength() {
+        return lastZoomFocalLength_;
     }
 
     public static void runLater(Runnable r) {
@@ -301,7 +306,9 @@ public class CameraControl {
 
         listener.onEventBegan("Start zooming...");
 
-        if (minFocalLength_ > AVAIL_ZOOM_LENGTHS[AVAIL_ZOOM_LENGTHS.length - 1]) {
+        final float minFocalLength = getEquivalentFocalLength(cameraId);
+
+        if (minFocalLength > AVAIL_ZOOM_LENGTHS[AVAIL_ZOOM_LENGTHS.length - 1]) {
             listener.onEventFinished(false, "No available zoom focal length.");
             return;
         }
@@ -310,7 +317,7 @@ public class CameraControl {
 
         if (zoomIndex != -1) {
 
-            while (minFocalLength_ > AVAIL_ZOOM_LENGTHS[zoomIndex]) {
+            while (minFocalLength > AVAIL_ZOOM_LENGTHS[zoomIndex]) {
                 ++zoomIndex;
             }
 
@@ -322,11 +329,12 @@ public class CameraControl {
                 ++zoomIndex;
             }
         } else {
-            zoomLength = minFocalLength_;
+            zoomLength = minFocalLength;
             ++zoomIndex;
         }
 
-        listener.onEventUpdated(Float.toString(zoomLength));
+        listener.onEventUpdated(EventListener.DataType.CAM_FOCAL_LENGTH,
+                Float.valueOf(zoomLength));
 
         zoomByFocalLength(zoomLength, new EventListener() {
             @Override
@@ -340,20 +348,26 @@ public class CameraControl {
 
     public static void zoomByFocalLength(float mm, EventListener listener) {
 
+        if(lastZoomFocalLength_ == 0) {
+            lastZoomFocalLength_ = getEquivalentFocalLength(cameraId);
+        }
+
         listener.onEventBegan("Zooming from " + lastZoomFocalLength_ + "mm to " + mm + "mm.");
+
+        final float minFocalLength = getEquivalentFocalLength(cameraId);
 
         //TODO: Currently this snippet only works for rear-facing camera, make it also work for front
         new Thread(() -> {
             listener.onEventBegan("");
-            if (mm < minFocalLength_) {
+            if (mm < minFocalLength) {
                 listener.onEventFinished(false,
                         "Failed to zoom, reason: requested focus length is lower than native focal length.");
             }
-            final float zoomRatio = mm / minFocalLength_;
+            final float zoomRatio = mm / minFocalLength;
 
             androidx.camera.core.CameraControl cc = camera.getCameraControl();
 
-            ValueAnimator animator = ValueAnimator.ofFloat(lastZoomFocalLength_ / minFocalLength_, zoomRatio);
+            ValueAnimator animator = ValueAnimator.ofFloat(lastZoomFocalLength_ / minFocalLength, zoomRatio);
 
             final int duration = 100;
 
@@ -390,10 +404,12 @@ public class CameraControl {
 
             if (!isWidescreen_) updateWidescreen(listener);
 
-            update3A();
-            flushCaptureRequest();
+
 
             if (isFilming_) {
+
+                update3A();
+                flushCaptureRequest();
 
                 runLater(() -> {
 
@@ -406,6 +422,9 @@ public class CameraControl {
                                 public void onVideoSaved(@NonNull VideoCapture.OutputFileResults outputFileResults) {
                                     SAL.runFileScan(context_,outputFileResults.getSavedUri());
                                     SAL.print("Video saved.");
+
+                                    update3A();
+                                    flushCaptureRequest();
 
                                 }
 
@@ -438,16 +457,22 @@ public class CameraControl {
 
             listener.onEventBegan("Changing video framerate to " + videoFps_ + "fps...");
 
+            listener.onEventUpdated(EventListener.DataType.VIDEO_FPS, videoFps_);
+
             if (fpsIndex == AVAIL_VIDEO_FPS.length - 1) {
                 fpsIndex = 0;
             } else ++fpsIndex;
 
+            runLater( ()-> {
+                pcp.unbind(vc);
+                vc = makeVideoCapture();
+                camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, vc);
 
-            pcp.unbind(vc);
-            vc = makeVideoCapture();
-            camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,vc);
+                updateVideoSettings();
+                flushCaptureRequest();
 
-            listener.onEventFinished(true, "Video framerate changed to " + videoFps_ + "fps.");
+                listener.onEventFinished(true, "Video framerate changed to " + videoFps_ + "fps.");
+            });
 
         }).start();
     }
@@ -581,7 +606,7 @@ public class CameraControl {
 
         if(isLogEnabled_) {
             cro.setCaptureRequestOption(CaptureRequest.TONEMAP_CURVE, CameraUtils.makeToneMapCurve(
-                            CameraUtils.LogScheme.CLOG, CameraUtils.getCameraCharacteristics(context_, isFrontFacing() ? 1 : 0)));
+                            CameraUtils.LogScheme.CLOG, CameraUtils.getCameraCharacteristics(context_, cameraId)));
         }
     }
 
@@ -609,7 +634,9 @@ public class CameraControl {
     private static void flushCaptureRequest() {
         runLater( ()-> {
             try {
-                Camera2CameraControl.from(camera.getCameraControl()).addCaptureRequestOptions(cro.build()).get();
+                Camera2CameraControl.from(camera.getCameraControl()).addCaptureRequestOptions(cro.build())
+                //.get()  //Not sure why this is making my app freeze
+                ;
 
                 //Reset CaptureRequestOption
                 cro = new CaptureRequestOptions.Builder();
@@ -624,7 +651,7 @@ public class CameraControl {
     @SuppressLint("UnsafeExperimentalUsageError")
     public static void updateEV(double ev) {
 
-        float [] evInfo = CameraUtils.getEvInfo(context_,isFrontFacing() ? 1 : 0);
+        float [] evInfo = CameraUtils.getEvInfo(context_,cameraId);
 
         if(ev < evInfo[1] || ev > evInfo[2]) {
             SAL.print(TAG,"EV " + ev + " is out of range.");
@@ -637,7 +664,7 @@ public class CameraControl {
     }
 
     public static float [] getEVConfig() {
-        return CameraUtils.getEvInfo(context_,isFrontFacing() ? 1 : 0);
+        return CameraUtils.getEvInfo(context_,cameraId);
     }
     public static void setVideoMode(boolean isVideoMode) {
         isVideoMode_ = isVideoMode;

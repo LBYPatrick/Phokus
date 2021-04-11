@@ -55,6 +55,16 @@
         android:elevation="3dp"
         />
 
+    <View
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        app:layout_constraintBottom_toBottomOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="@id/pv_preview"
+        android:foreground="@drawable/record_status_overlay"
+        android:elevation="5dp"/>
+
     <TextView
         style="@style/ViewFinderHint"
         android:id="@+id/hint_zoom"

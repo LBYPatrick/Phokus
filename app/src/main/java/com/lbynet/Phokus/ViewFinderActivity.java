@@ -29,17 +29,20 @@ import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.SysInfo;
 import com.lbynet.Phokus.utils.Timer;
 
-public class TestActivity extends AppCompatActivity {
+public class ViewFinderActivity extends AppCompatActivity {
 
-    final public static String TAG = TestActivity.class.getCanonicalName();
+    final public static String TAG = ViewFinderActivity.class.getCanonicalName();
 
     /**
      * Views
      */
     private View guideOverlay = null;
-    private TextView recordText = null,
-                     elapsedTimeText = null,
-                     evCardText = null;
+    private TextView textRecordStatus = null,
+                     textElapsedTime = null,
+                     textExposure = null,
+                     textZoomData = null,
+                     textFpsData = null;
+
     private CardView guideCard = null,
                      infoCard  = null,
                      evCard    = null;
@@ -67,6 +70,7 @@ public class TestActivity extends AppCompatActivity {
 
         SysInfo.initialize(this);
 
+        //Add Battery listener(for exmaple...)
         SysInfo.addListener(new BMSListener() {
             @Override
             public boolean onUpdate(Intent intent) {
@@ -74,6 +78,7 @@ public class TestActivity extends AppCompatActivity {
             }
         });
 
+        //Add Rotation Listener(for example...)
         SysInfo.addListener(new RotationListener() {
             @Override
             public boolean onUpdate(float[] data) {
@@ -92,21 +97,35 @@ public class TestActivity extends AppCompatActivity {
     public void setupViews() {
         guideCard = findViewById(R.id.card_guide);
         infoCard = findViewById(R.id.card_info);
-        recordText = findViewById(R.id.data_recording_text);
+
         recordIcon = findViewById(R.id.data_recording_icon);
         guideOverlay = findViewById(R.id.v_guide_overlay);
-        elapsedTimeText = findViewById(R.id.tv_record_time);
+
         evCard = findViewById(R.id.card_ev);
         evSlider = findViewById(R.id.slider_ev);
-        evCardText = findViewById(R.id.tv_ev_text);
+
         previewView = findViewById(R.id.pv_preview);
+
+        textRecordStatus = findViewById(R.id.data_recording_text);
+        textElapsedTime = findViewById(R.id.tv_record_time);
+        textExposure = findViewById(R.id.tv_ev_text);
+        textZoomData = findViewById(R.id.data_zoom);
+        textFpsData = findViewById(R.id.data_fps);
+
+        textZoomData.setOnTouchListener(this::onZoomTouched);
+        findViewById(R.id.hint_zoom).setOnTouchListener(this::onZoomTouched);
+
+        textFpsData.setOnTouchListener(this::onFpsTouched);
+        findViewById(R.id.hint_fps).setOnTouchListener(this::onFpsTouched);
 
         guideCard.setOnTouchListener(this::onGuideTouched);
         infoCard.setOnTouchListener(this::onInfoTouched);
-        recordText.setOnTouchListener(this::onRecordTouched);
+        textRecordStatus.setOnTouchListener(this::onRecordTouched);
         recordIcon.setOnTouchListener(this::onRecordTouched);
         evCard.setOnTouchListener(this::onEvTouched);
         evSlider.addOnChangeListener(this::onEvBarChanged);
+
+        //(TextView)findViewById(R.id.hint_zoom).
 
     }
 
@@ -159,6 +178,15 @@ public class TestActivity extends AppCompatActivity {
         evSlider.setValueFrom(evConfig[1]);
         evSlider.setValueTo(evConfig[2]);
 
+        new Thread( () -> {
+
+            while(CameraControl.getLastFocalLength() == 0) SAL.sleepFor(10);
+
+            runOnUiThread( () -> {
+                textFpsData.setText(String.format("%d", CameraControl.getVideoFps()));
+                textZoomData.setText(String.format("%.1fmm", CameraControl.getLastFocalLength()));
+            });
+        }).start();
     }
 
     boolean onGuideTouched(View v, MotionEvent event) {
@@ -179,7 +207,7 @@ public class TestActivity extends AppCompatActivity {
     boolean onRecordTouched(View v, MotionEvent event) {
 
         //Do haptic feedback (iOS-like!)
-        if(!UIHelper.hapticFeedback(recordText,event)) return false;
+        if(!UIHelper.hapticFeedback(textRecordStatus,event)) return false;
 
         isRecording_ = !isRecording_;
 
@@ -193,7 +221,7 @@ public class TestActivity extends AppCompatActivity {
         }, 100, true, (isRecording_ ? colors : new int[]{colors[1], colors[0]})).start();
 
         //Update data_record_text's text
-        ((TextView)recordText)
+        ((TextView) textRecordStatus)
                 .setText(isRecording_ ?
                           R.string.data_recording_busy
                         : R.string.data_recording_idle);
@@ -226,14 +254,14 @@ public class TestActivity extends AppCompatActivity {
 
                     UIHelper.runLater(this,() -> {
                         MathTools.formatTime(recordTimer.getElaspedTimeInMs(),time);
-                        elapsedTimeText.setText(time[0] + ":" + time[1] + ":" + time[2] + ":" + time[3]);
+                        textElapsedTime.setText(time[0] + ":" + time[1] + ":" + time[2] + ":" + time[3]);
                     });
                 }
 
                 UIHelper.runLater(this,() -> {
                     MathTools.formatTime(recordTimer.getElaspedTimeInMs(),time);
 
-                    elapsedTimeText.setText(time[0] + ":" + time[1] + ":" + time[2] + ":" + time[3]);
+                    textElapsedTime.setText(time[0] + ":" + time[1] + ":" + time[2] + ":" + time[3]);
                 });
             }).start();
         } else {
@@ -276,7 +304,44 @@ public class TestActivity extends AppCompatActivity {
 
     boolean onEvBarChanged(@NonNull Slider slider, float value, boolean fromUser) {
         CameraControl.updateEV(value);
-        evCardText.setText(String.format("%.2f EV",value));
+        textExposure.setText(String.format("%.2f EV",value));
         return true;
     }
+
+    boolean onZoomTouched(View v, MotionEvent e) {
+        if(!UIHelper.hapticFeedback(textZoomData,e)) return false;
+
+        CameraControl.toggleZoom(new EventListener() {
+            @Override
+            public boolean onEventUpdated(DataType dataType, Object data) {
+
+                if(dataType == DataType.CAM_FOCAL_LENGTH)
+                    textZoomData.setText(String.format("%.1fmm",((Float)data).floatValue()));
+
+                return super.onEventUpdated(dataType, data);
+            }
+        }
+        );
+
+        return true;
+    }
+
+    boolean onFpsTouched(View v, MotionEvent e) {
+        if(!UIHelper.hapticFeedback(textFpsData,e)) return false;
+
+        CameraControl.toggleVideoFps(new EventListener() {
+                                     @Override
+                                     public boolean onEventUpdated(DataType dataType, Object data) {
+
+                                         if(dataType == DataType.VIDEO_FPS)
+                                             textFpsData.setText(String.format("%d",((Integer)data)));
+
+                                         return super.onEventUpdated(dataType, data);
+                                     }
+                                 }
+        );
+
+        return true;
+    }
+
 }

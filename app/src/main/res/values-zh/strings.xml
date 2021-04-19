@@ -18,7 +18,7 @@
     <string name="data_ae_lock_off">禁用</string>
     <string name="data_ae_lock_on">锁定</string>
     <string name="data_af_mode_zone_servo">区域连续</string>
-    <string name="hint_pitch">左右旋转</string>
-    <string name="hint_yaw">前后倾斜</string>
-    <string name="hint_roll">左右倾斜</string>
+    <string name="hint_azimuth">AZIMUTH</string>
+    <string name="hint_pitch">PITCH</string>
+    <string name="hint_roll">ROLL</string>
 </resources>

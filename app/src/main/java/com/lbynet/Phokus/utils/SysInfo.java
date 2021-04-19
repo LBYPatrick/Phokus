@@ -73,14 +73,14 @@ public class SysInfo {
         }
     }
 
+    public static void addListeners(Object... listeners) {
+        for(Object i : listeners) addListener(i);
+    }
+
     public static void onSensorChanged(SensorEvent event, boolean isAccelerometer) {
 
-        if(isAccelerometer) {
-            System.arraycopy(event.values, 0, accelReading, 0, accelReading.length);
-        }
-        else {
-            System.arraycopy(event.values, 0, magneticReading, 0, magneticReading.length);
-        }
+        if(isAccelerometer) { System.arraycopy(event.values, 0, accelReading, 0, accelReading.length); }
+        else { System.arraycopy(event.values, 0, magneticReading, 0, magneticReading.length); }
 
         updateSensorInfo();
     }
@@ -107,5 +107,9 @@ public class SysInfo {
     public static void removeListener(Object listener) {
         if(listener instanceof BMSListener) bmsListeners.remove(listener);
         else if(listener instanceof RotationListener) rotListeners.remove(listener);
+    }
+
+    public static void removeListeners(Object... listeners) {
+        for(Object i : listeners) removeListener(i);
     }
 }

@@ -72,6 +72,10 @@
         <item name="android:gravity">center_vertical|right</item>
     </style>
 
+    <style name="SensorHint" parent="InfoHint">
+        <item name="android:layout_marginTop">5dp</item>
+    </style>
+
     <style name="InfoData" parent="Widget.AppCompat.TextView">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">22sp</item>

@@ -21,8 +21,8 @@
     <string name="data_recording_idle">TAP TO RECORD</string>
 
     <!-- Info Panel -->
+    <string name="hint_azimuth">AZIMUTH</string>
     <string name="hint_pitch">PITCH</string>
-    <string name="hint_yaw">YAW</string>
     <string name="hint_roll">ROLL</string>
     <string name="hint_last_file">Saved clip: </string>
     <string name="data_tilt_perfect">PERFECT</string>

@@ -8,9 +8,9 @@
     tools:context=".SensorInfoFragment">
 
     <TextView
-        style="@style/InfoHint"
-        android:text="@string/hint_roll"
-        android:id="@+id/hint_roll"
+        style="@style/SensorHint"
+        android:text="@string/hint_azimuth"
+        android:id="@+id/hint_azimuth"
         android:layout_marginStart="20dp"
         android:layout_marginTop="20dp"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -18,32 +18,25 @@
 
 
     <TextView
-        style="@style/InfoHint"
-        android:text="@string/hint_yaw"
-        android:id="@+id/hint_yaw"
-        app:layout_constraintRight_toRightOf="@id/hint_roll"
-        app:layout_constraintTop_toBottomOf="@id/hint_roll"/>
-
-    <TextView
-        style="@style/InfoHint"
-        android:id="@+id/hint_pitch"
+        style="@style/SensorHint"
         android:text="@string/hint_pitch"
-        app:layout_constraintRight_toRightOf="@id/hint_roll"
-        app:layout_constraintTop_toBottomOf="@id/hint_yaw"/>
+        android:id="@+id/hint_pitch"
+        app:layout_constraintRight_toRightOf="@id/hint_azimuth"
+        app:layout_constraintTop_toBottomOf="@id/hint_azimuth"/>
+
+    <TextView
+        style="@style/SensorHint"
+        android:id="@+id/hint_roll"
+        android:text="@string/hint_roll"
+        app:layout_constraintRight_toRightOf="@id/hint_pitch"
+        app:layout_constraintTop_toBottomOf="@id/hint_pitch"/>
 
     <TextView
         style="@style/InfoData"
-        android:id="@+id/data_roll"
+        android:id="@+id/data_azimuth"
         android:text="@string/data_tilt_perfect"
-        app:layout_constraintLeft_toRightOf="@id/hint_roll"
-        app:layout_constraintTop_toTopOf="@id/hint_roll"/>
-
-    <TextView
-        style="@style/InfoData"
-        android:id="@+id/data_yaw"
-        android:text="@string/data_tilt_perfect"
-        app:layout_constraintLeft_toRightOf="@id/hint_yaw"
-        app:layout_constraintTop_toTopOf="@id/hint_yaw"/>
+        app:layout_constraintLeft_toRightOf="@id/hint_azimuth"
+        app:layout_constraintTop_toTopOf="@id/hint_azimuth"/>
 
     <TextView
         style="@style/InfoData"
@@ -51,5 +44,12 @@
         android:text="@string/data_tilt_perfect"
         app:layout_constraintLeft_toRightOf="@id/hint_pitch"
         app:layout_constraintTop_toTopOf="@id/hint_pitch"/>
+
+    <TextView
+        style="@style/InfoData"
+        android:id="@+id/data_roll"
+        android:text="@string/data_tilt_perfect"
+        app:layout_constraintLeft_toRightOf="@id/hint_roll"
+        app:layout_constraintTop_toTopOf="@id/hint_roll"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

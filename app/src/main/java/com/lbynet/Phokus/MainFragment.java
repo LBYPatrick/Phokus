@@ -287,7 +287,6 @@ public class MainFragment extends Fragment {
                             }
                         }, 200, true, isFilming ? colors : new int[]{colors[1], colors[0]}).start();
                         cardRecord.setClickable(true);
-
                     });
                 }
                 else if(extra.equals("Updating widescreen")) {

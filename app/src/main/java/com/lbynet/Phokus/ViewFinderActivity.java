@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
 import androidx.core.widget.ImageViewCompat;
+import androidx.fragment.app.FragmentTransaction;
 
 import android.content.Intent;
 import android.content.res.ColorStateList;
@@ -12,6 +13,7 @@ import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -36,13 +38,15 @@ public class ViewFinderActivity extends AppCompatActivity {
     /**
      * Views
      */
-    private View guideOverlay = null;
+    private View guideOverlay = null,
+                 viewRecordRect = null;
     private TextView textRecordStatus = null,
                      textElapsedTime = null,
                      textExposure = null,
                      textZoomData = null,
                      textFpsData = null;
-
+    private SensorInfoFragment fragmentSensorInfo = null;
+    private FrameLayout flSensorInfoHolder = null;
     private CardView guideCard = null,
                      infoCard  = null,
                      evCard    = null;
@@ -54,7 +58,8 @@ public class ViewFinderActivity extends AppCompatActivity {
     private boolean isGuideActionDown_ = false,
                     isRecording_ = false,
                     isInfoEnabled_ = false,
-                    isEvEnabled_ = false;
+                    isEvEnabled_ = false,
+                    isFirstSensorInfoAdded = true;
     private static Timer recordTimer = new Timer("Record Timer");
 
     @Override
@@ -69,22 +74,6 @@ public class ViewFinderActivity extends AppCompatActivity {
         requestPermissions(Constants.PERMISSIONS,1);
 
         SysInfo.initialize(this);
-
-        //Add Battery listener(for exmaple...)
-        SysInfo.addListener(new BMSListener() {
-            @Override
-            public boolean onUpdate(Intent intent) {
-                return super.onUpdate(intent);
-            }
-        });
-
-        //Add Rotation Listener(for example...)
-        SysInfo.addListener(new RotationListener() {
-            @Override
-            public boolean onUpdate(float[] data) {
-                return super.onUpdate(data);
-            }
-        });
 
         oel = new OrientationEventListener(this) {
             @Override
@@ -107,7 +96,7 @@ public class ViewFinderActivity extends AppCompatActivity {
         previewView = findViewById(R.id.pv_preview);
 
         textRecordStatus = findViewById(R.id.data_recording_text);
-        textElapsedTime = findViewById(R.id.tv_record_time);
+        textElapsedTime = findViewById(R.id.tv_elapsed_time);
         textExposure = findViewById(R.id.tv_ev_text);
         textZoomData = findViewById(R.id.data_zoom);
         textFpsData = findViewById(R.id.data_fps);
@@ -125,7 +114,10 @@ public class ViewFinderActivity extends AppCompatActivity {
         evCard.setOnTouchListener(this::onEvTouched);
         evSlider.addOnChangeListener(this::onEvBarChanged);
 
-        //(TextView)findViewById(R.id.hint_zoom).
+        viewRecordRect = findViewById(R.id.v_record_rect);
+
+        fragmentSensorInfo = new SensorInfoFragment();
+        flSensorInfoHolder = findViewById(R.id.fl_sensor_info);
 
     }
 
@@ -249,6 +241,8 @@ public class ViewFinderActivity extends AppCompatActivity {
 
                 recordTimer.start();
 
+                UIHelper.setViewAlpha(viewRecordRect,100,1);
+
                 while(recordTimer.isBusy()) {
                     SAL.sleepFor(1000 / 100);
 
@@ -260,7 +254,6 @@ public class ViewFinderActivity extends AppCompatActivity {
 
                 UIHelper.runLater(this,() -> {
                     MathTools.formatTime(recordTimer.getElaspedTimeInMs(),time);
-
                     textElapsedTime.setText(time[0] + ":" + time[1] + ":" + time[2] + ":" + time[3]);
                 });
             }).start();
@@ -270,6 +263,8 @@ public class ViewFinderActivity extends AppCompatActivity {
 
                 String [] time = new String[4];
                 while(!isRecordStatusUpdated[0]) SAL.sleepFor(1);
+
+                UIHelper.setViewAlpha(viewRecordRect,100,0);
 
                 recordTimer.stop();
                 //TODO: Get last filename and stuff, whatever happens after recording stopped, put it here
@@ -286,6 +281,29 @@ public class ViewFinderActivity extends AppCompatActivity {
         isInfoEnabled_ = !isInfoEnabled_;
 
         UIHelper.updateCardColor(infoCard,isInfoEnabled_);
+
+        if(isFirstSensorInfoAdded && isInfoEnabled_) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+                    .replace(R.id.fl_sensor_info,fragmentSensorInfo)
+                    .commit();
+            isFirstSensorInfoAdded = false;
+        }
+        else if(isInfoEnabled_) {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+                    .show(fragmentSensorInfo)
+                    .commit();
+        }
+        else {
+            getSupportFragmentManager()
+                    .beginTransaction()
+                    .setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE)
+                    .hide(fragmentSensorInfo)
+                    .commit();
+        }
 
         return true;
     }

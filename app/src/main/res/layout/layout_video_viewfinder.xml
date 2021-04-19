@@ -56,6 +56,7 @@
         />
 
     <View
+        android:id="@+id/v_record_rect"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintLeft_toLeftOf="@id/pv_preview"
@@ -63,7 +64,8 @@
         app:layout_constraintBottom_toBottomOf="@id/pv_preview"
         app:layout_constraintTop_toTopOf="@id/pv_preview"
         android:foreground="@drawable/record_status_overlay"
-        android:elevation="5dp"/>
+        android:elevation="5dp"
+        android:visibility="invisible"/>
 
     <TextView
         style="@style/ViewFinderHint"
@@ -147,7 +149,7 @@
         />
 
     <TextView
-        android:id="@+id/tv_record_time"
+        android:id="@+id/tv_elapsed_time"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintLeft_toRightOf="@id/hint_fps"
@@ -265,5 +267,15 @@
         android:value="0"
         app:trackColorActive="@color/card_active"
         android:visibility="gone"/>
+
+    <FrameLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:id="@+id/fl_sensor_info"
+        app:layout_constraintTop_toBottomOf="@id/tv_elapsed_time"
+        app:layout_constraintBottom_toTopOf="@id/card_guide"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        android:elevation="10dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

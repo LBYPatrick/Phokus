@@ -52,6 +52,10 @@ public class MathTools {
 
     }
 
+    public static double radianToDegrees(double rad) {
+        return rad * 180 / Math.PI;
+    }
+
     public static void formatTime(double ms, String [] buffer) {
         int [] time = sliceTime(ms);
 

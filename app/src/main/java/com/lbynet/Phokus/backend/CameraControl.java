@@ -404,8 +404,6 @@ public class CameraControl {
 
             if (!isWidescreen_) updateWidescreen(listener);
 
-
-
             if (isFilming_) {
 
                 update3A();

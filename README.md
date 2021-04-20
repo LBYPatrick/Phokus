@@ -1,5 +1,7 @@
 # Phokus
 
+[![Build Status](https://travis-ci.com/LBYPatrick/Phokus.svg?branch=main)](https://travis-ci.com/LBYPatrick/Phokus)
+
 The filming app that does it all.
 
 # Feature List

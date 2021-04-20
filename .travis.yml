@@ -1,0 +1,28 @@
+language: android
+dist: xenial
+os: linux
+
+env:
+  global:
+  - API_LEVEL=30
+  - BUILD_TOOLS=29.0.3
+  - ABI=armeabi-v7a
+
+android:
+  components:
+  - build-tools-${BUILD_TOOLS}
+  - android-${API_LEVEL}
+  - extra
+  - add-on
+
+before_install:
+
+- touch /home/travis/.android/repositories.cfg
+- chmod +x gradlew
+- yes | sdkmanager "build-tools;${BUILD_TOOLS}"
+- yes | sdkmanager "platforms;android-${API_LEVEL}"
+- android list targets
+
+script:
+  - ./gradlew clean build
+  - ./gradlew test

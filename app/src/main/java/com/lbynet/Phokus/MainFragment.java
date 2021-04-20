@@ -30,6 +30,7 @@ import com.lbynet.Phokus.utils.SysInfo;
  * Use the {@link MainFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
+@Deprecated
 public class MainFragment extends Fragment {
 
     // TODO: Rename parameter arguments, choose names that match

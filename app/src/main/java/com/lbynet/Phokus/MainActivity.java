@@ -11,6 +11,7 @@ import com.lbynet.Phokus.backend.Constants;
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.SysInfo;
 
+@Deprecated
 public class MainActivity extends AppCompatActivity {
 
     final static String TAG = MainActivity.class.getSimpleName();

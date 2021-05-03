@@ -223,7 +223,7 @@ public class MainFragment extends Fragment {
 
         focusCircle.setLayoutParams(params);
 
-        CameraControl.focusToPoint(motionEvent.getX(), motionEvent.getY(), new EventListener() {
+        CameraControl.focusToPoint(motionEvent.getX(), motionEvent.getY(),false, new EventListener() {
             @Override
             public boolean onEventBegan(String extra) {
 

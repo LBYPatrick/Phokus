@@ -7,12 +7,14 @@ import androidx.cardview.widget.CardView;
 import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.FragmentTransaction;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -39,7 +41,8 @@ public class ViewFinderActivity extends AppCompatActivity {
      * Views
      */
     private View guideOverlay = null,
-                 viewRecordRect = null;
+                 viewRecordRect = null,
+                 viewFocusCircle = null;
     private TextView textRecordStatus = null,
                      textElapsedTime = null,
                      textExposure = null,
@@ -89,6 +92,7 @@ public class ViewFinderActivity extends AppCompatActivity {
 
         recordIcon = findViewById(R.id.data_recording_icon);
         guideOverlay = findViewById(R.id.v_guide_overlay);
+        viewFocusCircle = findViewById(R.id.v_focus_mark);
 
         evCard = findViewById(R.id.card_ev);
         evSlider = findViewById(R.id.slider_ev);
@@ -113,12 +117,12 @@ public class ViewFinderActivity extends AppCompatActivity {
         recordIcon.setOnTouchListener(this::onRecordTouched);
         evCard.setOnTouchListener(this::onEvTouched);
         evSlider.addOnChangeListener(this::onEvBarChanged);
+        previewView.setOnTouchListener(this::onPreviewTouched);
 
         viewRecordRect = findViewById(R.id.v_record_rect);
 
         fragmentSensorInfo = new SensorInfoFragment();
         flSensorInfoHolder = findViewById(R.id.fl_sensor_info);
-
     }
 
     @Override
@@ -360,6 +364,51 @@ public class ViewFinderActivity extends AppCompatActivity {
         );
 
         return true;
+    }
+
+    boolean onPreviewTouched(View v, MotionEvent motionEvent) {
+
+        SAL.print("Motion Triggered!");
+
+        ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) viewFocusCircle.getLayoutParams();
+        params.setMargins((int)motionEvent.getX() - 70, (int)motionEvent.getY() -70,0,0);
+
+        viewFocusCircle.setLayoutParams(params);
+
+        CameraControl.focusToPoint(motionEvent.getX(), motionEvent.getY(), true, new EventListener() {
+            @Override
+            public boolean onEventBegan(String extra) {
+
+                UIHelper.setViewAlpha(viewFocusCircle,100,1);
+
+                UIHelper.runLater(requireContext(),() -> {
+                    viewFocusCircle.getForeground().setTint(UIHelper.getColors(requireContext(),R.color.focus_busy)[0]);
+                });
+                return super.onEventBegan(extra);
+            }
+
+            @Override
+            public boolean onEventUpdated(String extra) {
+
+                int [] colors = UIHelper.getColors(requireContext(),R.color.focus_busy,R.color.focus_success);
+
+                UIHelper.getColorAnimator(new ColorListener() {
+                    @Override
+                    public void onColorUpdated(int newColor) {
+                        UIHelper.runLater(requireContext(),() -> {
+                            viewFocusCircle.getForeground().setTint(newColor);
+                        });
+                    }
+                },100, true,colors[0],colors[1]).start();
+
+                return super.onEventUpdated(extra);
+            }
+        });
+        return true;
+    }
+
+    private Context requireContext() {
+        return this;
     }
 
 }

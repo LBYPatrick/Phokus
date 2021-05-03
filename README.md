@@ -12,7 +12,7 @@ The filming app that does it all.
 - [x] ZH_CN/EN_US Locale
 - [x] 8-bit Log Profile*
 - [x] AWB/AE Auto Lock
-- [ ] Travis CI
+- [x] Travis CI
 - [ ] Image Gallery     
 - [ ] Advanced Settings Panel
 - [ ] Touch-to-focus

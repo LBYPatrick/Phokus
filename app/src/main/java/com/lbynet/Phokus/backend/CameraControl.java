@@ -58,7 +58,8 @@ public class CameraControl {
             isLogEnabled_ = false,
             isVideoMode_ = false,
             isAELock_ = false,
-            isAWBLock_ = false;
+            isAWBLock_ = false,
+            isCvfStopped_ = false;
 
     private static float lastZoomFocalLength_ = 0;
     private static int majorRotation_ = 0,
@@ -67,6 +68,7 @@ public class CameraControl {
             videoFps_ = AVAIL_VIDEO_FPS[fpsIndex - 1],
             zoomIndex = 0,
             cameraId = 0;
+    private static float [] focusPoint = {0,0};
     private static CameraSelector cs;
     private static ImageCapture ic;
     private static ImageAnalysis ia;
@@ -93,7 +95,7 @@ public class CameraControl {
                 pcp = future.get();
                 previewView_ = previewView;
                 bindCamera();
-                lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_,cameraId);
+                lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_, cameraId);
 
             } catch (Exception e) {
                 SAL.print(e);
@@ -102,7 +104,8 @@ public class CameraControl {
     }
 
     public static void bindCamera() {
-        bindCamera(new EventListener() {});
+        bindCamera(new EventListener() {
+        });
     }
 
     @SuppressLint("RestrictedApi")
@@ -119,19 +122,19 @@ public class CameraControl {
                         CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
 
-        camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs);
+        camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs);
 
         preview = makePreview();
         preview.setSurfaceProvider(previewView_.getSurfaceProvider());
 
-        if(isVideoMode_) vc = makeVideoCapture();
+        if (isVideoMode_) vc = makeVideoCapture();
         else ic = makeImageCapture();
 
         //TODO:Let's not worry about imageAnalysis for now
 
-        camera = pcp.bindToLifecycle((LifecycleOwner) context_,cs,preview, (isVideoMode_ ? vc : ic));
+        camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview, (isVideoMode_ ? vc : ic));
 
-        new Thread( () -> {
+        new Thread(() -> {
             SAL.sleepFor(1000);
             updateAllCameraConfig();
             UIHelper.runLater(context_, CameraControl::flushCaptureRequest);
@@ -220,7 +223,7 @@ public class CameraControl {
             cameraId = isFrontFacing() ? 1 : 0;
 
             //Reset zoom parameters
-            lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_,cameraId);
+            lastZoomFocalLength_ = CameraUtils.get35FocalLength(context_, cameraId);
             zoomIndex = 0;
 
             cs = new CameraSelector.Builder()
@@ -268,7 +271,7 @@ public class CameraControl {
 
                 camera = pcp.bindToLifecycle((LifecycleOwner) context_, cs, preview);
 
-                listener.onEventFinished(true,"Preview widescreen status is now " +isWidescreen_ + ".");
+                listener.onEventFinished(true, "Preview widescreen status is now " + isWidescreen_ + ".");
             });
         }).start();
     }
@@ -283,13 +286,13 @@ public class CameraControl {
 
             final String filename = CameraUtils.getPhotoFilename();
 
-            ic.takePicture(CameraUtils.getImageOFO(context_,filename),ContextCompat.getMainExecutor(context_), new ImageCapture.OnImageSavedCallback() {
+            ic.takePicture(CameraUtils.getImageOFO(context_, filename), ContextCompat.getMainExecutor(context_), new ImageCapture.OnImageSavedCallback() {
 
                 @Override
                 public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        SAL.runFileScan(context_,outputFileResults.getSavedUri());
-                        listener.onEventFinished(true,"Image saved, filename: " + filename);
-                        return;
+                    SAL.runFileScan(context_, outputFileResults.getSavedUri());
+                    listener.onEventFinished(true, "Image saved, filename: " + filename);
+                    return;
                 }
 
                 @Override
@@ -348,7 +351,7 @@ public class CameraControl {
 
     public static void zoomByFocalLength(float mm, EventListener listener) {
 
-        if(lastZoomFocalLength_ == 0) {
+        if (lastZoomFocalLength_ == 0) {
             lastZoomFocalLength_ = getEquivalentFocalLength(cameraId);
         }
 
@@ -393,7 +396,7 @@ public class CameraControl {
         }).start();
     }
 
-    @SuppressLint("RestrictedApi")
+    @SuppressLint({"RestrictedApi", "MissingPermission"})
     public static void toggleRecording(EventListener listener) {
 
         new Thread(() -> {
@@ -404,21 +407,21 @@ public class CameraControl {
 
             if (!isWidescreen_) updateWidescreen(listener);
 
-            if (isFilming_) {
+            updateVideoSettings();
+            flushCaptureRequest();
 
-                update3A();
-                flushCaptureRequest();
+            if (isFilming_) {
 
                 runLater(() -> {
 
                     vc.setTargetRotation(majorRotation_);
 
-                    vc.startRecording(CameraUtils.getVideoOFO(context_,CameraUtils.getVideoFilename())
+                    vc.startRecording(CameraUtils.getVideoOFO(context_, CameraUtils.getVideoFilename())
                             , ContextCompat.getMainExecutor(context_), new VideoCapture.OnVideoSavedCallback() {
 
                                 @Override
                                 public void onVideoSaved(@NonNull VideoCapture.OutputFileResults outputFileResults) {
-                                    SAL.runFileScan(context_,outputFileResults.getSavedUri());
+                                    SAL.runFileScan(context_, outputFileResults.getSavedUri());
                                     SAL.print("Video saved.");
 
                                     update3A();
@@ -444,6 +447,10 @@ public class CameraControl {
 
     }
 
+    public static void stopCvf() {
+        isCvfStopped_ = true;
+    }
+
     public static int getVideoFps() {
         return videoFps_;
     }
@@ -451,6 +458,7 @@ public class CameraControl {
     public static void toggleVideoFps(EventListener listener) {
 
         new Thread(() -> {
+
             videoFps_ = AVAIL_VIDEO_FPS[fpsIndex];
 
             listener.onEventBegan("Changing video framerate to " + videoFps_ + "fps...");
@@ -508,8 +516,8 @@ public class CameraControl {
 
         VideoCapture.Builder builder = new VideoCapture.Builder()
                 .setVideoFrameRate(videoFps_)
-                .setBitRate(100 * 1024 * 1024) //100 Mbps
-                .setTargetResolution(new Size(1920, 1080));
+                .setBitRate(videoFps_ * 2 * 1024 * 1024) //100 Mbps
+                .setTargetResolution(new Size(3840, 2160));
 
         VideoCapture r = builder.build();
 
@@ -524,9 +532,20 @@ public class CameraControl {
         return icBuilder.build();
     }
 
-    public static void focusToPoint(float x, float y, EventListener listener) {
-        new Thread(() -> {
+    /**
+     * Internal overloader for CVF
+     * @param listener the listener originally passed by the full one
+     */
+    private static void focusToPoint(EventListener listener) {
+        focusToPoint(focusPoint[0],focusPoint[1],true,listener);
+    }
 
+    public static void focusToPoint(float x, float y, boolean isContinuous, EventListener listener) {
+
+        focusPoint[0] = x;
+        focusPoint[1] = y;
+
+        new Thread(() -> {
             isFocusBusy_ = true;
 
             listener.onEventBegan("Start focusing...");
@@ -534,14 +553,13 @@ public class CameraControl {
             runLater(() -> {
                 //Start focusing
                 MeteringPointFactory factory = previewView_.getMeteringPointFactory();
-                MeteringPoint point = factory.createPoint(x, y);
-                FocusMeteringAction action = new FocusMeteringAction.Builder(point)
-                .disableAutoCancel()
-                .build();
+                MeteringPoint point = factory.createPoint(focusPoint[0], focusPoint[1]);
+                FocusMeteringAction action = new FocusMeteringAction.Builder(point).disableAutoCancel().build();
 
                 ListenableFuture<FocusMeteringResult> focusResult = camera.getCameraControl().startFocusAndMetering(action);
 
                 focusResult.addListener(() -> {
+
                     try {
                         focusResult.get();
 
@@ -549,11 +567,17 @@ public class CameraControl {
 
                         isFocusBusy_ = false;
 
+                        if(!isCvfStopped_ && isContinuous) focusToPoint(listener);
+                        else if(isContinuous) isCvfStopped_ = false;
+
                     } catch (Exception e) {
                         SAL.print(e);
                         SAL.print("Focus cancelled");
                         listener.onEventFinished(false, "Focus cancelled");
                     }
+
+
+
                 }, ContextCompat.getMainExecutor(context_));
             });
 
@@ -585,6 +609,10 @@ public class CameraControl {
                 isVideoStbEnabled_ ? CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
                 : CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
 
+        cro.setCaptureRequestOption(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                isVideoStbEnabled_ ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
+                : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
+
     }
 
     private static void updatePhotoSettings() {
@@ -600,7 +628,7 @@ public class CameraControl {
                         : CaptureRequest.TONEMAP_MODE_HIGH_QUALITY)
                 .setCaptureRequestOption(CaptureRequest.EDGE_MODE,
                         isLogEnabled_ ? CaptureRequest.EDGE_MODE_OFF
-                                : CaptureRequest.EDGE_MODE_HIGH_QUALITY);
+                                : CaptureRequest.EDGE_MODE_OFF);
 
         if(isLogEnabled_) {
             cro.setCaptureRequestOption(CaptureRequest.TONEMAP_CURVE, CameraUtils.makeToneMapCurve(
@@ -618,17 +646,20 @@ public class CameraControl {
         cro.setCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, new Range(isFilming_ ? videoFps_ : 0,videoFps_));
 
         cro.setCaptureRequestOption(CaptureRequest.CONTROL_AWB_LOCK, isAWBLock_ || isFilming_)
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, isAELock_ || isFilming_)
+                .setCaptureRequestOption(CaptureRequest.CONTROL_AE_LOCK, isAELock_ || isFilming_);
+                /*
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AF_MODE,
                         isVideoMode_ ?
                             CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
                             : CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE);
 
+                 */
+
     }
 
     //"Experimental" cannot stop me from using it lol
-    @SuppressLint("UnsafeExperimentalUsageError")
+    @SuppressLint("UnsafeOptInUsageError")
     private static void flushCaptureRequest() {
         runLater( ()-> {
             try {
@@ -646,7 +677,7 @@ public class CameraControl {
         });
     }
 
-    @SuppressLint("UnsafeExperimentalUsageError")
+    @SuppressLint("UnsafeOptInUsageError")
     public static void updateEV(double ev) {
 
         float [] evInfo = CameraUtils.getEvInfo(context_,cameraId);
@@ -658,7 +689,6 @@ public class CameraControl {
         int index = (int)Math.round((ev / evInfo[0]));
 
         camera.getCameraControl().setExposureCompensationIndex(index);
-
     }
 
     public static float [] getEVConfig() {

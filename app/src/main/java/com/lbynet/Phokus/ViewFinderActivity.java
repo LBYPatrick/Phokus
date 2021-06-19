@@ -8,7 +8,6 @@ import androidx.core.widget.ImageViewCompat;
 import androidx.fragment.app.FragmentTransaction;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.view.MotionEvent;
@@ -23,10 +22,8 @@ import com.google.android.material.slider.Slider;
 
 import com.lbynet.Phokus.backend.CameraControl;
 import com.lbynet.Phokus.backend.Constants;
-import com.lbynet.Phokus.listener.BMSListener;
 import com.lbynet.Phokus.listener.ColorListener;
-import com.lbynet.Phokus.listener.EventListener;
-import com.lbynet.Phokus.listener.RotationListener;
+import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.ui.UIHelper;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;

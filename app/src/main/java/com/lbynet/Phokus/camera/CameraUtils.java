@@ -1,9 +1,8 @@
-package com.lbynet.Phokus.utils;
+package com.lbynet.Phokus.camera;
 
 import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.content.Context;
-import android.hardware.camera2.CameraAccessException;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.hardware.camera2.params.TonemapCurve;
@@ -13,22 +12,27 @@ import android.util.Rational;
 
 import androidx.camera.camera2.internal.compat.CameraManagerCompat;
 import androidx.camera.core.ImageCapture;
-import androidx.camera.core.ImageProxy;
 import androidx.camera.core.VideoCapture;
 
+import com.lbynet.Phokus.utils.MathTools;
+import com.lbynet.Phokus.utils.SAL;
+
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
+import java.util.ArrayDeque;
 import java.util.HashMap;
 
 public class CameraUtils {
 
-    public static HashMap<Integer, CameraCharacteristics> ccMap = new HashMap<>();
-    public static HashMap<Integer,Float> focalLengthMap = new HashMap<>(),
-                                         cropFactorMap = new HashMap<>();
-    public static HashMap<Integer,float []> evMap = new HashMap<>();
+    final static float[] AVAIL_ZOOM_LENGTHS = {28, 35, 50, 70, 85};
+    final static int[] AVAIL_VIDEO_FPS = {24, 25, 30, 48, 50, 60};
+
+    public static HashMap<Integer, CameraCharacteristics> cc_map_ = new HashMap<>();
+    public static HashMap<Integer,Float> focal_length_map_ = new HashMap<>(),
+                                         crop_factor_map_ = new HashMap<>();
+    public static HashMap<Float, ArrayDeque<Float>> zoom_map_ = new HashMap<>();
+    public static HashMap<Integer,float []> ev_map_ = new HashMap<>();
+    public static HashMap<String,TonemapCurve> log_curve_map_ = new HashMap<>();
     final public static String TAG = CameraUtils.class.getSimpleName();
-    private static int numImageFromTheSameSec = 0;
-    private static long lastImageTime = -1;
 
     public enum LogScheme {
         CLOG,
@@ -38,7 +42,7 @@ public class CameraUtils {
     @SuppressLint("RestrictedApi")
     public static CameraCharacteristics getCameraCharacteristics(Context context, int cameraId) {
 
-        if (ccMap.containsKey(cameraId)) return ccMap.get(cameraId);
+        if (cc_map_.containsKey(cameraId)) return cc_map_.get(cameraId);
 
         try {
             CameraCharacteristics cc =
@@ -47,7 +51,7 @@ public class CameraUtils {
                             .unwrap()
                             .getCameraCharacteristics(Integer.toString(cameraId));
 
-            ccMap.put(cameraId, cc);
+            cc_map_.put(cameraId, cc);
             return cc;
 
         } catch (Exception e) {
@@ -71,7 +75,7 @@ public class CameraUtils {
 
     public static float getFocalLength(Context context,int cameraId) {
 
-        if(focalLengthMap.containsKey(cameraId)) return focalLengthMap.get(cameraId);
+        if(focal_length_map_.containsKey(cameraId)) return focal_length_map_.get(cameraId);
 
         CameraCharacteristics cc = getCameraCharacteristics(context,cameraId);
         if(cc == null) {
@@ -81,14 +85,14 @@ public class CameraUtils {
 
         float r = cc.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)[0];
 
-        focalLengthMap.put(cameraId,r);
+        focal_length_map_.put(cameraId,r);
 
         return r;
     }
 
     public static float getCropFactor(Context context, int cameraId) {
 
-        if(cropFactorMap.containsKey(cameraId)) return cropFactorMap.get(cameraId);
+        if(crop_factor_map_.containsKey(cameraId)) return crop_factor_map_.get(cameraId);
 
         CameraCharacteristics cc = getCameraCharacteristics(context,cameraId);
         if(cc == null) {
@@ -98,7 +102,7 @@ public class CameraUtils {
 
         float r = MathTools.getCropFactor(cc.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE));
 
-        cropFactorMap.put(cameraId,r);
+        crop_factor_map_.put(cameraId,r);
 
         return r;
     }
@@ -119,6 +123,9 @@ public class CameraUtils {
 
     //TODO: Finish this
     public static TonemapCurve makeToneMapCurve(LogScheme scheme, final int points) {
+
+        String key = scheme.toString() + "_" + Integer.toString(points);
+        if(log_curve_map_.containsKey(key)) return log_curve_map_.get(key);
 
         //草，植树问题
         final double incr = 1 / (double)(points - 2);
@@ -177,78 +184,20 @@ public class CameraUtils {
             x += incr;
         }
 
-        SAL.print("Final X: " + x +"\n");
-        SAL.print("Array: " + Arrays.toString(ptArray) + "\n");
+        //SAL.print("Final X: " + x +"\n");
+        //SAL.print("Array: " + Arrays.toString(ptArray) + "\n");
 
-        return new TonemapCurve(ptArray,ptArray,ptArray);
+        TonemapCurve curve = new TonemapCurve(ptArray,ptArray,ptArray);
+        log_curve_map_.put(key,curve);
+
+        return curve;
     }
 
-    public static VideoCapture.OutputFileOptions getVideoOFO(Context context, String filename) {
 
-        ContentValues values = new ContentValues();
-
-        final String extension = filename.substring(filename.lastIndexOf('.') + 1,filename.length());
-
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
-        values.put(MediaStore.MediaColumns.TITLE,filename);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "video/" + extension);
-
-        return new VideoCapture.OutputFileOptions.Builder(context.getContentResolver(),
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
-                values).build();
-
-    }
-
-    public static VideoCapture.OutputFileOptions getVideoOFO(Context context) {
-        return getVideoOFO(context, getVideoFilename());
-    }
-
-    public static String getVideoFilename()  {
-        //TODO: Finish this
-        return "THIS_IS_A_VIDEO.mp4";
-    }
-
-    public static String getPhotoFilename() {
-
-        long timestamp = System.currentTimeMillis();
-
-        final String time = new SimpleDateFormat("yyyyLLdd_HHmmss").format(timestamp);
-
-        StringBuilder sb = new StringBuilder().append("IMG_").append(time);
-
-        if(timestamp == lastImageTime) {
-            numImageFromTheSameSec += 1;
-            sb.append("_" + Integer.toString(numImageFromTheSameSec));
-        }
-        else { numImageFromTheSameSec = 0; }
-
-        lastImageTime = timestamp;
-
-        String output = sb.append(".jpg").toString();
-
-        return output;
-    }
-
-    public static ImageCapture.OutputFileOptions getImageOFO(Context context) {
-        return getImageOFO(context,getPhotoFilename());
-    }
-    public static ImageCapture.OutputFileOptions getImageOFO(Context context, String filename) {
-        ContentValues values = new ContentValues();
-
-        final String extension = filename.substring(filename.lastIndexOf('.') + 1,filename.length());
-
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
-        values.put(MediaStore.MediaColumns.TITLE,filename);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "image/" + extension);
-
-        return new ImageCapture.OutputFileOptions.Builder(context.getContentResolver(),
-                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
-                values).build();
-    }
 
     public static float [] getEvInfo(Context context,int cameraId) {
 
-        if(evMap.containsKey(cameraId)) return evMap.get(cameraId);
+        if(ev_map_.containsKey(cameraId)) return ev_map_.get(cameraId);
 
         CameraCharacteristics cc = getCameraCharacteristics(context,cameraId);
 
@@ -261,7 +210,7 @@ public class CameraUtils {
         r[1] = range.getLower() * r[0];
         r[2] = range.getUpper() * r[0];
 
-        evMap.put(cameraId,r);
+        ev_map_.put(cameraId,r);
 
         return r;
     }
@@ -318,5 +267,4 @@ public class CameraUtils {
 
         return new RggbChannelVector((red / 255) * 2, (green / 255), (green / 255), (blue / 255) * 2);
     }
-
 }

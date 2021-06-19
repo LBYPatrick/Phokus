@@ -32,16 +32,18 @@ import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.lbynet.Phokus.listener.EventListener;
+import com.lbynet.Phokus.camera.CameraIO;
+import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.listener.LumaListener;
 import com.lbynet.Phokus.ui.UIHelper;
-import com.lbynet.Phokus.utils.CameraUtils;
+import com.lbynet.Phokus.camera.CameraUtils;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.Timer;
 
 import java.nio.ByteBuffer;
 
+@Deprecated
 @SuppressLint("RestrictedApi")
 public class CameraControl {
 
@@ -284,9 +286,9 @@ public class CameraControl {
 
             ic.setTargetRotation(minorRotation_);
 
-            final String filename = CameraUtils.getPhotoFilename();
+            final String filename = CameraIO.getPhotoFilename();
 
-            ic.takePicture(CameraUtils.getImageOFO(context_, filename), ContextCompat.getMainExecutor(context_), new ImageCapture.OnImageSavedCallback() {
+            ic.takePicture(CameraIO.getImageOFO(context_,filename), ContextCompat.getMainExecutor(context_), new ImageCapture.OnImageSavedCallback() {
 
                 @Override
                 public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
@@ -416,7 +418,7 @@ public class CameraControl {
 
                     vc.setTargetRotation(majorRotation_);
 
-                    vc.startRecording(CameraUtils.getVideoOFO(context_, CameraUtils.getVideoFilename())
+                    vc.startRecording(CameraIO.getVideoOFO(context_)
                             , ContextCompat.getMainExecutor(context_), new VideoCapture.OnVideoSavedCallback() {
 
                                 @Override
@@ -609,10 +611,12 @@ public class CameraControl {
                 isVideoStbEnabled_ ? CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON
                 : CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
 
+        /**
+         * ALWAYS leave this on
         cro.setCaptureRequestOption(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
                 isVideoStbEnabled_ ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
                 : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
-
+       */
     }
 
     private static void updatePhotoSettings() {

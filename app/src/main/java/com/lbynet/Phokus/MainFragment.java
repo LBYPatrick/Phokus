@@ -20,7 +20,7 @@ import android.widget.TextView;
 import com.lbynet.Phokus.backend.CameraControl;
 import com.lbynet.Phokus.listener.BMSListener;
 import com.lbynet.Phokus.listener.ColorListener;
-import com.lbynet.Phokus.listener.EventListener;
+import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.ui.UIHelper;
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.SysInfo;

@@ -62,21 +62,11 @@ public class SAL {
                                                    msg);
 
         switch(type) {
-            case ERROR:
-                Log.e(tag,printMsg);
-                break;
-            case VERBOSE:
-                Log.v(tag,printMsg);
-                break;
-            case DEBUG:
-                Log.d(tag,printMsg);
-                break;
-            case INFO:
-                Log.i(tag,printMsg);
-                break;
-            case WARN:
-                Log.w(tag,printMsg);
-                break;
+            case ERROR: Log.e(tag,printMsg);break;
+            case VERBOSE: Log.v(tag,printMsg); break;
+            case DEBUG: Log.d(tag,printMsg);break;
+            case INFO: Log.i(tag,printMsg);break;
+            case WARN: Log.w(tag,printMsg);break;
         }
 
         log_.add(saveMsg);

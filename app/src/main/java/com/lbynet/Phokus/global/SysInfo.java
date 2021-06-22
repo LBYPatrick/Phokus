@@ -1,4 +1,4 @@
-package com.lbynet.Phokus.utils;
+package com.lbynet.Phokus.global;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -9,19 +9,19 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.BatteryManager;
 
 import androidx.core.content.ContextCompat;
 
-import com.lbynet.Phokus.listener.BMSListener;
-import com.lbynet.Phokus.listener.RotationListener;
+import com.lbynet.Phokus.template.EventListener;
 
 import java.util.LinkedList;
 
 public class SysInfo {
 
-    private static LinkedList<BMSListener> bmsListeners = new LinkedList<>();
-    private static LinkedList<RotationListener> rotListeners = new LinkedList<>();
+    private static LinkedList<EventListener> bmsListeners = new LinkedList<>(),
+                                             rotListeners = new LinkedList<>();
+
+
     private static Intent batteryIntent_ = null;
     private static SensorManager sm = null;
     private static Sensor accel, magnetic;
@@ -44,8 +44,8 @@ public class SysInfo {
         public void onReceive(Context context, Intent intent) {
 
             batteryIntent_ = intent;
-
-           for(BMSListener i : bmsListeners) i.onUpdate(batteryIntent_);
+           for(EventListener i : bmsListeners)
+               i.onEventUpdated(EventListener.DataType.INTENT_BMS, batteryIntent_);
         }
     };
 
@@ -63,32 +63,22 @@ public class SysInfo {
 
     }
 
-    public static void addListener(Object listener) {
+    public static void addListener(boolean is_bms, EventListener listener) {
 
-        if(listener instanceof BMSListener) {
-            bmsListeners.addLast((BMSListener) listener);
-        }
-        else if(listener instanceof RotationListener) {
-            rotListeners.addLast((RotationListener) listener);
-        }
-    }
+        (is_bms ? bmsListeners : rotListeners).addLast(listener);
 
-    public static void addListeners(Object... listeners) {
-        for(Object i : listeners) addListener(i);
     }
 
     public static void onSensorChanged(SensorEvent event, boolean isAccelerometer) {
 
-        if(isAccelerometer) { System.arraycopy(event.values, 0, accelReading, 0, accelReading.length); }
-        else { System.arraycopy(event.values, 0, magneticReading, 0, magneticReading.length); }
+        if(isAccelerometer) System.arraycopy(event.values, 0, accelReading, 0, accelReading.length);
+        else  System.arraycopy(event.values, 0, magneticReading, 0, magneticReading.length);
 
         updateSensorInfo();
     }
 
     //TODO: Fill this out if you need to
-    public static void onPause() {
-        sm.unregisterListener(sensorListener);
-    }
+    public static void onPause() { sm.unregisterListener(sensorListener); }
 
     //TODO: Fill this out if you need to
     public static void onResume() {
@@ -101,15 +91,12 @@ public class SysInfo {
         SensorManager.getOrientation(rotationMatrix,angles);
 
         //Push new data to listeners
-        for(RotationListener i : rotListeners) {i.onUpdate(angles.clone());}
+        for(EventListener i : rotListeners) {i.onEventUpdated(EventListener.DataType.FLOAT_ARR_ROTATION,angles.clone());}
     }
 
-    public static void removeListener(Object listener) {
-        if(listener instanceof BMSListener) bmsListeners.remove(listener);
-        else if(listener instanceof RotationListener) rotListeners.remove(listener);
+    public static void removeListener(boolean is_bms, EventListener listener) {
+
+        (is_bms ? bmsListeners : rotListeners).remove(listener);
     }
 
-    public static void removeListeners(Object... listeners) {
-        for(Object i : listeners) removeListener(i);
-    }
 }

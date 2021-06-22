@@ -1,4 +1,4 @@
-package com.lbynet.Phokus.backend;
+package com.lbynet.Phokus.deprecated;
 
 import android.Manifest;
 

@@ -1,11 +1,14 @@
 package com.lbynet.Phokus.camera;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
 import android.util.Size;
 
+import androidx.annotation.FloatRange;
+import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
@@ -23,6 +26,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.global.Config;
 import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.utils.SAL;
+
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 //TODO: Finish this
 public class CameraCore {
@@ -42,6 +48,7 @@ public class CameraCore {
     static ProcessCameraProvider pcp;
     static float default_zoom_ = -1,
                   prev_zoom_ = -1;
+    static Executor main_executor_;
 
     //Other internal variables
     static boolean is_front_facing_ = false,
@@ -55,6 +62,7 @@ public class CameraCore {
 
         context_ = preview_view.getContext();
         preview_view_ = preview_view;
+        main_executor_ = ContextCompat.getMainExecutor(context_);
 
         ListenableFuture<ProcessCameraProvider> listenable_future_ = ProcessCameraProvider.getInstance(context_);
 
@@ -68,7 +76,6 @@ public class CameraCore {
                 }
                 , ContextCompat.getMainExecutor(context_)
         );
-
     }
 
     @SuppressLint("RestrictedApi")
@@ -130,9 +137,11 @@ public class CameraCore {
                         .build();
 
             case CameraConsts.USECASE_IMAGE_CAPTURE:
+
                 return new ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .build();
+
             case CameraConsts.USECASE_IMAGE_ANALYSIS:
 
                 ImageAnalysis ia = new ImageAnalysis.Builder()
@@ -147,6 +156,7 @@ public class CameraCore {
         }
     }
 
+    @SuppressLint("UnsafeOptInUsageError")
     public void updateCameraConfig() {
 
         boolean is_video_mode = (Boolean) Config.get("VIDEO_MODE");
@@ -178,16 +188,19 @@ public class CameraCore {
                             videoFps % 25 == 0 ?
                                 CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_50HZ:
                                 CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_60HZ)
+
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_MODE,
                             is_log_enabled_ ?
                                     CaptureRequest.TONEMAP_MODE_CONTRAST_CURVE:
                                     CaptureRequest.TONEMAP_MODE_HIGH_QUALITY)
+
                     .setCaptureRequestOption(
                             CaptureRequest.EDGE_MODE,
                             is_log_enabled_ ?
                                     CaptureRequest.EDGE_MODE_OFF:
                                     CaptureRequest.EDGE_MODE_HIGH_QUALITY)
+
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
                             ((String)(Config.get("VIDEO_LOG_PROFILE"))).equals("CLOG")?
@@ -206,8 +219,45 @@ public class CameraCore {
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE)
                     .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,((Integer)Config.get("STILL_JPEG_QUALITY")).byteValue());
         }
+
+        ListenableFuture<Void> cro_future = Camera2CameraControl.from(camera_.getCameraControl()).addCaptureRequestOptions(crob_.build());
+
+        cro_future.addListener(() -> {
+
+            try {
+                cro_future.get();
+
+                SAL.print(TAG,"CaptureRequestOptions updated.");
+
+            } catch (Exception e) {
+                SAL.print(e);
+            }
+
+        },Executors.newSingleThreadExecutor());
+
     }
 
-    public void zoom(int targetFocalLength, EventListener listener) { }
+    public void zoomByRatio(
+            @FloatRange(from = 1.0, to = Float.MAX_VALUE)
+            float ratio, EventListener listener)  {
 
+        camera_.getCameraControl().setZoomRatio(ratio);
+
+        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,ratio * default_zoom_);
+    }
+
+    public void zoomByFocalLength(float focal_length,EventListener listener) {
+
+        if(focal_length < default_zoom_) {
+            listener.onEventFinished(false,"Queried Focal length too low.");
+            return;
+        }
+
+        camera_.getCameraControl().setZoomRatio(focal_length / default_zoom_);
+        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,focal_length);
+    }
+
+    public void focusToPoint(int x, int y, boolean is_continuous) {
+
+    }
 }

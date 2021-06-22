@@ -1,4 +1,4 @@
-package com.lbynet.Phokus.listener;
+package com.lbynet.Phokus.deprecated.listener;
 
 import android.content.Intent;
 

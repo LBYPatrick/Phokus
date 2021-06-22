@@ -1,4 +1,4 @@
-package com.lbynet.Phokus.ui;
+package com.lbynet.Phokus.utils;
 
 import android.animation.Animator;
 

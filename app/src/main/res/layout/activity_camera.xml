@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".ui.CameraActivity">
+
+    <FrameLayout
+        android:id="@+id/fl_preview_base"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:foreground="#808080"
+        app:layout_constraintDimensionRatio="16:9"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
+
+    <androidx.camera.view.PreviewView
+        android:id="@+id/pv_preview"
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        app:layout_constraintLeft_toLeftOf="@id/fl_preview_base"
+        app:layout_constraintRight_toRightOf="@id/fl_preview_base" />
+
+    <!-- Top info card -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cv_top_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="30dp"
+        app:cardBackgroundColor="#FF000000"
+        app:cardCornerRadius="20dp"
+        app:layout_constraintLeft_toLeftOf="@id/fl_preview_base"
+        app:layout_constraintRight_toRightOf="@id/fl_preview_base"
+        app:layout_constraintTop_toTopOf="@id/fl_preview_base">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/cl_top_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginVertical="3dp">
+
+            <TextView
+                android:id="@+id/tv_focal_length"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="35mm"
+                android:textSize="16sp"
+                app:layout_constraintLeft_toLeftOf="@id/cl_top_info"
+                app:layout_constraintTop_toTopOf="@id/cl_top_info"
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/tv_aperture"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:text="F/5.6"
+                android:textSize="16sp"
+                app:layout_constraintLeft_toRightOf="@id/tv_focal_length"
+                app:layout_constraintTop_toTopOf="@id/cl_top_info"
+                tools:ignore="HardcodedText" />
+
+            <TextView
+                android:id="@+id/tv_exposure"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="10dp"
+                android:text="0.0 EV"
+                android:textSize="16sp"
+                app:layout_constraintLeft_toRightOf="@id/tv_aperture"
+                app:layout_constraintTop_toTopOf="@id/cl_top_info"
+                tools:ignore="HardcodedText" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
+
+    <!-- Bottom info card -->
+    <androidx.cardview.widget.CardView
+        android:id="@+id/cv_bottom_info"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="30dp"
+        app:cardBackgroundColor="#FF000000"
+        app:cardCornerRadius="20dp"
+        app:layout_constraintBottom_toBottomOf="@id/fl_preview_base"
+        app:layout_constraintLeft_toLeftOf="@id/fl_preview_base"
+        app:layout_constraintRight_toRightOf="@id/fl_preview_base">
+
+        <TextView
+            android:id="@+id/tv_bottom_info"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginVertical="3dp"
+            android:text="Info will be displayed here."
+            android:textSize="16sp"
+            tools:ignore="HardcodedText" />
+
+    </androidx.cardview.widget.CardView>
+
+    <!--Shutter Button -->
+    <FrameLayout
+        android:id="@+id/fl_shutter"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_margin="10dp"
+        android:foreground="@drawable/ic_still_shutter_up"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintLeft_toRightOf="@id/fl_preview_base"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

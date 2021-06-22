@@ -19,6 +19,8 @@ public class Config {
         putDefault("VIDEO_LOG_PROFILE","OFF");
         putDefault("STILL_JPEG_QUALITY",95);
         putDefault("STILL_NR_QUALITY", CameraCharacteristics.NOISE_REDUCTION_MODE_HIGH_QUALITY);
+        putDefault("AWB_LOCK",false);
+        putDefault("AE_LOCK",false);
     }
 
     private static void putDefault(String key, Object value) {

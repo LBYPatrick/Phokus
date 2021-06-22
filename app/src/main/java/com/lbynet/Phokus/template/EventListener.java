@@ -6,12 +6,14 @@ public abstract class EventListener {
 
     public enum DataType {
         VIDEO_REC_STAT,
-        VIDEO_FPS,
+        INT_VIDEO_FPS,
         CAM_LUMA_INFO,
-        CAM_FOCAL_LENGTH,
+        FLOAT_CAM_FOCAL_LENGTH,
         STRING_INFO,
         STRING_WARNING,
-        STRING_ALERT
+        STRING_ALERT,
+        INTENT_BMS,
+        FLOAT_ARR_ROTATION
     }
 
     //public abstract boolean onEventCreated(String extra);

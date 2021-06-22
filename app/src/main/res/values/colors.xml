@@ -1,25 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#808080</color>
-    <color name="colorPrimaryDark">#202020</color>
-    <color name="colorAccent">#9E0000</color>
-    <color name="black_overlay">#66000000</color>
 
-    <color name="decorBarColor">#A10000</color>
-    <color name="photo_mode_button">#FFFFFF</color>
-    <color name="video_mode_button">#A10000</color>
-
-    <color name="record_inactive">#40FFFFFF</color>
-    <color name="record_active">#DA1C03</color>
-    <color name="capture_inactive">#66FFFFFF</color>
-    <color name="capture_busy">#FFC800</color>
-
-    <color name="button_general">#40FFFFFF</color>
-
-    <color name="focus_busy">#80FFFFFF</color>
-    <color name="focus_success">#FF00FF00</color>
-
-    <color name="card_inactive">#00000000</color>
-    <color name="card_active">#155A91</color>
+    <color name="colorPrimary">#00D1CE</color>
+    <color name="colorPrimaryDark">#919191</color>
+    <color name="colorSecondary">#66D6FF</color>
+    <color name="colorAccent">#B30074</color>
+    <color name="colorText">#FFFFFF</color>
+    <color name="colorBackground">#797979</color>
 
 </resources>

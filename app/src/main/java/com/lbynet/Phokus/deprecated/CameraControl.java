@@ -1,4 +1,4 @@
-package com.lbynet.Phokus.backend;
+package com.lbynet.Phokus.deprecated;
 
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
@@ -34,8 +34,8 @@ import androidx.lifecycle.LifecycleOwner;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.camera.CameraIO;
 import com.lbynet.Phokus.template.EventListener;
-import com.lbynet.Phokus.listener.LumaListener;
-import com.lbynet.Phokus.ui.UIHelper;
+import com.lbynet.Phokus.deprecated.listener.LumaListener;
+import com.lbynet.Phokus.utils.UIHelper;
 import com.lbynet.Phokus.camera.CameraUtils;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
@@ -338,7 +338,7 @@ public class CameraControl {
             ++zoomIndex;
         }
 
-        listener.onEventUpdated(EventListener.DataType.CAM_FOCAL_LENGTH,
+        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,
                 Float.valueOf(zoomLength));
 
         zoomByFocalLength(zoomLength, new EventListener() {
@@ -465,7 +465,7 @@ public class CameraControl {
 
             listener.onEventBegan("Changing video framerate to " + videoFps_ + "fps...");
 
-            listener.onEventUpdated(EventListener.DataType.VIDEO_FPS, videoFps_);
+            listener.onEventUpdated(EventListener.DataType.INT_VIDEO_FPS, videoFps_);
 
             if (fpsIndex == AVAIL_VIDEO_FPS.length - 1) {
                 fpsIndex = 0;

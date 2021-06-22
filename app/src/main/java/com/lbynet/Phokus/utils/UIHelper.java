@@ -1,4 +1,4 @@
-package com.lbynet.Phokus.ui;
+package com.lbynet.Phokus.utils;
 
 import android.animation.ValueAnimator;
 import android.app.Activity;
@@ -13,14 +13,11 @@ import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.Toast;
 
-import androidx.annotation.IntRange;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.lbynet.Phokus.R;
-import com.lbynet.Phokus.listener.ColorListener;
-import com.lbynet.Phokus.utils.MathTools;
-import com.lbynet.Phokus.utils.SAL;
+import com.lbynet.Phokus.deprecated.listener.ColorListener;
 
 import java.util.HashMap;
 import java.util.concurrent.Executor;
@@ -175,17 +172,4 @@ public class UIHelper {
             return isDown;
         }
     }
-
-    public static void updateCardColor(CardView card, boolean isEnabled) {
-        int [] colors = UIHelper.getColors(card.getContext(), R.color.card_inactive,R.color.card_active);
-
-        //Update data_record_icon's color
-        UIHelper.getColorAnimator(new ColorListener() {
-            @Override
-            public void onColorUpdated(int newColor) {
-                card.setCardBackgroundColor(newColor);
-            }
-        }, 100, true, (isEnabled ? colors : new int[]{colors[1], colors[0]})).start();
-    }
-
 }

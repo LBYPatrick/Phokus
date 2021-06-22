@@ -112,6 +112,14 @@ public class CameraUtils {
         return getCropFactor(context,cameraId) * getFocalLength(context,cameraId);
     }
 
+    public static float getAperture(Context context, int cameraId) {
+        return getCameraCharacteristics(context,cameraId).get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)[0];
+    }
+
+    public static float get35Aperture(Context context, int cameraId) {
+        return getCropFactor(context,cameraId) * getAperture(context, cameraId);
+    }
+
 
     public static TonemapCurve makeToneMapCurve(CameraCharacteristics cc) {
         return makeToneMapCurve(LogScheme.CLOG, cc);

@@ -1,7 +1,6 @@
 package com.lbynet.Phokus.camera;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.content.Context;
 import android.hardware.camera2.CaptureRequest;
 import android.util.Range;
@@ -89,7 +88,7 @@ public class CameraCore {
                 .requireLensFacing(is_front_facing_ ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
 
-        boolean is_video_mode = (Boolean) Config.get("VIDEO_MODE");
+        boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
 
         camera_ = pcp.bindToLifecycle((LifecycleOwner) context_,cs,buildUseCaseArray(
                 CameraConsts.USECASE_PREVIEW,
@@ -99,6 +98,8 @@ public class CameraCore {
 
         default_zoom_ = CameraUtils.get35FocalLength(context_,is_front_facing_ ? 1 : 0);
         prev_zoom_ = default_zoom_;
+
+        updateCameraConfig();
 
         SAL.print(TAG,"CameraX bound.");
     }
@@ -122,7 +123,7 @@ public class CameraCore {
             case CameraConsts.USECASE_PREVIEW:
 
                 Preview p = new Preview.Builder()
-                        .setTargetAspectRatio((Integer) Config.get("PREVIEW_ASPECT_RATIO"))
+                        .setTargetAspectRatio((Integer) Config.get(CameraConsts.PREVIEW_ASPECT_RATIO))
                         .build();
 
                 p.setSurfaceProvider(preview_view_.getSurfaceProvider());
@@ -131,9 +132,9 @@ public class CameraCore {
             case CameraConsts.USECASE_VIDEO_CAPTURE:
 
                 return new VideoCapture.Builder()
-                        .setTargetResolution((Size) Config.get("VIDEO_RESOLUTION"))
-                        .setVideoFrameRate((Integer) Config.get("VIDEO_FPS"))
-                        .setBitRate((Integer) Config.get("VIDEO_BITRATE_MBPS") * 1048576)
+                        .setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
+                        .setVideoFrameRate((Integer) Config.get(CameraConsts.VIDEO_FPS))
+                        .setBitRate((Integer) Config.get(CameraConsts.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
 
             case CameraConsts.USECASE_IMAGE_CAPTURE:
@@ -145,7 +146,7 @@ public class CameraCore {
             case CameraConsts.USECASE_IMAGE_ANALYSIS:
 
                 ImageAnalysis ia = new ImageAnalysis.Builder()
-                        .setTargetResolution((Size) Config.get("VIDEO_RESOLUTION"))
+                        .setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
                         .build();
 
                 //TODO: Do Analyzer stuff here
@@ -157,26 +158,26 @@ public class CameraCore {
     }
 
     @SuppressLint("UnsafeOptInUsageError")
-    public void updateCameraConfig() {
+    public static void updateCameraConfig() {
 
-        boolean is_video_mode = (Boolean) Config.get("VIDEO_MODE");
+        boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
 
-        int videoFps = (int)Config.get("VIDEO_FPS");
+        int videoFps = (int) Config.get(CameraConsts.VIDEO_FPS);
 
         //3A
         crob_
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AWB_LOCK,
-                        (Boolean)Config.get("AWB_LOCK") || is_recording_)
+                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || is_recording_)
 
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AE_LOCK,
-                        (Boolean)Config.get("AE_LOCK") || is_recording_);
+                        (Boolean) Config.get(CameraConsts.AE_LOCK) || is_recording_);
 
         //Video-specfic settings
         if(is_video_mode) {
 
-            boolean is_log_enabled_ = !((String)Config.get("VIDEO_LOG_PROFILE")).equals("OFF");
+            boolean is_log_enabled_ = !((String) Config.get(CameraConsts.VIDEO_LOG_PROFILE)).equals("OFF");
 
             crob_
                     .setCaptureRequestOption(
@@ -203,7 +204,7 @@ public class CameraCore {
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
-                            ((String)(Config.get("VIDEO_LOG_PROFILE"))).equals("CLOG")?
+                            ((String)(Config.get(CameraConsts.VIDEO_LOG_PROFILE))).equals("CLOG")?
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.CLOG,
                                             CameraUtils.getCameraCharacteristics(context_,is_front_facing_ ? 1 : 0)) :
@@ -217,7 +218,7 @@ public class CameraCore {
         else {
             crob_
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE)
-                    .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,((Integer)Config.get("STILL_JPEG_QUALITY")).byteValue());
+                    .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
         }
 
         ListenableFuture<Void> cro_future = Camera2CameraControl.from(camera_.getCameraControl()).addCaptureRequestOptions(crob_.build());

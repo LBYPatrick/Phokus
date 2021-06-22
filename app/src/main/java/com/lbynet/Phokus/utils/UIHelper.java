@@ -30,6 +30,7 @@ public class UIHelper {
     static DelayedAnimation animation = null;
     static Executor toastExecutor_ = null;
     static CardView toastView_ = null;
+    static HashMap<View,ValueAnimator> animatorMap = new HashMap<>();
     static HashMap<View, Boolean> hapticViewMap = new HashMap<>();
 
     public static void printSystemToast(Activity activity, String msg, boolean isLongTime) {
@@ -99,9 +100,13 @@ public class UIHelper {
 
     public static ValueAnimator setViewAlpha(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
 
+        if(animatorMap.get(view) != null) animatorMap.get(view).cancel();
+
         ValueAnimator a = getAlphaAnimator(view,durationInMs,targetAlpha,isNonLinear);
 
         ContextCompat.getMainExecutor(view.getContext()).execute(a::start);
+
+        animatorMap.put(view,a);
 
         return a;
 

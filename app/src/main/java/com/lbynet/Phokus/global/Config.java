@@ -3,6 +3,10 @@ package com.lbynet.Phokus.global;
 import android.hardware.camera2.CameraCharacteristics;
 import android.util.Size;
 
+import androidx.camera.core.AspectRatio;
+
+import com.lbynet.Phokus.camera.CameraConsts;
+
 import java.util.HashMap;
 
 public class Config {
@@ -11,16 +15,21 @@ public class Config {
     private static HashMap<String, Object> modified_ = new HashMap<>();
 
     static {
-        putDefault("VIDEO_RESOLUTION",new Size(3840,2160));
-        putDefault("VIDEO_BITRATE_MBPS",100);
-        putDefault("VIDEO_WIDESCREEN",true);
-        putDefault("VIDEO_FPS",30);
-        putDefault("VIDEO_STB",true);
-        putDefault("VIDEO_LOG_PROFILE","OFF");
-        putDefault("STILL_JPEG_QUALITY",95);
-        putDefault("STILL_NR_QUALITY", CameraCharacteristics.NOISE_REDUCTION_MODE_HIGH_QUALITY);
-        putDefault("AWB_LOCK",false);
-        putDefault("AE_LOCK",false);
+
+        putDefault(CameraConsts.FRONT_FACING,false);
+
+        putDefault(CameraConsts.FRONT_FACING,false);
+        putDefault(CameraConsts.PREVIEW_ASPECT_RATIO, AspectRatio.RATIO_4_3);
+        putDefault(CameraConsts.VIDEO_MODE,false);
+        putDefault(CameraConsts.VIDEO_RESOLUTION,new Size(3840,2160));
+        putDefault(CameraConsts.VIDEO_BITRATE_MBPS,100);
+        putDefault(CameraConsts.VIDEO_FPS,30);
+        putDefault(CameraConsts.VIDEO_STB,true);
+        putDefault(CameraConsts.VIDEO_LOG_PROFILE,"OFF");
+        putDefault(CameraConsts.STILL_JPEG_QUALITY,95);
+        putDefault(CameraConsts.NR_QUALITY, CameraCharacteristics.NOISE_REDUCTION_MODE_HIGH_QUALITY);
+        putDefault(CameraConsts.AWB_LOCK,false);
+        putDefault(CameraConsts.AE_LOCK,false);
     }
 
     private static void putDefault(String key, Object value) {

@@ -7,11 +7,13 @@ public abstract class EventListener {
     public enum DataType {
         VIDEO_REC_STAT,
         INT_VIDEO_FPS,
-        CAM_LUMA_INFO,
+        INT_ARR_LUMA_INFO,
         FLOAT_CAM_FOCAL_LENGTH,
         STRING_INFO,
         STRING_WARNING,
         STRING_ALERT,
+        STRING_FOCUS_STAT,
+        URI_PICTURE_SAVED,
         INTENT_BMS,
         FLOAT_ARR_ROTATION
     }
@@ -31,6 +33,9 @@ public abstract class EventListener {
     }
 
     public boolean onEventUpdated(DataType dataType, Object data) {
+
+        SAL.print("EVENT", "Type: " + dataType.toString() + "\tData:" + data.toString());
+
         return true;
     }
 

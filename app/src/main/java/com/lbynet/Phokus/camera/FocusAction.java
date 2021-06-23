@@ -37,6 +37,8 @@ public class FocusAction {
         coordinate_ =  coordinate;
         preview_view_ = previewView;
         executor_ = executor;
+        cc_ = cameraControl;
+        listener_ = listener;
 
         thread_ = new Thread( () -> {
 
@@ -54,36 +56,49 @@ public class FocusAction {
     }
 
     private boolean focus() {
-        MeteringPointFactory factory = preview_view_.getMeteringPointFactory();
-        MeteringPoint point = factory.createPoint(coordinate_[0], coordinate_[1]);
-        FocusMeteringAction action = new FocusMeteringAction.Builder(point).disableAutoCancel().build();
-        ListenableFuture<FocusMeteringResult> future = cc_.startFocusAndMetering(action);
 
         AtomicBoolean is_completed = new AtomicBoolean(false);
 
-        future.addListener(() -> {
+        executor_.execute( () -> {
 
-            try {
+            MeteringPointFactory factory = preview_view_.getMeteringPointFactory();
+            MeteringPoint point = factory.createPoint(coordinate_[0], coordinate_[1]);
+            FocusMeteringAction action = new FocusMeteringAction.Builder(point).disableAutoCancel().build();
+            ListenableFuture<FocusMeteringResult> future = cc_.startFocusAndMetering(action);
 
-                FocusMeteringResult result = ((FocusMeteringResult)(future.get()));
+            listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, "Focus in progress");
 
-                is_completed.set(true);
+            future.addListener(() -> {
 
-            } catch (Exception e) {
-                SAL.print(e);
+                try {
 
-            } finally {
-                is_completed.set(true);
-            }
-        },executor_);
+                    FocusMeteringResult result = ((FocusMeteringResult) (future.get()));
 
-        while(!is_completed.get()) SAL.sleepFor(1);
+                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, "Focus success");
+
+                    is_completed.set(true);
+
+                } catch (Exception e) {
+
+                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, "Focus cancelled");
+
+                    SAL.print(e);
+
+                } finally {
+                    is_completed.set(true);
+                }
+            }, executor_);
+        });
+
+        while (!is_completed.get()) SAL.sleepFor(1);
 
         return true;
     }
 
 
     public synchronized void updateFocusCoordinate(float [] newCoordinate) {
+
+        cc_.cancelFocusAndMetering();
         coordinate_ = newCoordinate;
     }
 

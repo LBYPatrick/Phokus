@@ -7,9 +7,13 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.widget.TextView;
 
@@ -19,20 +23,27 @@ import com.lbynet.Phokus.camera.CameraCore;
 import com.lbynet.Phokus.camera.CameraUtils;
 import com.lbynet.Phokus.global.Config;
 import com.lbynet.Phokus.global.GlobalConsts;
+import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.UIHelper;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.concurrent.Executor;
+
 public class CameraActivity extends AppCompatActivity {
 
-    private View root = null;
+    private View root = null,
+                 viewShutterUp = null,
+                 viewShutterDown = null;
     private TextView textAperture,
                      textFocalLength,
                      textExposure,
                      textBottomInfo;
     private CardView cardTopInfo,
                      cardBottomInfo;
+    private boolean isShutterBusy = false;
+
     final private Runnable rHideBottomInfo = () -> {
         UIHelper.setViewAlpha(cardBottomInfo,200,0,true);
     },
@@ -44,15 +55,65 @@ public class CameraActivity extends AppCompatActivity {
     },
     rFadeTopInfo = () -> {
         UIHelper.setViewAlpha(cardTopInfo,50,0.5f,true);
+    },
+    rShowShutterDown = () -> {
+        UIHelper.setViewAlpha(viewShutterDown,200,1,true);
+    },
+    rHideShutterDown = () -> {
+        UIHelper.setViewAlpha(viewShutterDown,200,0,true);
     };
 
 
-    private Handler fullscreenHandler = new Handler(),
-                    topInfoHandler = new Handler(),
-                    bottomInfoHandler = new Handler();
-
+    private Handler animationHandler = new Handler(),
+                    fullscreenHandler = new Handler();
+    private float currZoomRatio = 1;
 
     private PreviewView preview;
+    final private ScaleGestureDetector.SimpleOnScaleGestureListener pToZListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        @Override
+        public boolean onScale(ScaleGestureDetector detector) {
+
+            float factor = detector.getScaleFactor();
+
+            if(factor < 1) factor = - (1 / factor);
+            else factor -= 1;
+
+            float delta =  factor * 0.1f;
+
+            currZoomRatio += delta;
+
+            if(currZoomRatio < 1) currZoomRatio = 1;
+            else if(currZoomRatio > 5) currZoomRatio = 5;
+
+            wakeTopInfo();
+
+            CameraCore.zoomByRatio(currZoomRatio, new EventListener() {
+                @SuppressLint("DefaultLocale")
+                @Override
+                public boolean onEventUpdated(DataType dataType, Object data) {
+
+                    if(dataType != DataType.FLOAT_CAM_FOCAL_LENGTH) return false;
+
+                     UIHelper.runLater(requireContext(),() -> {
+
+                        textFocalLength.setText(String.format("%.2fmm",(Float)data));
+
+                        updateBottomInfo(String.format("Scale factor: %.2fx",currZoomRatio));
+
+                        int [] colors = UIHelper.getColors(requireContext(),R.color.colorText,R.color.colorPrimary);
+                        textFocalLength.setTextColor(currZoomRatio == 1 ? colors[0] : colors[1]);
+
+                    });
+
+                    return super.onEventUpdated(dataType, data);
+                }
+            });
+
+            return super.onScale(detector);
+        }
+    };
+    private ScaleGestureDetector pToZDetector = null;
+
 
     final private Runnable rHideNav = () -> {
         root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
@@ -75,6 +136,12 @@ public class CameraActivity extends AppCompatActivity {
         textFocalLength = findViewById(R.id.tv_focal_length);
         cardTopInfo = findViewById(R.id.cv_top_info);
         cardBottomInfo = findViewById(R.id.cv_bottom_info);
+        preview = findViewById(R.id.pv_preview);
+        pToZDetector =  new ScaleGestureDetector(requireContext(),pToZListener);
+        viewShutterUp = findViewById(R.id.v_shutter_up);
+        viewShutterDown = findViewById(R.id.v_shutter_down);
+
+        viewShutterUp.setOnTouchListener(this::onShutterTouched);
 
         if(allPermissionsGood())
             startCamera();
@@ -118,30 +185,95 @@ public class CameraActivity extends AppCompatActivity {
 
         SAL.print("Starting camera");
         CameraCore.initialize();
-        CameraCore.start(findViewById(R.id.pv_preview));
+        CameraCore.start(preview);
 
         int camera_id = (Boolean) Config.get(CameraConsts.FRONT_FACING) ? 1 : 0;
 
         textAperture.setText(String.format("F/%.2f",CameraUtils.get35Aperture(this,camera_id)));
         textAperture.setTextColor(UIHelper.getColors(this,R.color.colorSecondary)[0]);
 
-        textBottomInfo.setText("Am I a joke to you? Please tell me I am not.");
+        updateBottomInfo("Am I a joke to you? Please tell me I am not.");
+
+        preview.setOnTouchListener(this::onPreviewTouched);
 
         wakeTopInfo();
         wakeBottomInfo();
     }
 
+    // Credits to Saurabh Thorat:
+    // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
+    public boolean onPreviewTouched(View v, MotionEvent event) {
+
+        pToZDetector.onTouchEvent(event);
+
+        if(event.getAction() == MotionEvent.ACTION_DOWN) {
+
+            CameraCore.focusToPoint(event.getX(), event.getY(), false, new EventListener() {
+                @Override
+                public boolean onEventUpdated(DataType dataType, Object data) {
+
+                    //if(dataType != DataType.STRING_FOCUS_STAT) return false;
+
+                    return super.onEventUpdated(dataType, data);
+                }
+            });
+
+        }
+
+        return true;
+    }
+
+    public boolean onShutterTouched(View v, MotionEvent event) {
+
+        if(isShutterBusy) return false;
+
+        isShutterBusy = true;
+        requireExecutor().execute(rShowShutterDown);
+
+        CameraCore.takePicture(new EventListener() {
+            @Override
+            public boolean onEventUpdated(DataType dataType, Object data) {
+
+                if(dataType != DataType.URI_PICTURE_SAVED) return false;
+
+                runOnUiThread(() -> updateBottomInfo("Picture saved!"));
+                requireExecutor().execute(rHideShutterDown);
+
+                isShutterBusy = false;
+
+                return super.onEventUpdated(dataType, data);
+            }
+        });
+
+        return true;
+    }
+
+    private Context requireContext() {
+        return this;
+    }
+
+    private Executor requireExecutor() {
+        return ContextCompat.getMainExecutor(this);
+    }
+
     private void wakeTopInfo() {
 
-        topInfoHandler.removeCallbacks(rFadeTopInfo);
+        animationHandler.removeCallbacks(rFadeTopInfo);
         ContextCompat.getMainExecutor(this).execute(rShowTopInfo);
-        topInfoHandler.postDelayed(rFadeTopInfo,2000);
+        animationHandler.postDelayed(rFadeTopInfo,2000);
+    }
+
+    private void updateBottomInfo(String newInfo) {
+
+        textBottomInfo.setText(newInfo);
+        wakeBottomInfo();
+
     }
 
     private void wakeBottomInfo() {
-        bottomInfoHandler.removeCallbacks(rHideBottomInfo);
+        animationHandler.removeCallbacks(rHideBottomInfo);
         ContextCompat.getMainExecutor(this).execute(rShowBottomInfo);
-        bottomInfoHandler.postDelayed(rHideBottomInfo,4000);
+        animationHandler.postDelayed(rHideBottomInfo,4000);
     }
 
     @Override

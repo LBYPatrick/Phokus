@@ -7,12 +7,14 @@ import android.util.Range;
 import android.util.Size;
 
 import androidx.annotation.FloatRange;
+import androidx.annotation.NonNull;
 import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.Camera;
 import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
+import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.VideoCapture;
@@ -25,6 +27,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.global.Config;
 import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.utils.SAL;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -48,6 +52,7 @@ public class CameraCore {
     static float default_zoom_ = -1,
                   prev_zoom_ = -1;
     static Executor main_executor_;
+    static FocusAction focus_action_;
 
     //Other internal variables
     static boolean is_front_facing_ = false,
@@ -131,17 +136,21 @@ public class CameraCore {
 
             case CameraConsts.USECASE_VIDEO_CAPTURE:
 
-                return new VideoCapture.Builder()
+                video_capture_ = new VideoCapture.Builder()
                         .setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
                         .setVideoFrameRate((Integer) Config.get(CameraConsts.VIDEO_FPS))
                         .setBitRate((Integer) Config.get(CameraConsts.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
 
+                return video_capture_;
+
             case CameraConsts.USECASE_IMAGE_CAPTURE:
 
-                return new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                image_capture_ = new ImageCapture.Builder()
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                         .build();
+
+                return image_capture_;
 
             case CameraConsts.USECASE_IMAGE_ANALYSIS:
 
@@ -238,7 +247,24 @@ public class CameraCore {
 
     }
 
-    public void zoomByRatio(
+    public static void takePicture(EventListener listener) {
+
+        image_capture_.takePicture(CameraIO.getImageOFO(context_), main_executor_, new ImageCapture.OnImageSavedCallback() {
+            @Override
+            public void onImageSaved(@NonNull @NotNull ImageCapture.OutputFileResults outputFileResults) {
+                SAL.runFileScan(context_, outputFileResults.getSavedUri());
+                listener.onEventUpdated(EventListener.DataType.URI_PICTURE_SAVED,outputFileResults.getSavedUri());
+            }
+
+            @Override
+            public void onError(@NonNull @NotNull ImageCaptureException exception) {
+                //TODO: Finish this
+            }
+        });
+
+    }
+
+    public static void zoomByRatio(
             @FloatRange(from = 1.0, to = Float.MAX_VALUE)
             float ratio, EventListener listener)  {
 
@@ -247,7 +273,7 @@ public class CameraCore {
         listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,ratio * default_zoom_);
     }
 
-    public void zoomByFocalLength(float focal_length,EventListener listener) {
+    public static void zoomByFocalLength(float focal_length,EventListener listener) {
 
         if(focal_length < default_zoom_) {
             listener.onEventFinished(false,"Queried Focal length too low.");
@@ -258,7 +284,21 @@ public class CameraCore {
         listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,focal_length);
     }
 
-    public void focusToPoint(int x, int y, boolean is_continuous) {
+    public static void focusToPoint(float x, float y, boolean is_continuous, EventListener listener) {
 
+        if(focus_action_ != null && focus_action_.isContinuous()) {
+            focus_action_.updateFocusCoordinate(new float[]{x,y});
+            return;
+        }
+        else if(focus_action_ != null) {
+            focus_action_.interrupt();
+        }
+
+        focus_action_ = new FocusAction(is_continuous,
+                new float[]{x,y},
+                camera_.getCameraControl(),
+                preview_view_,
+                main_executor_,
+                listener);
     }
 }

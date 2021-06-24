@@ -25,7 +25,9 @@ import com.lbynet.Phokus.camera.CameraUtils;
 import com.lbynet.Phokus.global.Config;
 import com.lbynet.Phokus.global.GlobalConsts;
 import com.lbynet.Phokus.template.EventListener;
+import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
+import com.lbynet.Phokus.utils.Timer;
 import com.lbynet.Phokus.utils.UIHelper;
 
 import org.jetbrains.annotations.NotNull;
@@ -47,15 +49,17 @@ public class CameraActivity extends AppCompatActivity {
                      textBottomInfo;
     private CardView cardTopInfo,
                      cardBottomInfo;
+    private Timer videoTimer = new Timer("Video Timer");
     private boolean isShutterBusy = false,
                     isVideoMode = false,
                     isRecording = false;
     static int [] previewCurrentDimensions = null;
+    static String bottomInfo;
 
     final private Runnable
             rHideBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 200, 0, true),
-            rShowBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 50, 1, true),
-            rShowTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 1, true),
+            rShowBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 10, 1, true),
+            rShowTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 10, 1, true),
             rFadeTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 0.5f, true),
             rShowShutterDown = () -> UIHelper.setViewAlpha(isVideoMode ? viewVideoShutterDown :viewShutterDown, 200, 1, true),
             rHideShutterDown = () -> UIHelper.setViewAlpha(isVideoMode ? viewVideoShutterDown :viewShutterDown, 200, 0, true),
@@ -252,7 +256,7 @@ public class CameraActivity extends AppCompatActivity {
 
                     if(dataType != DataType.URI_VIDEO_SAVED) return false;
 
-                    runOnUiThread(() -> updateBottomInfo("Video saved!"));
+                    //runOnUiThread(() -> updateBottomInfo("Video saved!"));
                     requireExecutor().execute(rHideShutterDown);
 
                     UIHelper.setViewAlpha(viewRecordRec,200,0);
@@ -261,9 +265,11 @@ public class CameraActivity extends AppCompatActivity {
                 }
             });
 
+            startVideoTimer();
         }
         else if(isVideoMode) {
             CameraCore.stopRecording();
+            stopVideoTimer();
             isRecording = false;
         }
         else {
@@ -316,6 +322,43 @@ public class CameraActivity extends AppCompatActivity {
         return ContextCompat.getMainExecutor(this);
     }
 
+    private void startVideoTimer() {
+
+        new Thread( () -> {
+
+            videoTimer.start();
+
+            String [] time = new String[4];
+
+            while(videoTimer.isBusy()) {
+
+                SAL.sleepFor(100);
+
+                MathTools.formatTime(videoTimer.getElaspedTimeInMs(),time);
+                StringBuilder sb = new StringBuilder().append(time[0]);
+
+                for(int i = 1; i < 3; ++i) { sb.append(':').append(time[i]);}
+
+                updateBottomInfo(sb.toString());
+            }
+
+            //Extra run after loop
+            MathTools.formatTime(videoTimer.getElaspedTimeInMs(),time);
+            StringBuilder sb = new StringBuilder().append(time[0]);
+
+            for(int i = 1; i < 3; ++i) { sb.append(':').append(time[i]);}
+
+            updateBottomInfo(sb.toString());
+
+        }).start();
+    }
+
+    private void stopVideoTimer() {
+
+        videoTimer.stop();
+
+    }
+
     private void wakeTopInfo() {
 
         animationHandler.removeCallbacks(rFadeTopInfo);
@@ -325,7 +368,9 @@ public class CameraActivity extends AppCompatActivity {
 
     private void updateBottomInfo(String newInfo) {
 
-        textBottomInfo.setText(newInfo);
+        bottomInfo = newInfo;
+
+        ContextCompat.getMainExecutor(this).execute(() -> textBottomInfo.setText(newInfo));
         wakeBottomInfo();
 
     }

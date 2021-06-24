@@ -7,23 +7,25 @@
     android:layout_height="match_parent"
     tools:context=".ui.CameraActivity">
 
-    <FrameLayout
-        android:id="@+id/fl_preview_base"
-        android:layout_width="0dp"
-        android:layout_height="match_parent"
-        android:foreground="#808080"
-        app:layout_constraintDimensionRatio="16:9"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        android:alpha="0"/>
-
     <androidx.camera.view.PreviewView
         android:id="@+id/pv_preview"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         app:layout_constraintDimensionRatio="4:3"
-        app:layout_constraintLeft_toLeftOf="@id/fl_preview_base"
-        app:layout_constraintRight_toRightOf="@id/fl_preview_base" />
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
+
+    <View
+        android:id="@+id/v_record_rec"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="@id/pv_preview"
+        app:layout_constraintBottom_toBottomOf="@id/pv_preview"
+        android:foreground="@drawable/record_status_overlay"
+        android:alpha="0"
+        />
 
     <!-- Top info card -->
     <androidx.cardview.widget.CardView
@@ -33,9 +35,9 @@
         android:layout_marginTop="30dp"
         app:cardBackgroundColor="#FF000000"
         app:cardCornerRadius="20dp"
-        app:layout_constraintLeft_toLeftOf="@id/fl_preview_base"
-        app:layout_constraintRight_toRightOf="@id/fl_preview_base"
-        app:layout_constraintTop_toTopOf="@id/fl_preview_base">
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="@id/pv_preview">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/cl_top_info"
@@ -87,9 +89,10 @@
         android:layout_marginBottom="30dp"
         app:cardBackgroundColor="#FF000000"
         app:cardCornerRadius="20dp"
-        app:layout_constraintBottom_toBottomOf="@id/fl_preview_base"
-        app:layout_constraintLeft_toLeftOf="@id/fl_preview_base"
-        app:layout_constraintRight_toRightOf="@id/fl_preview_base">
+        app:layout_constraintBottom_toBottomOf="@id/pv_preview"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        android:alpha="0">
 
         <TextView
             android:id="@+id/tv_bottom_info"
@@ -106,14 +109,12 @@
     <!--Shutter Button -->
     <View
         android:id="@+id/v_shutter_up"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_margin="10dp"
-        app:layout_constraintDimensionRatio="1:1"
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:layout_margin="5dp"
         android:foreground="@drawable/ic_still_shutter_up"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toRightOf="@id/pv_preview"
-        app:layout_constraintRight_toRightOf="@id/fl_preview_base"
         app:layout_constraintTop_toTopOf="parent" />
 
     <View
@@ -127,5 +128,27 @@
         app:layout_constraintBottom_toBottomOf="@id/v_shutter_up"
         android:alpha="0"/>
 
+    <View
+        android:id="@+id/v_shutter_down_video"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:foreground="@drawable/ic_shutter_down_video"
+        app:layout_constraintLeft_toLeftOf="@id/v_shutter_up"
+        app:layout_constraintRight_toRightOf="@id/v_shutter_up"
+        app:layout_constraintTop_toTopOf="@id/v_shutter_up"
+        app:layout_constraintBottom_toBottomOf="@id/v_shutter_up"
+        android:alpha="0"/>
+
+    <Button
+        android:layout_width="70dp"
+        android:layout_height="70dp"
+        android:id="@+id/btn_dummy"
+        android:text="DUMMY"
+        android:autoSizeTextType="uniform"
+        android:maxLines="1"
+        app:layout_constraintDimensionRatio="1:1"
+        app:layout_constraintLeft_toRightOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="parent"
+        />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

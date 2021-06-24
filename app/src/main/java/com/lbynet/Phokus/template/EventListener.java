@@ -5,7 +5,6 @@ import com.lbynet.Phokus.utils.SAL;
 public abstract class EventListener {
 
     public enum DataType {
-        VIDEO_REC_STAT,
         INT_VIDEO_FPS,
         INT_ARR_LUMA_INFO,
         FLOAT_CAM_FOCAL_LENGTH,
@@ -14,6 +13,7 @@ public abstract class EventListener {
         STRING_ALERT,
         STRING_FOCUS_STAT,
         URI_PICTURE_SAVED,
+        URI_VIDEO_SAVED,
         INTENT_BMS,
         FLOAT_ARR_ROTATION
     }

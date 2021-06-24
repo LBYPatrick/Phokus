@@ -2,6 +2,7 @@ package com.lbynet.Phokus.ui;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.core.AspectRatio;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
@@ -33,35 +34,39 @@ import java.util.concurrent.Executor;
 
 public class CameraActivity extends AppCompatActivity {
 
+    final public static String TAG = CameraActivity.class.getCanonicalName();
+
     private View root = null,
                  viewShutterUp = null,
-                 viewShutterDown = null;
+                 viewShutterDown = null,
+                 viewVideoShutterDown = null,
+                 viewRecordRec = null;
     private TextView textAperture,
                      textFocalLength,
                      textExposure,
                      textBottomInfo;
     private CardView cardTopInfo,
                      cardBottomInfo;
-    private boolean isShutterBusy = false;
+    private boolean isShutterBusy = false,
+                    isVideoMode = false,
+                    isRecording = false;
+    static int [] previewCurrentDimensions = null;
 
-    final private Runnable rHideBottomInfo = () -> {
-        UIHelper.setViewAlpha(cardBottomInfo,200,0,true);
-    },
-    rShowBottomInfo = () -> {
-        UIHelper.setViewAlpha(cardBottomInfo,50,1,true);
-    },
-    rShowTopInfo = () -> {
-        UIHelper.setViewAlpha(cardTopInfo,50,1, true);
-    },
-    rFadeTopInfo = () -> {
-        UIHelper.setViewAlpha(cardTopInfo,50,0.5f,true);
-    },
-    rShowShutterDown = () -> {
-        UIHelper.setViewAlpha(viewShutterDown,200,1,true);
-    },
-    rHideShutterDown = () -> {
-        UIHelper.setViewAlpha(viewShutterDown,200,0,true);
-    };
+    final private Runnable
+            rHideBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 200, 0, true),
+            rShowBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 50, 1, true),
+            rShowTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 1, true),
+            rFadeTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 0.5f, true),
+            rShowShutterDown = () -> UIHelper.setViewAlpha(isVideoMode ? viewVideoShutterDown :viewShutterDown, 200, 1, true),
+            rHideShutterDown = () -> UIHelper.setViewAlpha(isVideoMode ? viewVideoShutterDown :viewShutterDown, 200, 0, true),
+            rHideNav = () -> {
+                root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+            };
 
 
     private Handler animationHandler = new Handler(),
@@ -115,14 +120,7 @@ public class CameraActivity extends AppCompatActivity {
     private ScaleGestureDetector pToZDetector = null;
 
 
-    final private Runnable rHideNav = () -> {
-        root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                | View.SYSTEM_UI_FLAG_FULLSCREEN
-                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-    };
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,11 +135,16 @@ public class CameraActivity extends AppCompatActivity {
         cardTopInfo = findViewById(R.id.cv_top_info);
         cardBottomInfo = findViewById(R.id.cv_bottom_info);
         preview = findViewById(R.id.pv_preview);
-        pToZDetector =  new ScaleGestureDetector(requireContext(),pToZListener);
         viewShutterUp = findViewById(R.id.v_shutter_up);
         viewShutterDown = findViewById(R.id.v_shutter_down);
+        viewVideoShutterDown = findViewById(R.id.v_shutter_down_video);
+        viewRecordRec = findViewById(R.id.v_record_rec);
 
+        pToZDetector =  new ScaleGestureDetector(requireContext(),pToZListener);
         viewShutterUp.setOnTouchListener(this::onShutterTouched);
+
+
+        findViewById(R.id.btn_dummy).setOnClickListener(this::toggleVideoMode);
 
         if(allPermissionsGood())
             startCamera();
@@ -192,9 +195,15 @@ public class CameraActivity extends AppCompatActivity {
         textAperture.setText(String.format("F/%.2f",CameraUtils.get35Aperture(this,camera_id)));
         textAperture.setTextColor(UIHelper.getColors(this,R.color.colorSecondary)[0]);
 
-        updateBottomInfo("Am I a joke to you? Please tell me I am not.");
+        //updateBottomInfo("Am I a joke to you? Please tell me I am not.");
 
         preview.setOnTouchListener(this::onPreviewTouched);
+
+        //Get preview default dimensions
+
+        new Thread( () -> {
+            previewCurrentDimensions = UIHelper.getViewDimensions(preview);
+        }).start();
 
         wakeTopInfo();
         wakeBottomInfo();
@@ -225,25 +234,76 @@ public class CameraActivity extends AppCompatActivity {
 
     public boolean onShutterTouched(View v, MotionEvent event) {
 
-        if(isShutterBusy) return false;
+        if(event.getAction() != MotionEvent.ACTION_DOWN) return false;
 
-        isShutterBusy = true;
+        if (!isVideoMode && isShutterBusy) return false;
+        else if(!isVideoMode) isShutterBusy = true;
+
         requireExecutor().execute(rShowShutterDown);
 
-        CameraCore.takePicture(new EventListener() {
-            @Override
-            public boolean onEventUpdated(DataType dataType, Object data) {
+        if(isVideoMode && !isRecording) {
+            isRecording = true;
 
-                if(dataType != DataType.URI_PICTURE_SAVED) return false;
+            UIHelper.setViewAlpha(viewRecordRec,200,1);
 
-                runOnUiThread(() -> updateBottomInfo("Picture saved!"));
-                requireExecutor().execute(rHideShutterDown);
+            CameraCore.startRecording(new EventListener() {
+                @Override
+                public boolean onEventUpdated(DataType dataType, Object data) {
 
-                isShutterBusy = false;
+                    if(dataType != DataType.URI_VIDEO_SAVED) return false;
 
-                return super.onEventUpdated(dataType, data);
-            }
-        });
+                    runOnUiThread(() -> updateBottomInfo("Video saved!"));
+                    requireExecutor().execute(rHideShutterDown);
+
+                    UIHelper.setViewAlpha(viewRecordRec,200,0);
+
+                    return super.onEventUpdated(dataType, data);
+                }
+            });
+
+        }
+        else if(isVideoMode) {
+            CameraCore.stopRecording();
+            isRecording = false;
+        }
+        else {
+            CameraCore.takePicture(new EventListener() {
+                @Override
+                public boolean onEventUpdated(DataType dataType, Object data) {
+
+                    if (dataType != DataType.URI_PICTURE_SAVED) return false;
+
+                    runOnUiThread(() -> updateBottomInfo("Picture saved!"));
+                    requireExecutor().execute(rHideShutterDown);
+
+                    isShutterBusy = false;
+
+                    return super.onEventUpdated(dataType, data);
+                }
+            });
+        }
+
+        return true;
+    }
+
+    public boolean toggleVideoMode(View view) {
+
+        isVideoMode = !isVideoMode;
+
+        Config.set(CameraConsts.VIDEO_MODE,isVideoMode);
+        Config.set(CameraConsts.PREVIEW_ASPECT_RATIO,isVideoMode ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
+
+        int targetWidth = (int)(previewCurrentDimensions[1] * (isVideoMode ? (16.0/9.0) : (4.0/3.0)));
+
+        UIHelper.resizeView(preview,
+                previewCurrentDimensions,
+                new int [] {targetWidth,previewCurrentDimensions[1]},
+                200,
+                true);
+
+        previewCurrentDimensions[0] = targetWidth;
+
+        CameraCore.start(preview);
 
         return true;
     }

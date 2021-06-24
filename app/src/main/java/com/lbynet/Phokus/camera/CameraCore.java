@@ -1,13 +1,17 @@
 package com.lbynet.Phokus.camera;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.camera2.CaptureRequest;
+import android.util.EventLog;
 import android.util.Range;
 import android.util.Size;
 
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.Camera;
@@ -20,6 +24,7 @@ import androidx.camera.core.UseCase;
 import androidx.camera.core.VideoCapture;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
@@ -50,13 +55,13 @@ public class CameraCore {
     static VideoCapture video_capture_;
     static ProcessCameraProvider pcp;
     static float default_zoom_ = -1,
-                  prev_zoom_ = -1;
+            prev_zoom_ = -1;
     static Executor main_executor_;
     static FocusAction focus_action_;
 
     //Other internal variables
     static boolean is_front_facing_ = false,
-                   is_recording_ = false;
+            is_recording_ = false;
 
     public static void initialize() {
         Config.loadConfig();
@@ -87,7 +92,7 @@ public class CameraCore {
 
         pcp.unbindAll();
 
-        SAL.print(TAG,"CameraX binding...");
+        SAL.print(TAG, "CameraX binding...");
 
         CameraSelector cs = new CameraSelector.Builder()
                 .requireLensFacing(is_front_facing_ ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
@@ -95,26 +100,26 @@ public class CameraCore {
 
         boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
 
-        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_,cs,buildUseCaseArray(
+        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs, buildUseCaseArray(
                 CameraConsts.USECASE_PREVIEW,
                 (is_video_mode ? CameraConsts.USECASE_VIDEO_CAPTURE :
-                                CameraConsts.USECASE_IMAGE_CAPTURE)
+                        CameraConsts.USECASE_IMAGE_CAPTURE)
         ));
 
-        default_zoom_ = CameraUtils.get35FocalLength(context_,is_front_facing_ ? 1 : 0);
+        default_zoom_ = CameraUtils.get35FocalLength(context_, is_front_facing_ ? 1 : 0);
         prev_zoom_ = default_zoom_;
 
         updateCameraConfig();
 
-        SAL.print(TAG,"CameraX bound.");
+        SAL.print(TAG, "CameraX bound.");
     }
 
-    public static UseCase [] buildUseCaseArray(int... types) {
+    public static UseCase[] buildUseCaseArray(int... types) {
 
-        UseCase [] r = new UseCase[types.length];
+        UseCase[] r = new UseCase[types.length];
 
         int cnt = 0;
-        while(cnt < types.length) {
+        while (cnt < types.length) {
             r[cnt] = buildUseCase(types[cnt]);
             ++cnt;
         }
@@ -162,7 +167,8 @@ public class CameraCore {
                 //ia.setAnalyzer();
                 return ia;
 
-            default: return null;
+            default:
+                return null;
         }
     }
 
@@ -184,50 +190,50 @@ public class CameraCore {
                         (Boolean) Config.get(CameraConsts.AE_LOCK) || is_recording_);
 
         //Video-specfic settings
-        if(is_video_mode) {
+        if (is_video_mode) {
 
             boolean is_log_enabled_ = !((String) Config.get(CameraConsts.VIDEO_LOG_PROFILE)).equals("OFF");
 
             crob_
                     .setCaptureRequestOption(
-                    CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
-                    new Range(videoFps,videoFps))
+                            CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
+                            new Range(videoFps, videoFps))
 
                     .setCaptureRequestOption(
                             CaptureRequest.CONTROL_AE_ANTIBANDING_MODE,
                             videoFps % 25 == 0 ?
-                                CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_50HZ:
-                                CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_60HZ)
+                                    CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_50HZ :
+                                    CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_60HZ)
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_MODE,
                             is_log_enabled_ ?
-                                    CaptureRequest.TONEMAP_MODE_CONTRAST_CURVE:
+                                    CaptureRequest.TONEMAP_MODE_CONTRAST_CURVE :
                                     CaptureRequest.TONEMAP_MODE_HIGH_QUALITY)
 
                     .setCaptureRequestOption(
                             CaptureRequest.EDGE_MODE,
                             is_log_enabled_ ?
-                                    CaptureRequest.EDGE_MODE_OFF:
+                                    CaptureRequest.EDGE_MODE_OFF :
                                     CaptureRequest.EDGE_MODE_HIGH_QUALITY)
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
-                            ((String)(Config.get(CameraConsts.VIDEO_LOG_PROFILE))).equals("CLOG")?
+                            ((String) (Config.get(CameraConsts.VIDEO_LOG_PROFILE))).equals("CLOG") ?
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.CLOG,
-                                            CameraUtils.getCameraCharacteristics(context_,is_front_facing_ ? 1 : 0)) :
+                                            CameraUtils.getCameraCharacteristics(context_, is_front_facing_ ? 1 : 0)) :
 
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.SLOG,
-                                            CameraUtils.getCameraCharacteristics(context_,is_front_facing_ ? 1 : 0)));
+                                            CameraUtils.getCameraCharacteristics(context_, is_front_facing_ ? 1 : 0)));
 
         }
         //Photo-specfic settings
         else {
             crob_
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE)
-                    .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY,((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
+                    .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, ((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
         }
 
         ListenableFuture<Void> cro_future = Camera2CameraControl.from(camera_.getCameraControl()).addCaptureRequestOptions(crob_.build());
@@ -237,13 +243,13 @@ public class CameraCore {
             try {
                 cro_future.get();
 
-                SAL.print(TAG,"CaptureRequestOptions updated.");
+                SAL.print(TAG, "CaptureRequestOptions updated.");
 
             } catch (Exception e) {
                 SAL.print(e);
             }
 
-        },Executors.newSingleThreadExecutor());
+        }, Executors.newSingleThreadExecutor());
 
     }
 
@@ -253,7 +259,7 @@ public class CameraCore {
             @Override
             public void onImageSaved(@NonNull @NotNull ImageCapture.OutputFileResults outputFileResults) {
                 SAL.runFileScan(context_, outputFileResults.getSavedUri());
-                listener.onEventUpdated(EventListener.DataType.URI_PICTURE_SAVED,outputFileResults.getSavedUri());
+                listener.onEventUpdated(EventListener.DataType.URI_PICTURE_SAVED, outputFileResults.getSavedUri());
             }
 
             @Override
@@ -261,8 +267,34 @@ public class CameraCore {
                 //TODO: Finish this
             }
         });
+    }
+
+    @SuppressLint("RestrictedApi")
+    public static void stopRecording() {
+
+        video_capture_.stopRecording();
 
     }
+
+    @SuppressLint({"MissingPermission","RestrictedApi"})
+    public static void startRecording(EventListener listener) {
+
+        video_capture_.startRecording(CameraIO.getVideoOFO(context_), main_executor_, new VideoCapture.OnVideoSavedCallback() {
+            @Override
+            public void onVideoSaved(@NonNull @NotNull VideoCapture.OutputFileResults outputFileResults) {
+
+                listener.onEventUpdated(EventListener.DataType.URI_VIDEO_SAVED,outputFileResults.getSavedUri());
+                SAL.runFileScan(context_,outputFileResults.getSavedUri());
+            }
+
+            @Override
+            public void onError(int videoCaptureError, @NonNull @NotNull String message, @Nullable @org.jetbrains.annotations.Nullable Throwable cause) {
+                //TODO: Finish this
+            }
+        });
+
+    }
+
 
     public static void zoomByRatio(
             @FloatRange(from = 1.0, to = Float.MAX_VALUE)

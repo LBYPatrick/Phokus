@@ -40,7 +40,7 @@ public class Config {
         modified_.put(key,value);
     }
 
-    private static void set(String key, Object value) {
+    public static void set(String key, Object value) {
         putModified(key,value);
     }
 

@@ -8,20 +8,21 @@ import android.graphics.Point;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
-import com.lbynet.Phokus.R;
 import com.lbynet.Phokus.deprecated.listener.ColorListener;
-import com.lbynet.Phokus.template.EventListener;
 
 import java.util.HashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class UIHelper {
 
@@ -113,6 +114,41 @@ public class UIHelper {
 
     }
 
+    public static void resizeView(View view, int [] oldDimensions, int [] newDimensions, int durationInMs, boolean isNonLinear) {
+
+        ValueAnimator h = ValueAnimator.ofInt(oldDimensions[1],newDimensions[1]).setDuration(durationInMs),
+                      w = ValueAnimator.ofInt(oldDimensions[0],newDimensions[0]).setDuration(durationInMs);
+
+        if(isNonLinear) {
+            h.setInterpolator(new DecelerateInterpolator());
+            w.setInterpolator(new DecelerateInterpolator());
+        }
+
+        /*
+        h.addUpdateListener(animation -> {
+
+            ViewGroup.LayoutParams params = view.getLayoutParams();
+            params.height = (int)animation.getAnimatedValue();
+            view.setLayoutParams(params);
+
+        });
+         */
+        w.addUpdateListener(animation -> {
+
+            SAL.print("New Width: " + (int)animation.getAnimatedValue());
+
+            ViewGroup.LayoutParams params = view.getLayoutParams();
+            params.width = (int)animation.getAnimatedValue();
+            view.setLayoutParams(params);
+
+        });
+
+        ContextCompat.getMainExecutor(view.getContext()).execute(()->{
+            h.start();
+            w.start();
+        });
+    }
+
     public static int [] getColors(Context context, int... resIDs) {
         int [] r = new int [resIDs.length];
 
@@ -143,6 +179,27 @@ public class UIHelper {
         return animator;
     }
 
+    public static int [] getViewDimensions(View view) {
+
+        AtomicInteger width = new AtomicInteger(-1),
+                      height = new AtomicInteger(-1);
+
+        view.post( () -> {
+            view.measure(View.MeasureSpec.EXACTLY, View.MeasureSpec.EXACTLY);
+
+            width.set(view.getWidth());
+            height.set(view.getHeight());
+
+        });
+
+        while(width.get() == -1 || height.get() == -1) SAL.sleepFor(1);
+
+        int [] res = new int [] {width.get(),height.get()};
+
+        return res;
+
+    }
+
     public static String getString(Context context, int resid) {
         return context.getString(resid);
     }
@@ -150,9 +207,9 @@ public class UIHelper {
     public static int getSurfaceOrientation(int degrees) {
 
         if(degrees <= 45) { return Surface.ROTATION_0; }
-        else if(degrees > 45 && degrees <= 135) { return Surface.ROTATION_270; }
-        else if(degrees > 135 && degrees <= 225) { return Surface.ROTATION_180; }
-        else if(degrees > 225 && degrees <= 315) { return Surface.ROTATION_90; }
+        else if(degrees <= 135) { return Surface.ROTATION_270; }
+        else if(degrees <= 225) { return Surface.ROTATION_180; }
+        else if(degrees <= 315) { return Surface.ROTATION_90; }
         else { return Surface.ROTATION_0; }
     }
 

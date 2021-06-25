@@ -152,7 +152,7 @@ public class CameraCore {
             case CameraConsts.USECASE_IMAGE_CAPTURE:
 
                 image_capture_ = new ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .build();
 
                 return image_capture_;
@@ -215,7 +215,7 @@ public class CameraCore {
                             CaptureRequest.EDGE_MODE,
                             is_log_enabled_ ?
                                     CaptureRequest.EDGE_MODE_OFF :
-                                    CaptureRequest.EDGE_MODE_HIGH_QUALITY)
+                                    CaptureRequest.EDGE_MODE_FAST)
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
@@ -233,6 +233,7 @@ public class CameraCore {
         else {
             crob_
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE)
+                    .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
                     .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, ((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
         }
 
@@ -272,12 +273,19 @@ public class CameraCore {
     @SuppressLint("RestrictedApi")
     public static void stopRecording() {
 
+        is_recording_ = false;
+
         video_capture_.stopRecording();
 
+        updateCameraConfig();
     }
 
     @SuppressLint({"MissingPermission","RestrictedApi"})
     public static void startRecording(EventListener listener) {
+
+        is_recording_ = true;
+
+        updateCameraConfig();
 
         video_capture_.startRecording(CameraIO.getVideoOFO(context_), main_executor_, new VideoCapture.OnVideoSavedCallback() {
             @Override

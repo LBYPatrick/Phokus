@@ -8,6 +8,7 @@ import android.hardware.camera2.CaptureRequest;
 import android.util.EventLog;
 import android.util.Range;
 import android.util.Size;
+import android.view.Surface;
 
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
@@ -58,6 +59,8 @@ public class CameraCore {
             prev_zoom_ = -1;
     static Executor main_executor_;
     static FocusAction focus_action_;
+    static int rotation_minor_ = 0,
+               rotation_major_ = 0;
 
     //Other internal variables
     static boolean is_front_facing_ = false,
@@ -172,6 +175,21 @@ public class CameraCore {
         }
     }
 
+    public static void update3A() {
+
+        crob_
+                .setCaptureRequestOption(
+                        CaptureRequest.CONTROL_AWB_LOCK,
+                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || is_recording_)
+
+                .setCaptureRequestOption(
+                        CaptureRequest.CONTROL_AE_LOCK,
+                        (Boolean) Config.get(CameraConsts.AE_LOCK) || is_recording_);
+
+        flushCaptureRequest();
+
+    }
+
     @SuppressLint("UnsafeOptInUsageError")
     public static void updateCameraConfig() {
 
@@ -215,7 +233,7 @@ public class CameraCore {
                             CaptureRequest.EDGE_MODE,
                             is_log_enabled_ ?
                                     CaptureRequest.EDGE_MODE_OFF :
-                                    CaptureRequest.EDGE_MODE_FAST)
+                                    CaptureRequest.EDGE_MODE_HIGH_QUALITY)
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
@@ -234,9 +252,13 @@ public class CameraCore {
             crob_
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE)
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
+                    .clearCaptureRequestOption(CaptureRequest.EDGE_MODE)
                     .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, ((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
         }
+        flushCaptureRequest();
+    }
 
+    private static void flushCaptureRequest() {
         ListenableFuture<Void> cro_future = Camera2CameraControl.from(camera_.getCameraControl()).addCaptureRequestOptions(crob_.build());
 
         cro_future.addListener(() -> {
@@ -251,10 +273,11 @@ public class CameraCore {
             }
 
         }, Executors.newSingleThreadExecutor());
-
     }
 
     public static void takePicture(EventListener listener) {
+
+        image_capture_.setTargetRotation(rotation_minor_);
 
         image_capture_.takePicture(CameraIO.getImageOFO(context_), main_executor_, new ImageCapture.OnImageSavedCallback() {
             @Override
@@ -277,7 +300,7 @@ public class CameraCore {
 
         video_capture_.stopRecording();
 
-        updateCameraConfig();
+        update3A();
     }
 
     @SuppressLint({"MissingPermission","RestrictedApi"})
@@ -285,7 +308,9 @@ public class CameraCore {
 
         is_recording_ = true;
 
-        updateCameraConfig();
+        video_capture_.setTargetRotation(rotation_major_);
+
+        update3A();
 
         video_capture_.startRecording(CameraIO.getVideoOFO(context_), main_executor_, new VideoCapture.OnVideoSavedCallback() {
             @Override
@@ -324,6 +349,15 @@ public class CameraCore {
         listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,focal_length);
     }
 
+    public static void updateRotation(int surface_rotation) {
+
+        rotation_minor_ = surface_rotation;
+
+        if(surface_rotation == Surface.ROTATION_90 || surface_rotation == Surface.ROTATION_270) {
+            rotation_major_ = surface_rotation;
+        }
+    }
+
     public static void focusToPoint(float x, float y, boolean is_continuous, EventListener listener) {
 
         if(focus_action_ != null && focus_action_.isContinuous()) {
@@ -340,5 +374,9 @@ public class CameraCore {
                 preview_view_,
                 main_executor_,
                 listener);
+    }
+
+    public static boolean isFrontFacing() {
+        return is_front_facing_;
     }
 }

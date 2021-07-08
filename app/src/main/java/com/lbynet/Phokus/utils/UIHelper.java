@@ -34,6 +34,7 @@ public class UIHelper {
     static CardView toastView_ = null;
     static HashMap<View,ValueAnimator> animatorMap = new HashMap<>();
     static HashMap<View, Boolean> hapticViewMap = new HashMap<>();
+    static HashMap<Integer, ColorStateList> cslMap = new HashMap<>();
 
     public static void printSystemToast(Activity activity, String msg, boolean isLongTime) {
         activity.runOnUiThread( () -> {
@@ -219,7 +220,13 @@ public class UIHelper {
 
     public static ColorStateList makeCSLwithID(Context context, int resId) {
 
-        return ContextCompat.getColorStateList(context,resId);
+        if(cslMap.containsKey(resId)) return cslMap.get(resId);
+
+        ColorStateList entry = ContextCompat.getColorStateList(context,resId);
+
+        cslMap.put(resId,entry);
+
+        return entry;
 
     }
 

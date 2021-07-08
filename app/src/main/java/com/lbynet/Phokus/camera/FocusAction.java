@@ -24,6 +24,9 @@ public class FocusAction {
     Executor executor_ = null;
     CameraControl cc_ = null;
     float [] coordinate_ = {0,0};
+    final public static String MSG_BUSY = "focus_busy",
+                               MSG_SUCCESS = "focus_success",
+                               MSG_CANCELLED = "focus_cancelled";
 
 
     public FocusAction(boolean isContinuous,
@@ -66,7 +69,7 @@ public class FocusAction {
             FocusMeteringAction action = new FocusMeteringAction.Builder(point).disableAutoCancel().build();
             ListenableFuture<FocusMeteringResult> future = cc_.startFocusAndMetering(action);
 
-            listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, "Focus in progress");
+            listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_BUSY);
 
             future.addListener(() -> {
 
@@ -74,13 +77,13 @@ public class FocusAction {
 
                     FocusMeteringResult result = ((FocusMeteringResult) (future.get()));
 
-                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, "Focus success");
+                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_SUCCESS);
 
                     is_completed.set(true);
 
                 } catch (Exception e) {
 
-                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, "Focus cancelled");
+                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_CANCELLED);
 
                     SAL.print(e);
 

@@ -4,7 +4,12 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
+import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.renderscript.Allocation;
+import android.renderscript.Element;
+import android.renderscript.RenderScript;
+import android.renderscript.ScriptIntrinsicBlur;
 import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
@@ -13,6 +18,7 @@ import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
@@ -52,11 +58,14 @@ public class UIHelper {
         return screenDimensions_;
     }
 
-    public static ValueAnimator setViewAlpha(View view, int durationInMs, float targetAlpha) {
-        return setViewAlpha(view,durationInMs,targetAlpha,true);
+    public static void setViewAlpha(View view, int durationInMs, float targetAlpha) {
+        setViewAlpha(view,durationInMs,targetAlpha,true);
     }
 
+    @Deprecated
     public static ValueAnimator getAlphaAnimator(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
+
+
         final float oldAlpha = view.getAlpha();
         final float newAlpha = MathTools.getCappedFloat(targetAlpha,0,1);
 
@@ -101,7 +110,19 @@ public class UIHelper {
         return animator;
     }
 
-    public static ValueAnimator setViewAlpha(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
+    public static void setViewAlpha(View v, long durationInMs, float targetAlpha, boolean isNonLinear) {
+
+        v.post( () -> {
+            v.animate()
+                    .alpha(targetAlpha)
+                    .setDuration(durationInMs)
+                    .setInterpolator(isNonLinear ? new AccelerateDecelerateInterpolator() : new LinearInterpolator())
+                    .start();
+        });
+    }
+
+    @Deprecated
+    public static ValueAnimator setViewAlphaOld(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
 
         if(animatorMap.get(view) != null) animatorMap.get(view).cancel();
 
@@ -121,8 +142,8 @@ public class UIHelper {
                       w = ValueAnimator.ofInt(oldDimensions[0],newDimensions[0]).setDuration(durationInMs);
 
         if(isNonLinear) {
-            h.setInterpolator(new DecelerateInterpolator());
-            w.setInterpolator(new DecelerateInterpolator());
+            h.setInterpolator(new OvershootInterpolator());
+            w.setInterpolator(new OvershootInterpolator());
         }
 
         /*
@@ -228,6 +249,26 @@ public class UIHelper {
 
         return entry;
 
+    }
+
+    /**
+     * Generate a box-blurred image based on the input
+     * Credits to Patrick Favre: https://stackoverflow.com/a/23119957
+     * @param context Application context.
+     * @param image Input image (And the output will go to it too!)
+     */
+    public static void blurImage(Context context,Bitmap image) {
+
+        RenderScript rs = RenderScript.create(context);
+
+        final Allocation input = Allocation.createCubemapFromBitmap(rs,image),
+                         output = Allocation.createTyped(rs,input.getType());
+        final ScriptIntrinsicBlur script = ScriptIntrinsicBlur.create(rs, Element.U8_4(rs));
+
+        script.setRadius(8f);
+        script.setInput(input);
+        script.forEach(output);
+        output.copyTo(image);
     }
 
     public static boolean hapticFeedback(View view, MotionEvent e) {

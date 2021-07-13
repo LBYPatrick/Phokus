@@ -7,6 +7,8 @@ import androidx.camera.core.AspectRatio;
 
 import com.lbynet.Phokus.camera.CameraConsts;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.HashMap;
 
 public class Config {

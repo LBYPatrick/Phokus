@@ -1,34 +1,81 @@
-<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory app:title="@string/messages_header">
+    <PreferenceCategory app:title="Photo">
 
-        <EditTextPreference
-            app:key="signature"
-            app:title="@string/signature_title"
-            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:key="switch_sharpening"
+            app:title="Sharpening"
+            app:defaultValue="true"
+            app:summary="Toggle built-in image sharpening."/>
 
-        <ListPreference
-            app:defaultValue="reply"
-            app:entries="@array/reply_entries"
-            app:entryValues="@array/reply_values"
-            app:key="reply"
-            app:title="@string/reply_title"
-            app:useSimpleSummaryProvider="true" />
+        <SwitchPreferenceCompat
+            app:key="switch_min_latency"
+            app:title="Minimize Shutter Latency"
+            app:summary="Minimize shutter lag at the cost of, potentially, lower image quality."
+            />
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="@string/sync_header">
+    <PreferenceCategory app:title="Video">
 
         <SwitchPreferenceCompat
-            app:key="sync"
-            app:title="@string/sync_title" />
+            app:key="switch_crop_mark"
+            app:title="Crop Mark"
+            app:summary="Display crop mark and center cross mark."/>
 
         <SwitchPreferenceCompat
-            app:dependency="sync"
-            app:key="attachment"
-            app:summaryOff="@string/attachment_summary_off"
-            app:summaryOn="@string/attachment_summary_on"
-            app:title="@string/attachment_title" />
+            app:key="switch_composition_guide"
+            app:title="Composition Guide"
+           />
+
+        <SwitchPreferenceCompat
+            app:key="switch_video_auto_param_lock"
+            app:title="Automatic AE/AWB lock"
+            app:summary="Lock AE and AWB while recording for eliminating color/brightness flickering."
+            app:defaultValue="true"/>
+
+        <ListPreference
+            key="listpref_log_profile"
+            app:title="Log Profile"
+            app:entries="@array/settings_video_log_entries"
+            app:entryValues="@array/settings_video_log_values"
+            android:defaultValue="clog8"
+        />
+
+        <ListPreference
+            app:key="listpref_video_res"
+            app:title="Resolution"
+            app:entries="@array/settings_video_res_entries"
+            app:entryValues="@array/settings_video_res_values"
+            app:defaultValue="1080p"
+            />
+
+        <ListPreference
+            key="listpref_video_fps"
+            app:title="FPS"
+            app:entries="@array/settings_video_fps"/>
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="Experimental">
+
+        <ListPreference
+            app:key="listpref_nr_quality"
+            app:title="Noise Reduction Quality"
+            app:entries="@array/settings_video_log_entries"
+            />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:title="@string/settings_category_about">
+
+        <EditTextPreference
+            app:title="@string/settings_version"
+            app:summary="@string/app_version"
+            />
 
     </PreferenceCategory>
 

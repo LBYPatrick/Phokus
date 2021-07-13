@@ -4,6 +4,7 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.util.EventLog;
 import android.util.Range;
@@ -20,6 +21,7 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
+import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.VideoCapture;
@@ -40,6 +42,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 //TODO: Finish this
+@SuppressLint("UnsafeOptInUsageError")
 public class CameraCore {
 
     final public static String TAG = CameraCore.class.getCanonicalName();
@@ -156,6 +159,7 @@ public class CameraCore {
 
                 image_capture_ = new ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                        .setTargetResolution(new Size(8000,6000))
                         .build();
 
                 return image_capture_;
@@ -163,11 +167,15 @@ public class CameraCore {
             case CameraConsts.USECASE_IMAGE_ANALYSIS:
 
                 ImageAnalysis ia = new ImageAnalysis.Builder()
-                        .setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
+                        //.setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
                         .build();
 
                 //TODO: Do Analyzer stuff here
-                //ia.setAnalyzer();
+                ia.setAnalyzer(Executors.newSingleThreadExecutor(), image -> {
+                    SAL.print("New frame came in.");
+                    //AnalysisResult.put(image);
+                    image.close();
+                });
                 return ia;
 
             default:
@@ -196,6 +204,10 @@ public class CameraCore {
         boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
 
         int videoFps = (int) Config.get(CameraConsts.VIDEO_FPS);
+
+        SAL.print("Max camera resolution: " +
+                CameraUtils.getCameraCharacteristics(context_, is_front_facing_ ? 1 : 0)
+                        .get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE).toString());
 
         //3A
         crob_
@@ -231,9 +243,17 @@ public class CameraCore {
 
                     .setCaptureRequestOption(
                             CaptureRequest.EDGE_MODE,
-                            is_log_enabled_ ?
+                            is_log_enabled_ || is_video_mode ?
                                     CaptureRequest.EDGE_MODE_OFF :
                                     CaptureRequest.EDGE_MODE_HIGH_QUALITY)
+
+                    //TODO: Uncomment this as soon as Google states that this works
+                    /**
+                     * This is not working as of 2021.07.13
+                    .setCaptureRequestOption(
+                            CaptureRequest.CONTROL_AF_MODE, CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_VIDEO
+                    )
+                     */
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
@@ -253,13 +273,19 @@ public class CameraCore {
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_ANTIBANDING_MODE)
                     .clearCaptureRequestOption(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE)
                     .clearCaptureRequestOption(CaptureRequest.EDGE_MODE)
+                    //TODO: Uncomment this as soon as Google states that this works
+                    //.clearCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE)
                     .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, ((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
         }
         flushCaptureRequest();
     }
 
+
     private static void flushCaptureRequest() {
-        ListenableFuture<Void> cro_future = Camera2CameraControl.from(camera_.getCameraControl()).addCaptureRequestOptions(crob_.build());
+
+        ListenableFuture<Void> cro_future = Camera2CameraControl
+                .from(camera_.getCameraControl())
+                .addCaptureRequestOptions(crob_.build());
 
         cro_future.addListener(() -> {
 
@@ -358,9 +384,23 @@ public class CameraCore {
         }
     }
 
+    public static void interruptFocus() {
+
+        if(focus_action_ != null) focus_action_.interrupt();
+
+    }
+
+    public static void pauseFocus() {
+        if(focus_action_ != null) focus_action_.pause();
+    }
+
+    public static void resumeFocus() {
+        if(focus_action_ != null) focus_action_.resume();
+    }
+
     public static void focusToPoint(float x, float y, boolean is_continuous, EventListener listener) {
 
-        if(focus_action_ != null && focus_action_.isContinuous()) {
+        if(focus_action_ != null && focus_action_.isContinuous() && !focus_action_.isInterrupted()) {
             focus_action_.updateFocusCoordinate(new float[]{x,y});
             return;
         }

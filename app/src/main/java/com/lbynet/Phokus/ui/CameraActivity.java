@@ -8,16 +8,19 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.animation.Animator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Contacts;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateDecelerateInterpolator;
 import android.widget.TextView;
 
 import com.lbynet.Phokus.R;
@@ -58,7 +61,10 @@ public class CameraActivity extends AppCompatActivity {
     private OrientationEventListener orientationListener;
     private boolean isShutterBusy = false,
                     isVideoMode = false,
-                    isRecording = false;
+                    isRecording = false,
+                    isContinuousFocus = true,
+                    isFocused = false;
+
     static int [] previewCurrentDimensions = null;
     static String bottomInfo;
 
@@ -67,8 +73,34 @@ public class CameraActivity extends AppCompatActivity {
             rShowBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 10, 1, true),
             rShowTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 10, 1, true),
             rFadeTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 0.5f, true),
-            rShowShutterDown = () -> UIHelper.setViewAlpha(isVideoMode ? viewVideoShutterDown :viewShutterDown, 50, 1, true),
-            rHideShutterDown = () -> UIHelper.setViewAlpha(isVideoMode ? viewVideoShutterDown :viewShutterDown, 50, 0, true),
+            rShowShutterDown = () -> {
+
+                if(isVideoMode) {
+                    UIHelper.setViewAlpha(viewVideoShutterDown, 50, 1, true);
+                }
+                else {
+                    viewShutterDown.animate()
+                            .scaleX(0.95f)
+                            .scaleY(0.95f)
+                            .alpha(0.5f)
+                            .setDuration(50)
+                            .start();
+                }
+
+            },
+            rHideShutterDown = () -> {
+                if(isVideoMode) {
+                    UIHelper.setViewAlpha(viewVideoShutterDown, 50, 0, true);
+                }
+                else {
+                    viewShutterDown.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .alpha(1f)
+                            .setDuration(50)
+                            .start();
+                }
+            },
             rHideNav = () -> {
                 root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
@@ -215,10 +247,12 @@ public class CameraActivity extends AppCompatActivity {
 
         //Get preview default dimensions
 
+
         new Thread( () -> {
             previewCurrentDimensions = UIHelper.getViewDimensions(cardPreviewWrapper);
             updatePreviewSize();
         }).start();
+
 
         textFocalLength.setText(String.format("%.2fmm",CameraUtils.get35FocalLength(requireContext(), CameraCore.isFrontFacing() ? 1 : 0)));
 
@@ -240,7 +274,9 @@ public class CameraActivity extends AppCompatActivity {
             params.setMargins((int)event.getX() - 40,(int)event.getY() - 40, 0,0);
             viewFocusRect.setLayoutParams(params);
 
-            CameraCore.focusToPoint(event.getX(), event.getY(), false, new EventListener() {
+            isFocused = false;
+
+            CameraCore.focusToPoint(event.getX(), event.getY(), true, new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
 
@@ -248,14 +284,16 @@ public class CameraActivity extends AppCompatActivity {
 
                         case FocusAction.MSG_BUSY:
 
-                            UIHelper.setViewAlpha(viewFocusRect,30,0.5f);
-                            viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(),R.color.colorPrimaryDark));
+                            if(isFocused) break;
+
+                            UIHelper.setViewAlpha(viewFocusRect, 30, 0.5f);
+                            viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
                             break;
 
                         case FocusAction.MSG_SUCCESS:
                             UIHelper.setViewAlpha(viewFocusRect,30,1);
-                            viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(),R.color.colorPrimary));
-
+                            viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(),(isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)));
+                            isFocused = true;
                     }
 
                     return super.onEventUpdated(dataType, data);
@@ -275,6 +313,7 @@ public class CameraActivity extends AppCompatActivity {
         else if(!isVideoMode) isShutterBusy = true;
 
         requireExecutor().execute(rShowShutterDown);
+        SAL.simulatePress(this,false);
 
         if(isVideoMode && !isRecording) {
             isRecording = true;
@@ -304,14 +343,21 @@ public class CameraActivity extends AppCompatActivity {
             isRecording = false;
         }
         else {
+
+            CameraCore.pauseFocus();
+
             CameraCore.takePicture(new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
 
+                    CameraCore.resumeFocus();
+
                     if (dataType != DataType.URI_PICTURE_SAVED) return false;
 
                     runOnUiThread(() -> updateBottomInfo("Picture saved!"));
+
                     requireExecutor().execute(rHideShutterDown);
+                    SAL.simulatePress(requireContext(),true);
 
                     isShutterBusy = false;
 
@@ -327,21 +373,32 @@ public class CameraActivity extends AppCompatActivity {
 
         int targetWidth = (int)(previewCurrentDimensions[1] * (isVideoMode ? (16.0/9.0) : (4.0/3.0)));
 
-        UIHelper.setViewAlpha(viewFocusRect,30,0);
-
         UIHelper.resizeView(cardPreviewWrapper,
                 previewCurrentDimensions,
                 new int [] {targetWidth,previewCurrentDimensions[1]},
                 200,
-                false);
+                true);
 
         previewCurrentDimensions[0] = targetWidth;
+
+
+        /*
+        cardPreviewWrapper.animate()
+                .scaleX(isVideoMode ? PREVIEW_169_SCALE_FACTOR : 1)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .setDuration(200)
+                .start();
+
+         */
 
     }
 
     public boolean toggleVideoMode(View view) {
 
         isVideoMode = !isVideoMode;
+
+        CameraCore.interruptFocus();
+        UIHelper.setViewAlpha(viewFocusRect,30,0);
 
         Config.set(CameraConsts.VIDEO_MODE,isVideoMode);
         Config.set(CameraConsts.PREVIEW_ASPECT_RATIO,isVideoMode ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);

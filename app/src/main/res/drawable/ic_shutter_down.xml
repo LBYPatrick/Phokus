@@ -3,12 +3,15 @@
     android:height="175dp"
     android:viewportWidth="175"
     android:viewportHeight="175">
+
   <path
       android:pathData="M87.5,87.5m-85,0a85,85 0,1 1,170 0a85,85 0,1 1,-170 0"
       android:strokeWidth="5"
       android:fillColor="#00000000"
-      android:strokeColor="#fff"/>
+      android:strokeColor="#fff"
+      android:strokeAlpha="0"/>
+
   <path
       android:pathData="M87.5,87.5m-74.5,0a74.5,74.5 0,1 1,149 0a74.5,74.5 0,1 1,-149 0"
-      android:fillColor="@color/colorPrimaryDark"/>
+      android:fillColor="#FFF"/>
 </vector>

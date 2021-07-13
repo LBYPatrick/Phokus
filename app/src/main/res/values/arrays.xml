@@ -1,12 +1,33 @@
 <resources>
-    <!-- Reply Preference -->
-    <string-array name="reply_entries">
-        <item>Reply</item>
-        <item>Reply to all</item>
+    <string-array name="settings_video_log_entries">
+        <item>Off</item>
+        <item>Canon Log (8-bit)</item>
+        <item>Sony S-LOG (8-bit)</item>
     </string-array>
 
-    <string-array name="reply_values">
-        <item>reply</item>
-        <item>reply_all</item>
+    <string-array name="settings_video_log_values">
+        <item>off</item>
+        <item>clog8</item>
+        <item>slog8</item>
     </string-array>
+
+    <string-array name="settings_video_res_entries">
+        <item>720p(HD)</item>
+        <item>1080p(FHD)</item>
+        <item>2160p(UHD)</item>
+    </string-array>
+
+    <string-array name="settings_video_res_values">
+        <item>720p</item>
+        <item>1080p</item>
+        <item>2160p</item>
+    </string-array>
+
+    <integer-array name="settings_video_fps">
+        <item>30</item>
+        <item>48</item>
+        <item>50</item>
+        <item>60</item>
+    </integer-array>
+
 </resources>

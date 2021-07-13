@@ -34,6 +34,7 @@
         app:layout_constraintLeft_toLeftOf="@id/cv_preview_wrapper"
         android:foreground="@drawable/ic_focus_rect"
         android:elevation="4dp"
+        android:alpha="0"
         />
 
     <View
@@ -43,7 +44,7 @@
         android:layout_height="match_parent"
         android:layout_width="0dp"
         app:layout_constraintDimensionRatio="16:9"
-        android:visibility="invisible"
+        android:alpha="0"
         />
 
     <View
@@ -159,7 +160,7 @@
         app:layout_constraintRight_toRightOf="@id/v_shutter_up"
         app:layout_constraintTop_toTopOf="@id/v_shutter_up"
         app:layout_constraintBottom_toBottomOf="@id/v_shutter_up"
-        android:alpha="0"
+        android:alpha="1"
         android:elevation="3dp"/>
 
     <View

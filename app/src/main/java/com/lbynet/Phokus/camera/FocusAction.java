@@ -16,14 +16,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FocusAction {
 
-    EventListener listener_;
-    boolean is_continuous_ = false,
-            is_interrupted_ = false;
-    Thread thread_;
-    PreviewView preview_view_ = null;
-    Executor executor_ = null;
-    CameraControl cc_ = null;
-    float [] coordinate_ = {0,0};
+    private EventListener listener_;
+    private boolean is_continuous_ = false,
+            is_interrupted_ = false,
+            is_paused_ = false;
+    private Thread thread_;
+    private PreviewView preview_view_ = null;
+    private Executor executor_ = null;
+    private CameraControl cc_ = null;
+    private float [] coordinate_ = {0,0};
     final public static String MSG_BUSY = "focus_busy",
                                MSG_SUCCESS = "focus_success",
                                MSG_CANCELLED = "focus_cancelled";
@@ -47,7 +48,10 @@ public class FocusAction {
 
             if(!is_continuous_) focus();
             else {
-                while(!is_interrupted_) { focus(); }
+                while(!is_interrupted_) {
+                    while(is_paused_) SAL.sleepFor(10);
+                    focus();
+                }
             }
         });
 
@@ -57,6 +61,7 @@ public class FocusAction {
     public boolean isContinuous() {
         return is_continuous_;
     }
+    public boolean isInterrupted() {return is_interrupted_;}
 
     private boolean focus() {
 
@@ -98,6 +103,12 @@ public class FocusAction {
         return true;
     }
 
+    public synchronized void pause() {
+        is_paused_ = true;
+    }
+    public synchronized void resume() {
+        is_paused_ = false;
+    }
 
     public synchronized void updateFocusCoordinate(float [] newCoordinate) {
 

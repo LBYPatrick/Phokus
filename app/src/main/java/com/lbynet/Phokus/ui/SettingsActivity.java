@@ -1,6 +1,9 @@
 package com.lbynet.Phokus.ui;
 
+import android.content.Context;
 import android.os.Bundle;
+import android.view.View;
+import android.view.ViewPropertyAnimator;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -24,6 +27,7 @@ public class SettingsActivity extends AppCompatActivity {
         if (actionBar != null) {
             actionBar.setDisplayHomeAsUpEnabled(true);
         }
+
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat {

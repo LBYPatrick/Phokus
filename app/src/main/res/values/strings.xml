@@ -1,47 +1,13 @@
 <resources>
     <string name="app_name" translatable="false">Phokus</string>
     <string name="app_name_debug" translatable="false">Phokus DEBUG</string>
+    <string name="app_version" translatable="false">0.1.0</string>
 
-    <!-- ViewFinder -->
-    <string name="hint_zoom">ZOOM</string>
-    <string name="hint_af_mode">AF MODE</string>
-    <string name="hint_wb">WB</string>
-    <string name="hint_fps">FPS</string>
-    <string name="hint_ae_lock">AE LOCK</string>
-    <string name="hint_guide_overlay">GUIDE</string>
-    <string name="hint_info">INFO</string>
-    <string name="hint_ev" translatable="false">0.00 EV</string>
 
-    <string name="data_af_mode_one_shot">ONE SHOT</string>
-    <string name="data_af_mode_zone_servo">ZONE SERVO</string>
-    <string name="data_wb_auto">AUTO</string>
-    <string name="data_ae_lock_off">OFF</string>
-    <string name="data_ae_lock_on">LOCKED</string>
-    <string name="data_recording_busy">RECORDING</string>
-    <string name="data_recording_idle">TAP TO RECORD</string>
+    <string name="title_activity_settings">Settings</string>
 
-    <!-- Info Panel -->
-    <string name="hint_azimuth">AZIMUTH</string>
-    <string name="hint_pitch">PITCH</string>
-    <string name="hint_roll">ROLL</string>
-    <string name="hint_last_file">Saved clip: </string>
-    <string name="data_tilt_perfect">PERFECT</string>
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
-    <!-- Preference Titles -->
-    <string name="messages_header">Messages</string>
-    <string name="sync_header">Sync</string>
+    <string name="settings_category_about">About</string>
 
-    <!-- Messages Preferences -->
-    <string name="signature_title">Your signature</string>
-    <string name="reply_title">Default reply action</string>
-
-    <!-- Sync Preferences -->
-    <string name="sync_title">Sync email periodically</string>
-    <string name="attachment_title">Download incoming attachments</string>
-    <string name="attachment_summary_on">Automatically download attachments for incoming emails
-    </string>
-    <string name="attachment_summary_off">Only download attachments when manually requested</string>
-    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="settings_version">App Version</string>
 
 </resources>

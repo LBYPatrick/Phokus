@@ -1,24 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hint_zoom">焦段</string>
-    <string name="hint_af_mode">对焦模式</string>
-    <string name="hint_wb">白平衡</string>
-    <string name="hint_fps">帧速率</string>
-    <string name="hint_ae_lock">曝光锁定</string>
-    <string name="hint_info">高级参数</string>
-    <string name="hint_guide_overlay">参考线</string>
-    <string name="hint_last_file">已保存片段: </string>
-
-    <string name="data_tilt_perfect">完美</string>
-
-    <string name="data_recording_busy">正在录制</string>
-    <string name="data_recording_idle">轻触开始录制</string>
-    <string name="data_af_mode_one_shot">单次自动</string>
-    <string name="data_wb_auto">自动</string>
-    <string name="data_ae_lock_off">禁用</string>
-    <string name="data_ae_lock_on">锁定</string>
-    <string name="data_af_mode_zone_servo">区域连续</string>
-    <string name="hint_azimuth">AZIMUTH</string>
-    <string name="hint_pitch">PITCH</string>
-    <string name="hint_roll">ROLL</string>
+    <string name="title_activity_settings">设置</string>
+    <string name="settings_category_about">关于</string>
+    <string name="settings_version">应用版本</string>
 </resources>

@@ -8,4 +8,7 @@
     <color name="colorText">#FFFFFF</color>
     <color name="colorBackground">#797979</color>
 
+    <color name="colorFocusOneShot">#00FF00</color>
+    <color name="colorFocusContinuous">#00D1CE</color>
+
 </resources>

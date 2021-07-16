@@ -8,6 +8,8 @@ public abstract class EventListener {
         INT_VIDEO_FPS,
         INT_ARR_LUMA_INFO,
         FLOAT_CAM_FOCAL_LENGTH,
+        VOID_CAMERA_BOUND,
+        VOID_CAMERA_BINDING,
         STRING_INFO,
         STRING_WARNING,
         STRING_ALERT,
@@ -32,9 +34,12 @@ public abstract class EventListener {
         return true;
     }
 
-    public boolean onEventUpdated(DataType dataType, Object data) {
+    public boolean onEventUpdated(DataType dataType, Object extra) {
 
-        SAL.print("EVENT", "Type: " + dataType.toString() + "\tData:" + data.toString());
+        SAL.print("EVENT",
+                "Type: "
+                        + dataType.toString() + "\tData:"
+                        + (extra == null ? "" : extra.toString()));
 
         return true;
     }

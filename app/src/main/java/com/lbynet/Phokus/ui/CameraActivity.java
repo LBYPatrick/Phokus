@@ -5,22 +5,27 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.animation.Animator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.Contacts;
+import android.transition.AutoTransition;
+import android.transition.Transition;
+import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
+import android.widget.Button;
 import android.widget.TextView;
 
 import com.lbynet.Phokus.R;
@@ -38,6 +43,7 @@ import com.lbynet.Phokus.utils.UIHelper;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Arrays;
 import java.util.concurrent.Executor;
 
 public class CameraActivity extends AppCompatActivity {
@@ -45,27 +51,29 @@ public class CameraActivity extends AppCompatActivity {
     final public static String TAG = CameraActivity.class.getCanonicalName();
 
     private View root = null,
-                 viewShutterUp = null,
-                 viewShutterDown = null,
-                 viewVideoShutterDown = null,
-                 viewRecordRect = null,
-                 viewFocusRect = null;
+            viewShutterUp = null,
+            viewShutterDown = null,
+            viewVideoShutterDown = null,
+            viewRecordRect = null,
+            viewFocusRect = null;
+    private Button buttonCaptureMode = null;
     private TextView textAperture,
-                     textFocalLength,
-                     textExposure,
-                     textBottomInfo;
+            textFocalLength,
+            textExposure,
+            textBottomInfo;
     private CardView cardTopInfo,
-                     cardBottomInfo,
-                     cardPreviewWrapper;
+            cardBottomInfo;
     private Timer videoTimer = new Timer("Video Timer");
     private OrientationEventListener orientationListener;
     private boolean isShutterBusy = false,
-                    isVideoMode = false,
-                    isRecording = false,
-                    isContinuousFocus = true,
-                    isFocused = false;
+            isVideoMode = false,
+            isRecording = false,
+            isContinuousFocus = true,
+            isFocused = false,
+            isZoomGesture = false;
 
-    static int [] previewCurrentDimensions = null;
+    static int[] previewDimensions = null;
+    //static int [] previewCurrentDimensions = null;
     static String bottomInfo;
 
     final private Runnable
@@ -73,12 +81,14 @@ public class CameraActivity extends AppCompatActivity {
             rShowBottomInfo = () -> UIHelper.setViewAlpha(cardBottomInfo, 10, 1, true),
             rShowTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 10, 1, true),
             rFadeTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 0.5f, true),
-            rShowShutterDown = () -> {
+            rOnShutterPressed = () -> {
 
-                if(isVideoMode) {
+                isShutterBusy = false;
+                SAL.simulatePress(this, false);
+
+                if (isVideoMode) {
                     UIHelper.setViewAlpha(viewVideoShutterDown, 50, 1, true);
-                }
-                else {
+                } else {
                     viewShutterDown.animate()
                             .scaleX(0.95f)
                             .scaleY(0.95f)
@@ -88,11 +98,14 @@ public class CameraActivity extends AppCompatActivity {
                 }
 
             },
-            rHideShutterDown = () -> {
-                if(isVideoMode) {
+            rOnShutterReleased = () -> {
+
+                isShutterBusy = false;
+                SAL.simulatePress(this, true);
+
+                if (isVideoMode) {
                     UIHelper.setViewAlpha(viewVideoShutterDown, 50, 0, true);
-                }
-                else {
+                } else {
                     viewShutterDown.animate()
                             .scaleX(1f)
                             .scaleY(1f)
@@ -112,13 +125,38 @@ public class CameraActivity extends AppCompatActivity {
 
 
     private Handler animationHandler = new Handler(),
-                    fullscreenHandler = new Handler();
+            fullscreenHandler = new Handler();
+    private EventListener focusListener = new EventListener() {
+        @Override
+        public boolean onEventUpdated(DataType dataType, Object data) {
+
+            switch ((String) data) {
+
+                case FocusAction.MSG_BUSY:
+
+                    if (isFocused) break;
+
+                    UIHelper.setViewAlpha(viewFocusRect, 30, 0.5f);
+                    viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
+                    break;
+
+                case FocusAction.MSG_SUCCESS:
+                    UIHelper.setViewAlpha(viewFocusRect, 30, 1);
+                    viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), (isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)));
+                    isFocused = true;
+            }
+
+            return super.onEventUpdated(dataType, data);
+        }
+    };
     private float currZoomRatio = 1;
 
     private PreviewView preview;
     final private ScaleGestureDetector.SimpleOnScaleGestureListener pToZListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
+
+            isZoomGesture = true;
 
             float factor = detector.getScaleFactor();
 
@@ -166,6 +204,7 @@ public class CameraActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
 
@@ -176,19 +215,18 @@ public class CameraActivity extends AppCompatActivity {
         textFocalLength = findViewById(R.id.tv_focal_length);
         cardTopInfo = findViewById(R.id.cv_top_info);
         cardBottomInfo = findViewById(R.id.cv_bottom_info);
-        cardPreviewWrapper = findViewById(R.id.cv_preview_wrapper);
         preview = findViewById(R.id.pv_preview);
-        viewShutterUp = findViewById(R.id.v_shutter_up);
-        viewShutterDown = findViewById(R.id.v_shutter_down);
-        viewVideoShutterDown = findViewById(R.id.v_shutter_down_video);
+        viewShutterUp = findViewById(R.id.v_shutter_base);
+        viewShutterDown = findViewById(R.id.v_shutter_photo);
+        viewVideoShutterDown = findViewById(R.id.v_shutter_video);
         viewRecordRect = findViewById(R.id.v_record_rect);
         viewFocusRect  = findViewById(R.id.v_focus_rect);
 
         pToZDetector =  new ScaleGestureDetector(requireContext(),pToZListener);
         viewShutterUp.setOnTouchListener(this::onShutterTouched);
 
-
-        findViewById(R.id.btn_dummy).setOnClickListener(this::toggleVideoMode);
+        buttonCaptureMode = findViewById(R.id.btn_capture_mode);
+        buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
 
         if(allPermissionsGood())
             startCamera();
@@ -202,6 +240,8 @@ public class CameraActivity extends AppCompatActivity {
                 CameraCore.updateRotation(UIHelper.getSurfaceOrientation(orientation));
             }
         };
+
+        SAL.setActivity(this);
 
         SAL.print("CameraActivity","Attempted to hide navigation bar.");
     }
@@ -234,6 +274,31 @@ public class CameraActivity extends AppCompatActivity {
 
         SAL.print("Starting camera");
         CameraCore.initialize();
+
+        CameraCore.setStatusListener_(new EventListener() {
+            @Override
+            public boolean onEventUpdated(DataType dataType, Object extra) {
+
+                switch (dataType) {
+                    case VOID_CAMERA_BINDING:
+                        runOnUiThread(() -> {
+                            buttonCaptureMode.setEnabled(false);
+                            buttonCaptureMode.setClickable(false);
+                        });
+                        break;
+                    case VOID_CAMERA_BOUND:
+                        runOnUiThread(() -> {
+                            buttonCaptureMode.setEnabled(true);
+                            buttonCaptureMode.setClickable(true);
+                        });
+                        break;
+                    default: break;
+                }
+
+                return super.onEventUpdated(dataType, extra);
+            }
+        });
+
         CameraCore.start(preview);
 
         int camera_id = (Boolean) Config.get(CameraConsts.FRONT_FACING) ? 1 : 0;
@@ -249,10 +314,9 @@ public class CameraActivity extends AppCompatActivity {
 
 
         new Thread( () -> {
-            previewCurrentDimensions = UIHelper.getViewDimensions(cardPreviewWrapper);
-            updatePreviewSize();
+            previewDimensions = UIHelper.getViewDimensions(preview);
+            //updatePreviewSize();
         }).start();
-
 
         textFocalLength.setText(String.format("%.2fmm",CameraUtils.get35FocalLength(requireContext(), CameraCore.isFrontFacing() ? 1 : 0)));
 
@@ -264,8 +328,11 @@ public class CameraActivity extends AppCompatActivity {
     // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
     public boolean onPreviewTouched(View v, MotionEvent event) {
 
+        isZoomGesture = false;
         //Pinch-to-zoom
         pToZDetector.onTouchEvent(event);
+
+        if(isZoomGesture) return true;
 
         //Tap-to-focus
         if(event.getAction() == MotionEvent.ACTION_DOWN) {
@@ -276,29 +343,8 @@ public class CameraActivity extends AppCompatActivity {
 
             isFocused = false;
 
-            CameraCore.focusToPoint(event.getX(), event.getY(), true, new EventListener() {
-                @Override
-                public boolean onEventUpdated(DataType dataType, Object data) {
-
-                    switch((String)data) {
-
-                        case FocusAction.MSG_BUSY:
-
-                            if(isFocused) break;
-
-                            UIHelper.setViewAlpha(viewFocusRect, 30, 0.5f);
-                            viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
-                            break;
-
-                        case FocusAction.MSG_SUCCESS:
-                            UIHelper.setViewAlpha(viewFocusRect,30,1);
-                            viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(),(isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)));
-                            isFocused = true;
-                    }
-
-                    return super.onEventUpdated(dataType, data);
-                }
-            });
+            CameraCore.focusToPoint(event.getX(), event.getY(), true,focusListener
+            );
 
         }
 
@@ -310,12 +356,12 @@ public class CameraActivity extends AppCompatActivity {
         if(event.getAction() != MotionEvent.ACTION_DOWN) return false;
 
         if (!isVideoMode && isShutterBusy) return false;
-        else if(!isVideoMode) isShutterBusy = true;
+        //else if(!isVideoMode) isShutterBusy = true;
 
-        requireExecutor().execute(rShowShutterDown);
-        SAL.simulatePress(this,false);
+        requireExecutor().execute(rOnShutterPressed);
 
         if(isVideoMode && !isRecording) {
+
             isRecording = true;
 
             UIHelper.setViewAlpha(viewRecordRect,200,1);
@@ -327,7 +373,7 @@ public class CameraActivity extends AppCompatActivity {
                     if(dataType != DataType.URI_VIDEO_SAVED) return false;
 
                     //runOnUiThread(() -> updateBottomInfo("Video saved!"));
-                    requireExecutor().execute(rHideShutterDown);
+                    requireExecutor().execute(rOnShutterReleased);
 
                     UIHelper.setViewAlpha(viewRecordRect,200,0);
 
@@ -346,6 +392,8 @@ public class CameraActivity extends AppCompatActivity {
 
             CameraCore.pauseFocus();
 
+            animationHandler.postDelayed(rOnShutterReleased,100);
+
             CameraCore.takePicture(new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
@@ -356,10 +404,7 @@ public class CameraActivity extends AppCompatActivity {
 
                     runOnUiThread(() -> updateBottomInfo("Picture saved!"));
 
-                    requireExecutor().execute(rHideShutterDown);
-                    SAL.simulatePress(requireContext(),true);
-
-                    isShutterBusy = false;
+                    //isShutterBusy = false;
 
                     return super.onEventUpdated(dataType, data);
                 }
@@ -371,31 +416,53 @@ public class CameraActivity extends AppCompatActivity {
 
     private void updatePreviewSize() {
 
-        int targetWidth = (int)(previewCurrentDimensions[1] * (isVideoMode ? (16.0/9.0) : (4.0/3.0)));
+        SAL.print("Attempting to update preview size.");
 
-        UIHelper.resizeView(cardPreviewWrapper,
-                previewCurrentDimensions,
-                new int [] {targetWidth,previewCurrentDimensions[1]},
+        /*
+        ConstraintSet targetConstraint = new ConstraintSet();
+
+        targetConstraint.load(this,isVideoMode ? R.layout.activity_camera_169 : R.layout.activity_camera);
+
+        AutoTransition transition = new AutoTransition();
+
+        transition.setInterpolator(new LinearInterpolator());
+        transition.setDuration(200);
+
+        TransitionManager.beginDelayedTransition((ViewGroup) root,transition);
+        targetConstraint.applyTo((ConstraintLayout) root);
+        */
+
+
+        int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
+
+        UIHelper.resizeView(preview,
+                previewDimensions,
+                new int[] {targetWidth,previewDimensions[1]},
                 200,
                 true);
 
-        previewCurrentDimensions[0] = targetWidth;
+        SAL.print("Dimensions: " + Arrays.toString(previewDimensions));
 
-
-        /*
-        cardPreviewWrapper.animate()
-                .scaleX(isVideoMode ? PREVIEW_169_SCALE_FACTOR : 1)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
-                .setDuration(200)
-                .start();
-
-         */
+        previewDimensions[0] = targetWidth;
 
     }
 
     public boolean toggleVideoMode(View view) {
 
+        //Terminate current video recording session if there is one
+        if(isVideoMode && isRecording) {
+            CameraCore.stopRecording();
+            stopVideoTimer();
+            isRecording = false;
+        }
+
         isVideoMode = !isVideoMode;
+
+        /**
+         * Cancel focus point(Because FocusAction will go NUTS when the camera is not active)
+         * Maybe I could figure out a way such that FocusAction runs smarter
+         * without major performance penalty.
+         */
 
         CameraCore.interruptFocus();
         UIHelper.setViewAlpha(viewFocusRect,30,0);
@@ -428,7 +495,10 @@ public class CameraActivity extends AppCompatActivity {
 
             while(videoTimer.isBusy()) {
 
-                SAL.sleepFor(100);
+                //Limit timer refresh rate to be roughly 10fps
+                while(videoTimer.isBusy() && videoTimer.getElaspedTimeInMs() % 100 != 0) {
+                    SAL.sleepFor(1);
+                }
 
                 MathTools.formatTime(videoTimer.getElaspedTimeInMs(),time);
                 StringBuilder sb = new StringBuilder().append(time[0]);
@@ -481,9 +551,17 @@ public class CameraActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        fullscreenHandler.removeCallbacks(rHideNav);
-        fullscreenHandler.postDelayed(rHideNav,100);
-        orientationListener.enable();
+        root.post ( ()-> {
+            /**
+             * Fricking useless -- allows views to draw over the nav bar safe zone
+             * but view.measure() still takes the safe zone into account
+             * resulting in all sorts of ui misalignment.
+             * 'android:fitsSystemWindows=false' does not help
+             */
+           //fullscreenHandler.removeCallbacks(rHideNav);
+            //fullscreenHandler.postDelayed(rHideNav, 100);
+            orientationListener.enable();
+        });
     }
 
     @Override

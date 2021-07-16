@@ -1,12 +1,9 @@
 package com.lbynet.Phokus.camera;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
-import android.util.EventLog;
 import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
@@ -21,13 +18,11 @@ import androidx.camera.core.CameraSelector;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
-import androidx.camera.core.ImageProxy;
 import androidx.camera.core.Preview;
 import androidx.camera.core.UseCase;
 import androidx.camera.core.VideoCapture;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
 
@@ -49,35 +44,39 @@ public class CameraCore {
 
     //From frontend
     static Context context_;
-    static PreviewView preview_view_;
+    static PreviewView previewView_;
     static CaptureRequestOptions.Builder crob_ = new CaptureRequestOptions.Builder();
 
     //CameraX components
     static CameraSelector cs_;
     static Camera camera_;
-    static ImageCapture image_capture_;
-    static VideoCapture video_capture_;
+    static ImageCapture imageCapture_;
+    static VideoCapture videoCapture_;
     static ProcessCameraProvider pcp;
-    static float default_zoom_ = -1,
-            prev_zoom_ = -1;
-    static Executor main_executor_;
-    static FocusAction focus_action_;
-    static int rotation_minor_ = 0,
-               rotation_major_ = 0;
+    static float defaultZoom_ = -1,
+            prevZoom_ = -1;
+    static Executor uiThreadExecutor_;
+    static FocusAction focusAction_;
+    static int rotationMinor_ = 0,
+               rotationMajor_ = 0;
+    static EventListener statusListener_ = new EventListener() {};
 
     //Other internal variables
-    static boolean is_front_facing_ = false,
-            is_recording_ = false;
+    static boolean isFrontFacing_ = false,
+            isRecording_ = false;
 
     public static void initialize() {
         Config.loadConfig();
     }
 
+    public static void setStatusListener_(EventListener listener) {
+        statusListener_ = listener;}
+
     public static void start(PreviewView preview_view) {
 
         context_ = preview_view.getContext();
-        preview_view_ = preview_view;
-        main_executor_ = ContextCompat.getMainExecutor(context_);
+        previewView_ = preview_view;
+        uiThreadExecutor_ = ContextCompat.getMainExecutor(context_);
 
         ListenableFuture<ProcessCameraProvider> listenable_future_ = ProcessCameraProvider.getInstance(context_);
 
@@ -100,22 +99,46 @@ public class CameraCore {
 
         SAL.print(TAG, "CameraX binding...");
 
-        CameraSelector cs = new CameraSelector.Builder()
-                .requireLensFacing(is_front_facing_ ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
-                .build();
+        statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
 
+        CameraSelector cs = new CameraSelector.Builder()
+                .requireLensFacing(isFrontFacing_ ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
+                .build();
         boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
 
-        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs, buildUseCaseArray(
+        //Build usecase array
+        UseCase [] useCaseArray = buildUseCaseArray(
                 CameraConsts.USECASE_PREVIEW,
                 (is_video_mode ? CameraConsts.USECASE_VIDEO_CAPTURE :
-                        CameraConsts.USECASE_IMAGE_CAPTURE)
-        ));
+                        CameraConsts.USECASE_IMAGE_CAPTURE));
 
-        default_zoom_ = CameraUtils.get35FocalLength(context_, is_front_facing_ ? 1 : 0);
-        prev_zoom_ = default_zoom_;
+        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs, useCaseArray);
+        defaultZoom_ = CameraUtils.get35FocalLength(context_, isFrontFacing_ ? 1 : 0);
+        prevZoom_ = defaultZoom_;
 
         updateCameraConfig();
+
+        new Thread( ()-> {
+
+            while(true) {
+
+                boolean is_all_bound = true;
+
+                for(UseCase i : useCaseArray) {
+
+                    if(!pcp.isBound(i)) {
+                        is_all_bound = false;
+                        break;
+                    }
+                }
+
+                if(is_all_bound) break;
+                else SAL.sleepFor(10);
+            }
+
+            statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BOUND,null);
+
+        }).start();
 
         SAL.print(TAG, "CameraX bound.");
     }
@@ -142,27 +165,27 @@ public class CameraCore {
                         .setTargetAspectRatio((Integer) Config.get(CameraConsts.PREVIEW_ASPECT_RATIO))
                         .build();
 
-                p.setSurfaceProvider(preview_view_.getSurfaceProvider());
+                p.setSurfaceProvider(previewView_.getSurfaceProvider());
                 return p;
 
             case CameraConsts.USECASE_VIDEO_CAPTURE:
 
-                video_capture_ = new VideoCapture.Builder()
+                videoCapture_ = new VideoCapture.Builder()
                         .setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
                         .setVideoFrameRate((Integer) Config.get(CameraConsts.VIDEO_FPS))
                         .setBitRate((Integer) Config.get(CameraConsts.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
 
-                return video_capture_;
+                return videoCapture_;
 
             case CameraConsts.USECASE_IMAGE_CAPTURE:
 
-                image_capture_ = new ImageCapture.Builder()
+                imageCapture_ = new ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .setTargetResolution(new Size(8000,6000))
                         .build();
 
-                return image_capture_;
+                return imageCapture_;
 
             case CameraConsts.USECASE_IMAGE_ANALYSIS:
 
@@ -188,11 +211,11 @@ public class CameraCore {
         crob_
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AWB_LOCK,
-                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || is_recording_)
+                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || isRecording_)
 
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AE_LOCK,
-                        (Boolean) Config.get(CameraConsts.AE_LOCK) || is_recording_);
+                        (Boolean) Config.get(CameraConsts.AE_LOCK) || isRecording_);
 
         flushCaptureRequest();
 
@@ -206,18 +229,18 @@ public class CameraCore {
         int videoFps = (int) Config.get(CameraConsts.VIDEO_FPS);
 
         SAL.print("Max camera resolution: " +
-                CameraUtils.getCameraCharacteristics(context_, is_front_facing_ ? 1 : 0)
+                CameraUtils.getCameraCharacteristics(context_, isFrontFacing_ ? 1 : 0)
                         .get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE).toString());
 
         //3A
         crob_
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AWB_LOCK,
-                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || is_recording_)
+                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || isRecording_)
 
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AE_LOCK,
-                        (Boolean) Config.get(CameraConsts.AE_LOCK) || is_recording_);
+                        (Boolean) Config.get(CameraConsts.AE_LOCK) || isRecording_);
 
         //Video-specfic settings
         if (is_video_mode) {
@@ -260,11 +283,11 @@ public class CameraCore {
                             ((String) (Config.get(CameraConsts.VIDEO_LOG_PROFILE))).equals("CLOG") ?
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.CLOG,
-                                            CameraUtils.getCameraCharacteristics(context_, is_front_facing_ ? 1 : 0)) :
+                                            CameraUtils.getCameraCharacteristics(context_, isFrontFacing_ ? 1 : 0)) :
 
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.SLOG,
-                                            CameraUtils.getCameraCharacteristics(context_, is_front_facing_ ? 1 : 0)));
+                                            CameraUtils.getCameraCharacteristics(context_, isFrontFacing_ ? 1 : 0)));
 
         }
         //Photo-specfic settings
@@ -295,7 +318,7 @@ public class CameraCore {
                 SAL.print(TAG, "CaptureRequestOptions updated.");
 
             } catch (Exception e) {
-                SAL.print(e);
+                SAL.print(e,false);
             }
 
         }, Executors.newSingleThreadExecutor());
@@ -303,9 +326,9 @@ public class CameraCore {
 
     public static void takePicture(EventListener listener) {
 
-        image_capture_.setTargetRotation(rotation_minor_);
+        imageCapture_.setTargetRotation(rotationMinor_);
 
-        image_capture_.takePicture(CameraIO.getImageOFO(context_), main_executor_, new ImageCapture.OnImageSavedCallback() {
+        imageCapture_.takePicture(CameraIO.getImageOFO(context_), uiThreadExecutor_, new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull @NotNull ImageCapture.OutputFileResults outputFileResults) {
                 SAL.runFileScan(context_, outputFileResults.getSavedUri());
@@ -322,9 +345,9 @@ public class CameraCore {
     @SuppressLint("RestrictedApi")
     public static void stopRecording() {
 
-        is_recording_ = false;
+        isRecording_ = false;
 
-        video_capture_.stopRecording();
+        videoCapture_.stopRecording();
 
         update3A();
     }
@@ -332,13 +355,13 @@ public class CameraCore {
     @SuppressLint({"MissingPermission","RestrictedApi"})
     public static void startRecording(EventListener listener) {
 
-        is_recording_ = true;
+        isRecording_ = true;
 
-        video_capture_.setTargetRotation(rotation_major_);
+        videoCapture_.setTargetRotation(rotationMajor_);
 
         update3A();
 
-        video_capture_.startRecording(CameraIO.getVideoOFO(context_), main_executor_, new VideoCapture.OnVideoSavedCallback() {
+        videoCapture_.startRecording(CameraIO.getVideoOFO(context_), uiThreadExecutor_, new VideoCapture.OnVideoSavedCallback() {
             @Override
             public void onVideoSaved(@NonNull @NotNull VideoCapture.OutputFileResults outputFileResults) {
 
@@ -361,62 +384,62 @@ public class CameraCore {
 
         camera_.getCameraControl().setZoomRatio(ratio);
 
-        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,ratio * default_zoom_);
+        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,ratio * defaultZoom_);
     }
 
     public static void zoomByFocalLength(float focal_length,EventListener listener) {
 
-        if(focal_length < default_zoom_) {
+        if(focal_length < defaultZoom_) {
             listener.onEventFinished(false,"Queried Focal length too low.");
             return;
         }
 
-        camera_.getCameraControl().setZoomRatio(focal_length / default_zoom_);
+        camera_.getCameraControl().setZoomRatio(focal_length / defaultZoom_);
         listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,focal_length);
     }
 
     public static void updateRotation(int surface_rotation) {
 
-        rotation_minor_ = surface_rotation;
+        rotationMinor_ = surface_rotation;
 
         if(surface_rotation == Surface.ROTATION_90 || surface_rotation == Surface.ROTATION_270) {
-            rotation_major_ = surface_rotation;
+            rotationMajor_ = surface_rotation;
         }
     }
 
     public static void interruptFocus() {
 
-        if(focus_action_ != null) focus_action_.interrupt();
+        if(focusAction_ != null) focusAction_.interrupt();
 
     }
 
     public static void pauseFocus() {
-        if(focus_action_ != null) focus_action_.pause();
+        if(focusAction_ != null) focusAction_.pause();
     }
 
     public static void resumeFocus() {
-        if(focus_action_ != null) focus_action_.resume();
+        if(focusAction_ != null) focusAction_.resume();
     }
 
     public static void focusToPoint(float x, float y, boolean is_continuous, EventListener listener) {
 
-        if(focus_action_ != null && focus_action_.isContinuous() && !focus_action_.isInterrupted()) {
-            focus_action_.updateFocusCoordinate(new float[]{x,y});
+        if(focusAction_ != null && focusAction_.isContinuous() && !focusAction_.isInterrupted()) {
+            focusAction_.updateFocusCoordinate(new float[]{x,y});
             return;
         }
-        else if(focus_action_ != null) {
-            focus_action_.interrupt();
+        else if(focusAction_ != null) {
+            focusAction_.interrupt();
         }
 
-        focus_action_ = new FocusAction(is_continuous,
+        focusAction_ = new FocusAction(is_continuous,
                 new float[]{x,y},
                 camera_.getCameraControl(),
-                preview_view_,
-                main_executor_,
+                previewView_,
+                uiThreadExecutor_,
                 listener);
     }
 
     public static boolean isFrontFacing() {
-        return is_front_facing_;
+        return isFrontFacing_;
     }
 }

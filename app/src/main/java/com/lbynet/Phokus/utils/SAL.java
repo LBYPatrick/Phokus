@@ -1,5 +1,6 @@
 package com.lbynet.Phokus.utils;
 
+import android.app.Activity;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -47,6 +48,12 @@ public class SAL {
     }
 
     public static ArrayList<String> log_ = new ArrayList<>();
+    private static Activity activity_;
+
+    public static void setActivity(Activity activity) {
+
+        activity_ = activity;
+    }
 
     public static void print(String msg) {
         print(MsgType.VERBOSE,"DefaultTag",msg);
@@ -110,20 +117,54 @@ public class SAL {
     }
 
     public static void print(Exception e) {
+        print(e,true);
+    }
 
+    public static void print(Exception e, boolean requireToast) {
 
         StringBuilder err = new StringBuilder()
             .append(e.toString()).append("\n")
                 .append("Message: ").append(e.getMessage()).append("\n")
                 .append("Location: \n");
 
-        for(StackTraceElement i : e.getStackTrace()) {
-            err.append("\t" + i.getClassName() + "." + i.getMethodName() + "(Line " + i.getLineNumber() + ")\n");
+        int msgCnt = 0;
+        boolean isToastDispatched = false;
+
+        for (StackTraceElement i : e.getStackTrace()) {
+
+            ++msgCnt;
+            err.append("\t" + stackTraceToString(i) + ")\n");
+
+            if (msgCnt == 3 && !isToastDispatched && activity_ != null && requireToast) {
+                isToastDispatched = true;
+                UIHelper.printSystemToast(activity_,
+                        "Exception! " +
+                                err.toString(),
+                        true);
+            }
         }
 
         Log.e("Exception", "[Fokus]Exception: " + err.toString());
 
+        if (activity_ != null && !isToastDispatched && requireToast) UIHelper.printSystemToast(activity_,
+                "Exception! " +
+                        err.toString(),
+                true);
+
         log_.add(String.format(getLogTemplate() ,"EXCEPTION",err.toString()));
+    }
+
+    private static String stackTraceToString(StackTraceElement e) {
+
+        return new StringBuilder()
+                .append(e.getClassName())
+                .append('.')
+                .append(e.getMethodName())
+                .append("(Line ")
+                .append(e.getLineNumber())
+                .append(')')
+                .toString();
+
     }
 
     public static void sleepFor(long ms) {

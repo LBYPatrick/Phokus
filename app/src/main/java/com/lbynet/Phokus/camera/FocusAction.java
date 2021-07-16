@@ -11,6 +11,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.utils.SAL;
 
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -90,7 +91,14 @@ public class FocusAction {
 
                     listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_CANCELLED);
 
-                    SAL.print(e);
+
+                    /**
+                     * This almost always comes out as OperationCancelledException, which suggests
+                     * that the current focus action has been cancelled by the system
+                     * or user input (picking a new focus point BEFORE current focus action finishes)
+                     */
+
+                    SAL.print(e,false);
 
                 } finally {
                     is_completed.set(true);

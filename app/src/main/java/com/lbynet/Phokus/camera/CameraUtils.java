@@ -126,7 +126,10 @@ public class CameraUtils {
     }
 
     public static TonemapCurve makeToneMapCurve(LogScheme scheme, CameraCharacteristics cc) {
-        return makeToneMapCurve(scheme, cc.get(CameraCharacteristics.TONEMAP_MAX_CURVE_POINTS));
+
+        Integer pts = cc.get(CameraCharacteristics.TONEMAP_MAX_CURVE_POINTS);
+
+        return makeToneMapCurve(scheme, pts == null ? 2 : pts);
     }
 
     //TODO: Finish this

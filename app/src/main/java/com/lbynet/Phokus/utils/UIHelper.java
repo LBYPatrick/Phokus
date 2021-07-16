@@ -1,10 +1,12 @@
 package com.lbynet.Phokus.utils;
 
+import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
+import android.graphics.Interpolator;
 import android.graphics.Point;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
@@ -16,6 +18,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
@@ -136,31 +139,34 @@ public class UIHelper {
 
     }
 
-    public static void resizeView(View view, int [] oldDimensions, int [] newDimensions, int durationInMs, boolean isNonLinear) {
+    public static void resizeView(View view,
+                                  int [] oldDimensions,
+                                  int [] newDimensions,
+                                  int durationInMs,
+                                  boolean isNonLinear) {
 
-        ValueAnimator h = ValueAnimator.ofInt(oldDimensions[1],newDimensions[1]).setDuration(durationInMs),
-                      w = ValueAnimator.ofInt(oldDimensions[0],newDimensions[0]).setDuration(durationInMs);
+        ValueAnimator h = ValueAnimator.ofFloat(oldDimensions[1],newDimensions[1]).setDuration(durationInMs),
+                      w = ValueAnimator.ofFloat(oldDimensions[0],newDimensions[0]).setDuration(durationInMs);
 
         if(isNonLinear) {
-            h.setInterpolator(new OvershootInterpolator());
-            w.setInterpolator(new OvershootInterpolator());
+            h.setInterpolator(new DecelerateInterpolator());
+            w.setInterpolator(new DecelerateInterpolator());
         }
 
-        /*
+
         h.addUpdateListener(animation -> {
 
             ViewGroup.LayoutParams params = view.getLayoutParams();
-            params.height = (int)animation.getAnimatedValue();
+            params.height = Math.round((Float)animation.getAnimatedValue());
             view.setLayoutParams(params);
 
         });
-         */
+
+
         w.addUpdateListener(animation -> {
 
-            SAL.print("New Width: " + (int)animation.getAnimatedValue());
-
             ViewGroup.LayoutParams params = view.getLayoutParams();
-            params.width = (int)animation.getAnimatedValue();
+            params.width = Math.round((Float)animation.getAnimatedValue());
             view.setLayoutParams(params);
 
         });
@@ -207,7 +213,8 @@ public class UIHelper {
                       height = new AtomicInteger(-1);
 
         view.post( () -> {
-            view.measure(View.MeasureSpec.EXACTLY, View.MeasureSpec.EXACTLY);
+            view.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
 
             width.set(view.getWidth());
             height.set(view.getHeight());

@@ -5,8 +5,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.camera.core.AspectRatio;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -15,16 +13,12 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.Handler;
-import android.transition.AutoTransition;
-import android.transition.Transition;
-import android.transition.TransitionManager;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.DecelerateInterpolator;
-import android.view.animation.LinearInterpolator;
+import android.view.animation.AnimationSet;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -55,8 +49,10 @@ public class CameraActivity extends AppCompatActivity {
             viewShutterDown = null,
             viewVideoShutterDown = null,
             viewRecordRect = null,
+            viewCaptureRect = null,
             viewFocusRect = null;
-    private Button buttonCaptureMode = null;
+    private Button buttonCaptureMode = null,
+                   buttonFocusCancel = null;
     private TextView textAperture,
             textFocalLength,
             textExposure,
@@ -115,12 +111,19 @@ public class CameraActivity extends AppCompatActivity {
                 }
             },
             rHideNav = () -> {
+                root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE
+                |View.SYSTEM_UI_FLAG_FULLSCREEN
+                |View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+
+                /*
                 root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                         | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+
+                 */
             };
 
 
@@ -136,12 +139,24 @@ public class CameraActivity extends AppCompatActivity {
 
                     if (isFocused) break;
 
-                    UIHelper.setViewAlpha(viewFocusRect, 30, 0.5f);
+                    UIHelper.setViewAlpha(viewFocusRect, 50, 0.5f);
+
+
+                    buttonFocusCancel.post ( () -> {
+
+                                buttonFocusCancel.setClickable(true);
+
+                                buttonFocusCancel.animate()
+                                        .alpha(1)
+                                        .setDuration(200)
+                                        .start();
+                            });
+
                     viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
                     break;
 
                 case FocusAction.MSG_SUCCESS:
-                    UIHelper.setViewAlpha(viewFocusRect, 30, 1);
+                    UIHelper.setViewAlpha(viewFocusRect, 50, 1);
                     viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), (isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)));
                     isFocused = true;
             }
@@ -227,6 +242,8 @@ public class CameraActivity extends AppCompatActivity {
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
         buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
+        buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
+        buttonFocusCancel.setOnClickListener(this::cancelFocus);
 
         if(allPermissionsGood())
             startCamera();
@@ -343,8 +360,8 @@ public class CameraActivity extends AppCompatActivity {
 
             isFocused = false;
 
-            CameraCore.focusToPoint(event.getX(), event.getY(), true,focusListener
-            );
+
+            CameraCore.focusToPoint(event.getX(), event.getY(), true,focusListener);
 
         }
 
@@ -464,8 +481,7 @@ public class CameraActivity extends AppCompatActivity {
          * without major performance penalty.
          */
 
-        CameraCore.interruptFocus();
-        UIHelper.setViewAlpha(viewFocusRect,30,0);
+        cancelFocus(null);
 
         Config.set(CameraConsts.VIDEO_MODE,isVideoMode);
         Config.set(CameraConsts.PREVIEW_ASPECT_RATIO,isVideoMode ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
@@ -547,6 +563,23 @@ public class CameraActivity extends AppCompatActivity {
         animationHandler.postDelayed(rHideBottomInfo,4000);
     }
 
+    private boolean cancelFocus(View view) {
+
+        CameraCore.interruptFocus();
+
+        buttonFocusCancel.setClickable(false);
+
+        buttonFocusCancel.animate()
+                .alpha(0)
+                .setDuration(50)
+                .start();
+
+        UIHelper.setViewAlpha(viewFocusRect,50,0);
+
+        return true;
+
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
@@ -558,7 +591,7 @@ public class CameraActivity extends AppCompatActivity {
              * resulting in all sorts of ui misalignment.
              * 'android:fitsSystemWindows=false' does not help
              */
-           //fullscreenHandler.removeCallbacks(rHideNav);
+            //fullscreenHandler.removeCallbacks(rHideNav);
             //fullscreenHandler.postDelayed(rHideNav, 100);
             orientationListener.enable();
         });

@@ -58,10 +58,24 @@
         app:layout_constraintRight_toRightOf="@id/pv_preview"
         app:layout_constraintTop_toTopOf="@id/pv_preview"
         app:layout_constraintBottom_toBottomOf="@id/pv_preview"
-        android:foreground="@drawable/record_status_overlay"
+        android:foreground="@drawable/rect_overlay_video"
         android:alpha="0"
         android:elevation="3dp"
         />
+
+    <View
+        android:id="@+id/v_capture_rect"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="@id/pv_preview"
+        app:layout_constraintBottom_toBottomOf="@id/pv_preview"
+        android:foreground="@drawable/rect_overlay_photo"
+        android:alpha="0"
+        android:elevation="3dp"
+        />
+
 
     <!-- Top info card -->
     <androidx.cardview.widget.CardView
@@ -148,7 +162,7 @@
         android:layout_width="65dp"
         android:layout_height="65dp"
         android:layout_marginEnd="10dp"
-        android:foreground="@drawable/ic_still_shutter_up"
+        android:foreground="@drawable/ic_shutter_base"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
         app:layout_constraintTop_toTopOf="parent"
@@ -159,7 +173,7 @@
         android:id="@+id/v_shutter_photo"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:foreground="@drawable/ic_shutter_down"
+        android:foreground="@drawable/ic_shutter_photo"
         app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
         app:layout_constraintRight_toRightOf="@id/v_shutter_base"
         app:layout_constraintTop_toTopOf="@id/v_shutter_base"
@@ -171,7 +185,7 @@
         android:id="@+id/v_shutter_video"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:foreground="@drawable/ic_shutter_down_video"
+        android:foreground="@drawable/ic_shutter_video"
         app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
         app:layout_constraintRight_toRightOf="@id/v_shutter_base"
         app:layout_constraintTop_toTopOf="@id/v_shutter_base"
@@ -190,8 +204,6 @@
 
     <Button
         style="@style/ThemeCameraToggle"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
         android:id="@+id/btn_awb"
         android:text="AWB"
         app:layout_constraintLeft_toLeftOf="@id/btn_capture_mode"
@@ -200,11 +212,35 @@
 
     <Button
         style="@style/ThemeCameraToggle"
-        android:layout_width="70dp"
-        android:layout_height="70dp"
+        android:id="@+id/btn_exposure"
         android:text="EXPOSURE"
         app:layout_constraintLeft_toLeftOf="@id/btn_awb"
         app:layout_constraintTop_toBottomOf="@id/btn_awb"
+        />
+
+    <Button
+        style="@style/ThemeCameraToggle"
+        android:text="ONE SHOT"
+        android:id="@+id/btn_focus_freq"
+        app:layout_constraintLeft_toLeftOf="@id/btn_exposure"
+        app:layout_constraintTop_toBottomOf="@id/btn_exposure"
+        />
+
+
+    <!-- Other stuff -->
+    <Button
+        style="@style/ThemeCameraToggle"
+        android:text="×"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:id="@+id/btn_focus_cancel"
+        app:layout_constraintRight_toRightOf="@id/v_ui_aligner_43"
+        app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_43"
+        android:layout_marginBottom="10dp"
+        android:layout_marginRight="10dp"
+        android:textSize="20dp"
+        android:backgroundTint="#C50000"
+        android:alpha="0"
         />
 
 

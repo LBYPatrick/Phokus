@@ -10,5 +10,8 @@
 
     <color name="colorFocusOneShot">#00FF00</color>
     <color name="colorFocusContinuous">#00D1CE</color>
+    <color name="colorRectOverlayVideo">#FF0000</color>
+    <color name="colorRectOverlayPhoto">#FFFFFF</color>
+
 
 </resources>

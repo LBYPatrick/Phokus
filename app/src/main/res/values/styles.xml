@@ -11,8 +11,6 @@
         <item name="android:windowLayoutInDisplayCutoutMode" tools:ignore="NewApi">shortEdges</item>
         <item name="android:windowFullscreen">true</item>
         <item name="android:windowBackground">#000000</item>
-        <item name="windowActionBar">false</item>
-        <item name="windowNoTitle">true</item>
     </style>
 
     <style name="SettingsTheme" parent="Theme.MaterialComponents">
@@ -27,15 +25,14 @@
         <item name="windowNoTitle">false</item>
     </style>
 
-    <style name="ThemeCameraToggle" parent="Widget.MaterialComponents.Button.OutlinedButton">
+    <style name="ThemeCameraToggle" parent="Widget.MaterialComponents.Button">
 
         <item name="android:outlineAmbientShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
         <item name="android:outlineSpotShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
         <item name="android:layout_width">70dp</item>
-        <item name="android:layout_height">70dp</item>
-        <item name="android:autoSizeTextType">uniform</item>
-        <item name="android:maxLines">1</item>
+        <item name="android:layout_height">50dp</item>
         <item name="android:elevation">4dp</item>
+        <item name="android:textSize">10dp</item>
         <item name="android:layout_marginTop">10dp</item>
 
     </style>

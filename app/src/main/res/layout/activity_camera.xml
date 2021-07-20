@@ -228,9 +228,10 @@
 
 
     <!-- Other stuff -->
-    <Button
+    <ImageButton
+        android:src="@drawable/ic_clear_white_24dp"
+        android:scaleType="center"
         style="@style/ThemeCameraToggle"
-        android:text="×"
         android:layout_width="50dp"
         android:layout_height="50dp"
         android:id="@+id/btn_focus_cancel"
@@ -238,9 +239,19 @@
         app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_43"
         android:layout_marginBottom="10dp"
         android:layout_marginRight="10dp"
-        android:textSize="20dp"
-        android:backgroundTint="#C50000"
-        android:alpha="0"
+        android:background="#00000000"
+        android:alpha="1"
+        />
+
+    <ImageButton
+        android:src="@drawable/ic_rotate_right_white_48dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        app:layout_constraintBottom_toTopOf="@id/v_shutter_base"
+        app:layout_constraintRight_toRightOf="@id/v_shutter_base"
+        app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
+        android:layout_marginBottom="30dp"
+        android:background="#00000000"
         />
 
 

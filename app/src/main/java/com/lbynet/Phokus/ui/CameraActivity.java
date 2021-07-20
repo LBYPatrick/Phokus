@@ -8,6 +8,7 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import android.animation.AnimatorSet;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -91,9 +92,11 @@ public class CameraActivity extends AppCompatActivity {
                             .alpha(0.5f)
                             .setDuration(50)
                             .start();
+
                 }
 
             },
+
             rOnShutterReleased = () -> {
 
                 isShutterBusy = false;
@@ -215,13 +218,39 @@ public class CameraActivity extends AppCompatActivity {
     private ScaleGestureDetector pToZDetector = null;
 
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+        /**
+         * Activity Setup
+         */
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_camera);
+        bindViews();
+        SAL.setActivity(this);
+
+
+        /**
+         * Configure rotation listener
+         */
+        orientationListener = new OrientationEventListener(this) {
+            @Override
+            public void onOrientationChanged(int orientation) {
+                CameraCore.updateRotation(UIHelper.getSurfaceOrientation(orientation));
+            }
+        };
+
+        /**
+         * Grant permission
+         */
+        if(allPermissionsGood())
+            startCamera();
+        else
+            ActivityCompat.requestPermissions(this,GlobalConsts.PERMISSIONS,GlobalConsts.PERM_REQUEST_CODE);
+
+    }
+
+    public void bindViews() {
 
         root = findViewById(R.id.cl_camera);
         textAperture = findViewById(R.id.tv_aperture);
@@ -236,6 +265,7 @@ public class CameraActivity extends AppCompatActivity {
         viewVideoShutterDown = findViewById(R.id.v_shutter_video);
         viewRecordRect = findViewById(R.id.v_record_rect);
         viewFocusRect  = findViewById(R.id.v_focus_rect);
+        viewCaptureRect = findViewById(R.id.v_capture_rect);
 
         pToZDetector =  new ScaleGestureDetector(requireContext(),pToZListener);
         viewShutterUp.setOnTouchListener(this::onShutterTouched);
@@ -244,23 +274,6 @@ public class CameraActivity extends AppCompatActivity {
         buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
         buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
         buttonFocusCancel.setOnClickListener(this::cancelFocus);
-
-        if(allPermissionsGood())
-            startCamera();
-        else
-            ActivityCompat.requestPermissions(this,GlobalConsts.PERMISSIONS,GlobalConsts.PERM_REQUEST_CODE);
-
-
-        orientationListener = new OrientationEventListener(this) {
-            @Override
-            public void onOrientationChanged(int orientation) {
-                CameraCore.updateRotation(UIHelper.getSurfaceOrientation(orientation));
-            }
-        };
-
-        SAL.setActivity(this);
-
-        SAL.print("CameraActivity","Attempted to hide navigation bar.");
     }
 
     @Override
@@ -269,7 +282,6 @@ public class CameraActivity extends AppCompatActivity {
                                            @NonNull @NotNull int[] grantResults) {
 
         if(requestCode == GlobalConsts.PERM_REQUEST_CODE) {
-
             if(allPermissionsGood()) startCamera();
 
         } else {
@@ -287,6 +299,7 @@ public class CameraActivity extends AppCompatActivity {
         return true;
     }
 
+    @SuppressLint("DefaultLocale")
     public void startCamera() {
 
         SAL.print("Starting camera");
@@ -335,7 +348,11 @@ public class CameraActivity extends AppCompatActivity {
             //updatePreviewSize();
         }).start();
 
-        textFocalLength.setText(String.format("%.2fmm",CameraUtils.get35FocalLength(requireContext(), CameraCore.isFrontFacing() ? 1 : 0)));
+        textFocalLength.setText(
+                String.format("%.2fmm",
+                        CameraUtils.get35FocalLength(
+                                requireContext(),
+                                CameraCore.isFrontFacing() ? 1 : 0)));
 
         wakeTopInfo();
         //wakeBottomInfo();
@@ -434,21 +451,6 @@ public class CameraActivity extends AppCompatActivity {
     private void updatePreviewSize() {
 
         SAL.print("Attempting to update preview size.");
-
-        /*
-        ConstraintSet targetConstraint = new ConstraintSet();
-
-        targetConstraint.load(this,isVideoMode ? R.layout.activity_camera_169 : R.layout.activity_camera);
-
-        AutoTransition transition = new AutoTransition();
-
-        transition.setInterpolator(new LinearInterpolator());
-        transition.setDuration(200);
-
-        TransitionManager.beginDelayedTransition((ViewGroup) root,transition);
-        targetConstraint.applyTo((ConstraintLayout) root);
-        */
-
 
         int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
 

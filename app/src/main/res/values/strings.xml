@@ -10,4 +10,7 @@
 
     <string name="settings_version">App Version</string>
 
+    <!-- These are not for the final design-->
+    <string name="activity_camera_focus_one_shot">ONE SHOT</string>
+    <string name="activity_camera_focus_continuous">SERVO</string>
 </resources>

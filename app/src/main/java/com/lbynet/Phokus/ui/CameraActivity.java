@@ -8,10 +8,10 @@ import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import android.animation.AnimatorSet;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.graphics.drawable.AnimationDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.MotionEvent;
@@ -19,17 +19,19 @@ import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AnimationSet;
+import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.TextView;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.lbynet.Phokus.R;
-import com.lbynet.Phokus.camera.CameraConsts;
 import com.lbynet.Phokus.camera.CameraCore;
 import com.lbynet.Phokus.camera.CameraUtils;
 import com.lbynet.Phokus.camera.FocusAction;
 import com.lbynet.Phokus.global.Config;
-import com.lbynet.Phokus.global.GlobalConsts;
+import com.lbynet.Phokus.global.Consts;
 import com.lbynet.Phokus.template.EventListener;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
@@ -53,19 +55,21 @@ public class CameraActivity extends AppCompatActivity {
             viewCaptureRect = null,
             viewFocusRect = null;
     private Button buttonCaptureMode = null,
-                   buttonFocusCancel = null;
+            buttonFocusCancel = null,
+            buttonFocusFreqMode = null;
     private TextView textAperture,
             textFocalLength,
             textExposure,
             textBottomInfo;
     private CardView cardTopInfo,
             cardBottomInfo;
+    private FloatingActionButton fabSwitchSide = null;
     private Timer videoTimer = new Timer("Video Timer");
     private OrientationEventListener orientationListener;
     private boolean isShutterBusy = false,
             isVideoMode = false,
             isRecording = false,
-            isContinuousFocus = true,
+            isContinuousFocus = false,
             isFocused = false,
             isZoomGesture = false;
 
@@ -246,7 +250,7 @@ public class CameraActivity extends AppCompatActivity {
         if(allPermissionsGood())
             startCamera();
         else
-            ActivityCompat.requestPermissions(this,GlobalConsts.PERMISSIONS,GlobalConsts.PERM_REQUEST_CODE);
+            ActivityCompat.requestPermissions(this, Consts.PERMISSIONS, Consts.PERM_REQUEST_CODE);
 
     }
 
@@ -272,8 +276,16 @@ public class CameraActivity extends AppCompatActivity {
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
         buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
+
         buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
         buttonFocusCancel.setOnClickListener(this::cancelFocus);
+
+        buttonFocusFreqMode = findViewById(R.id.btn_focus_freq);
+        buttonFocusFreqMode.setOnClickListener(this::toggleFocusFreqMode);
+
+        fabSwitchSide = findViewById(R.id.fab_switch_side);
+        fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
+
     }
 
     @Override
@@ -281,7 +293,7 @@ public class CameraActivity extends AppCompatActivity {
                                            @NonNull @NotNull String[] permissions,
                                            @NonNull @NotNull int[] grantResults) {
 
-        if(requestCode == GlobalConsts.PERM_REQUEST_CODE) {
+        if(requestCode == Consts.PERM_REQUEST_CODE) {
             if(allPermissionsGood()) startCamera();
 
         } else {
@@ -293,7 +305,7 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     public boolean allPermissionsGood() {
-        for(String p : GlobalConsts.PERMISSIONS) {
+        for(String p : Consts.PERMISSIONS) {
             if(ContextCompat.checkSelfPermission(this,p) == PackageManager.PERMISSION_DENIED) return false;
         }
         return true;
@@ -312,14 +324,15 @@ public class CameraActivity extends AppCompatActivity {
                 switch (dataType) {
                     case VOID_CAMERA_BINDING:
                         runOnUiThread(() -> {
-                            buttonCaptureMode.setEnabled(false);
-                            buttonCaptureMode.setClickable(false);
+
+                            lockButtons(buttonCaptureMode,
+                                    fabSwitchSide);
                         });
                         break;
                     case VOID_CAMERA_BOUND:
                         runOnUiThread(() -> {
-                            buttonCaptureMode.setEnabled(true);
-                            buttonCaptureMode.setClickable(true);
+                            unlockButtons(buttonCaptureMode,
+                                    fabSwitchSide);
                         });
                         break;
                     default: break;
@@ -331,30 +344,9 @@ public class CameraActivity extends AppCompatActivity {
 
         CameraCore.start(preview);
 
-        int camera_id = (Boolean) Config.get(CameraConsts.FRONT_FACING) ? 1 : 0;
-
-        textAperture.setText(String.format("F/%.2f",CameraUtils.get35Aperture(this,camera_id)));
-        textAperture.setTextColor(UIHelper.getColors(this,R.color.colorSecondary)[0]);
-
-        //updateBottomInfo("Am I a joke to you? Please tell me I am not.");
-
         preview.setOnTouchListener(this::onPreviewTouched);
 
-        //Get preview default dimensions
-
-
-        new Thread( () -> {
-            previewDimensions = UIHelper.getViewDimensions(preview);
-            //updatePreviewSize();
-        }).start();
-
-        textFocalLength.setText(
-                String.format("%.2fmm",
-                        CameraUtils.get35FocalLength(
-                                requireContext(),
-                                CameraCore.isFrontFacing() ? 1 : 0)));
-
-        wakeTopInfo();
+        resetLensInfo();
         //wakeBottomInfo();
     }
 
@@ -362,27 +354,47 @@ public class CameraActivity extends AppCompatActivity {
     // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
     public boolean onPreviewTouched(View v, MotionEvent event) {
 
-        isZoomGesture = false;
-        //Pinch-to-zoom
-        pToZDetector.onTouchEvent(event);
+            isZoomGesture = false;
+            //Pinch-to-zoom
 
-        if(isZoomGesture) return true;
+            float x = event.getX(),
+                y = event.getY();
 
-        //Tap-to-focus
-        if(event.getAction() == MotionEvent.ACTION_DOWN) {
+            pToZDetector.onTouchEvent(event);
 
-            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) viewFocusRect.getLayoutParams();
-            params.setMargins((int)event.getX() - 40,(int)event.getY() - 40, 0,0);
-            viewFocusRect.setLayoutParams(params);
+            //Tap-to-focus
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
-            isFocused = false;
+                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) viewFocusRect.getLayoutParams();
+                params.setMargins((int) x - 50, (int) y - 50, 0, 0);
+                viewFocusRect.setLayoutParams(params);
 
+                isFocused = false;
 
-            CameraCore.focusToPoint(event.getX(), event.getY(), true,focusListener);
-
-        }
+                CameraCore.focusToPoint(x, y, true, focusListener);
+            }
 
         return true;
+    }
+
+    @SuppressLint("DefaultLocale")
+    public void resetLensInfo() {
+        int camera_id = (Boolean) Config.get(Config.FRONT_FACING) ? 1 : 0;
+
+        textAperture.setText(String.format("F/%.2f",CameraUtils.get35Aperture(this,camera_id)));
+        textAperture.setTextColor(UIHelper.getColors(this,R.color.colorSecondary)[0]);
+
+        textFocalLength.setText(
+                String.format("%.2fmm",
+                        CameraUtils.get35FocalLength(
+                                requireContext(),
+                                CameraCore.isFrontFacing() ? 1 : 0)));
+
+        currZoomRatio = 1;
+
+        textFocalLength.setTextColor(UIHelper.getColors(requireContext(),R.color.colorText)[0]);
+
+        wakeTopInfo();
     }
 
     public boolean onShutterTouched(View v, MotionEvent event) {
@@ -452,17 +464,20 @@ public class CameraActivity extends AppCompatActivity {
 
         SAL.print("Attempting to update preview size.");
 
-        int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
+        new Thread( () -> {
+            if (previewDimensions == null) previewDimensions = UIHelper.getViewDimensions(preview);
 
-        UIHelper.resizeView(preview,
-                previewDimensions,
-                new int[] {targetWidth,previewDimensions[1]},
-                200,
-                true);
+            int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
+            UIHelper.resizeView(preview,
+                    previewDimensions,
+                    new int[]{targetWidth, previewDimensions[1]},
+                    200,
+                    true);
 
-        SAL.print("Dimensions: " + Arrays.toString(previewDimensions));
+            SAL.print("Dimensions: " + Arrays.toString(previewDimensions));
 
-        previewDimensions[0] = targetWidth;
+            previewDimensions[0] = targetWidth;
+        }).start();
 
     }
 
@@ -485,10 +500,11 @@ public class CameraActivity extends AppCompatActivity {
 
         cancelFocus(null);
 
-        Config.set(CameraConsts.VIDEO_MODE,isVideoMode);
-        Config.set(CameraConsts.PREVIEW_ASPECT_RATIO,isVideoMode ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
+        Config.set(Config.VIDEO_MODE,isVideoMode);
+        Config.set(Config.PREVIEW_ASPECT_RATIO,isVideoMode ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
 
         updatePreviewSize();
+        resetLensInfo();
 
         animationHandler.postDelayed(() -> CameraCore.start(preview),200);
 
@@ -582,19 +598,68 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
+    private boolean toggleCameraFacing(View view) {
+
+        boolean curr = (Boolean) Config.get(Config.FRONT_FACING);
+
+        Config.set(Config.FRONT_FACING,!curr);
+
+        //fabSwitchSide.setClickable(false);
+        //fabSwitchSide.setEnabled(false);
+
+        fabSwitchSide.animate()
+                .rotationBy(360.0f)
+                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .setDuration(500)
+                .start();
+
+        cancelFocus(null);
+        CameraCore.start(preview);
+        resetLensInfo();
+
+        return true;
+    }
+
+    private boolean toggleFocusFreqMode(View view) {
+
+        isContinuousFocus = !isContinuousFocus;
+        cancelFocus(null);
+
+        String focusModeText = getString(isContinuousFocus ?
+                R.string.activity_camera_focus_continuous
+                : R.string.activity_camera_focus_one_shot);
+
+        buttonFocusFreqMode.setText(focusModeText);
+
+        updateBottomInfo(String.format(getString(R.string.fmt_focus_mode),focusModeText));
+
+        return true;
+    }
+
+
+    private void lockButtons(View... buttons) {
+        for(View b : buttons) {
+            //b.setEnabled(false);
+            b.setClickable(false);
+        }
+    }
+
+    private void unlockButtons(View... buttons) {
+
+        for(View b : buttons) {
+            b.setClickable(true);
+            //b.setEnabled(true);
+        }
+    }
+
+
     @Override
     protected void onResume() {
         super.onResume();
 
         root.post ( ()-> {
-            /**
-             * Fricking useless -- allows views to draw over the nav bar safe zone
-             * but view.measure() still takes the safe zone into account
-             * resulting in all sorts of ui misalignment.
-             * 'android:fitsSystemWindows=false' does not help
-             */
-            //fullscreenHandler.removeCallbacks(rHideNav);
-            //fullscreenHandler.postDelayed(rHideNav, 100);
+            fullscreenHandler.removeCallbacks(rHideNav);
+            fullscreenHandler.postDelayed(rHideNav, 100);
             orientationListener.enable();
         });
     }

@@ -2,7 +2,11 @@ package com.lbynet.Phokus.global;
 
 import android.Manifest;
 
-public class GlobalConsts {
+import androidx.annotation.IntDef;
+
+import java.lang.annotation.Retention;
+
+public class Consts {
 
     final public static String [] PERMISSIONS = {
             Manifest.permission.CAMERA,
@@ -11,5 +15,4 @@ public class GlobalConsts {
     };
 
     final public static int PERM_REQUEST_CODE = 114514;
-
 }

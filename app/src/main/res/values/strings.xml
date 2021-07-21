@@ -10,7 +10,10 @@
 
     <string name="settings_version">App Version</string>
 
+    <string name="activity_camera_focus_clear">Clear focus</string>
+
     <!-- These are not for the final design-->
+    <string name="fmt_focus_mode">Current focus mode: %s</string>
     <string name="activity_camera_focus_one_shot">ONE SHOT</string>
     <string name="activity_camera_focus_continuous">SERVO</string>
 </resources>

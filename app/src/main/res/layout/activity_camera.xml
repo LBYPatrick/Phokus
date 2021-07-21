@@ -17,8 +17,8 @@
 
     <View
         android:id="@+id/v_focus_rect"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
         app:layout_constraintTop_toTopOf="@id/pv_preview"
         app:layout_constraintLeft_toLeftOf="@id/pv_preview"
         android:foreground="@drawable/ic_focus_rect"
@@ -220,7 +220,7 @@
 
     <Button
         style="@style/ThemeCameraToggle"
-        android:text="ONE SHOT"
+        android:text="@string/activity_camera_focus_one_shot"
         android:id="@+id/btn_focus_freq"
         app:layout_constraintLeft_toLeftOf="@id/btn_exposure"
         app:layout_constraintTop_toBottomOf="@id/btn_exposure"
@@ -228,32 +228,40 @@
 
 
     <!-- Other stuff -->
-    <ImageButton
-        android:src="@drawable/ic_clear_white_24dp"
+    <Button
+        app:icon="@drawable/ic_clear_white_24dp"
+        android:text="@string/activity_camera_focus_clear"
         android:scaleType="center"
         style="@style/ThemeCameraToggle"
-        android:layout_width="50dp"
+        app:iconTint="#FFFFFF"
+        android:textColor="#FFFFFF"
+        android:layout_width="wrap_content"
         android:layout_height="50dp"
         android:id="@+id/btn_focus_cancel"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_43"
         app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_43"
         android:layout_marginBottom="10dp"
         android:layout_marginRight="10dp"
-        android:background="#00000000"
-        android:alpha="1"
+        android:backgroundTint="#FF0000"
+        android:alpha="0"
         />
 
-    <ImageButton
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fab_switch_side"
         android:src="@drawable/ic_rotate_right_white_48dp"
+        app:fabCustomSize="50dp"
         android:layout_width="50dp"
         android:layout_height="50dp"
         app:layout_constraintBottom_toTopOf="@id/v_shutter_base"
         app:layout_constraintRight_toRightOf="@id/v_shutter_base"
         app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
         android:layout_marginBottom="30dp"
-        android:background="#00000000"
+        android:backgroundTint="@color/colorCameraButton"
+        android:elevation="4dp"
+        android:alpha="1"
+        android:outlineSpotShadowColor="#00FFFFFF"
+        android:outlineAmbientShadowColor="#00FFFFFF"
         />
-
-
 
 </androidx.constraintlayout.widget.ConstraintLayout>

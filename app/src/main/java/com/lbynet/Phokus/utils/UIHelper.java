@@ -149,8 +149,8 @@ public class UIHelper {
                       w = ValueAnimator.ofFloat(oldDimensions[0],newDimensions[0]).setDuration(durationInMs);
 
         if(isNonLinear) {
-            h.setInterpolator(new DecelerateInterpolator());
-            w.setInterpolator(new DecelerateInterpolator());
+            h.setInterpolator(new AccelerateDecelerateInterpolator());
+            w.setInterpolator(new AccelerateDecelerateInterpolator());
         }
 
 

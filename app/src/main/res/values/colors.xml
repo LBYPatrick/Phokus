@@ -13,5 +13,7 @@
     <color name="colorRectOverlayVideo">#FF0000</color>
     <color name="colorRectOverlayPhoto">#FFFFFF</color>
 
+    <color name="colorCameraButton">#FFFFFF</color>
+
 
 </resources>

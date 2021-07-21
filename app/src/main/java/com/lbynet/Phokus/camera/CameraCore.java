@@ -9,12 +9,16 @@ import android.util.Size;
 import android.view.Surface;
 
 import androidx.annotation.FloatRange;
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.StringDef;
 import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
 import androidx.camera.core.Camera;
+import androidx.camera.core.CameraInfo;
 import androidx.camera.core.CameraSelector;
+import androidx.camera.core.CameraState;
 import androidx.camera.core.ImageAnalysis;
 import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
@@ -25,6 +29,7 @@ import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.Phokus.global.Config;
@@ -33,12 +38,30 @@ import com.lbynet.Phokus.utils.SAL;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.annotation.Retention;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
+import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 //TODO: Finish this
 @SuppressLint("UnsafeOptInUsageError")
 public class CameraCore {
+
+    @Retention(SOURCE)
+    @StringDef( {
+            USECASE_PREVIEW,
+            USECASE_IMAGE_CAPTURE,
+            USECASE_VIDEO_CAPTURE,
+            USECASE_IMAGE_ANALYSIS_BASIC
+    })
+    private @interface UseCaseType{};
+
+    final public static String USECASE_PREVIEW = "preview",
+                               USECASE_IMAGE_CAPTURE = "image_capture",
+                               USECASE_VIDEO_CAPTURE = "video_capture",
+                               USECASE_IMAGE_ANALYSIS_BASIC = "image_analysis_basic";
+
 
     final public static String TAG = CameraCore.class.getCanonicalName();
 
@@ -62,8 +85,7 @@ public class CameraCore {
     static EventListener statusListener_ = new EventListener() {};
 
     //Other internal variables
-    static boolean isFrontFacing_ = false,
-            isRecording_ = false;
+    static boolean isRecording_ = false;
 
     public static void initialize() {
         Config.loadConfig();
@@ -99,41 +121,34 @@ public class CameraCore {
 
         SAL.print(TAG, "CameraX binding...");
 
+        boolean isFrontFacing = (boolean)Config.get(Config.FRONT_FACING);
+
         statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
 
         CameraSelector cs = new CameraSelector.Builder()
-                .requireLensFacing(isFrontFacing_ ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
+                .requireLensFacing(isFrontFacing ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
-        boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
+        boolean is_video_mode = (Boolean) Config.get(Config.VIDEO_MODE);
 
         //Build usecase array
         UseCase [] useCaseArray = buildUseCaseArray(
-                CameraConsts.USECASE_PREVIEW,
-                (is_video_mode ? CameraConsts.USECASE_VIDEO_CAPTURE :
-                        CameraConsts.USECASE_IMAGE_CAPTURE));
+                USECASE_PREVIEW,
+                (is_video_mode ? USECASE_VIDEO_CAPTURE :
+                        USECASE_IMAGE_CAPTURE));
 
         camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs, useCaseArray);
-        defaultZoom_ = CameraUtils.get35FocalLength(context_, isFrontFacing_ ? 1 : 0);
+        defaultZoom_ = CameraUtils.get35FocalLength(context_, isFrontFacing ? 1 : 0);
         prevZoom_ = defaultZoom_;
 
         updateCameraConfig();
 
         new Thread( ()-> {
 
-            while(true) {
+            LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
 
-                boolean is_all_bound = true;
-
-                for(UseCase i : useCaseArray) {
-
-                    if(!pcp.isBound(i)) {
-                        is_all_bound = false;
-                        break;
-                    }
-                }
-
-                if(is_all_bound) break;
-                else SAL.sleepFor(10);
+            while(state.getValue().getType() != CameraState.Type.OPEN)  {
+                SAL.print("Camera is opening");
+                SAL.sleepFor(10);
             }
 
             statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BOUND,null);
@@ -143,7 +158,7 @@ public class CameraCore {
         SAL.print(TAG, "CameraX bound.");
     }
 
-    public static UseCase[] buildUseCaseArray(int... types) {
+    public static UseCase[] buildUseCaseArray(@UseCaseType String... types) {
 
         UseCase[] r = new UseCase[types.length];
 
@@ -156,29 +171,29 @@ public class CameraCore {
     }
 
     @SuppressLint("RestrictedApi")
-    public static UseCase buildUseCase(int type) {
+    public static UseCase buildUseCase(@UseCaseType String type) {
 
         switch (type) {
-            case CameraConsts.USECASE_PREVIEW:
+            case USECASE_PREVIEW:
 
                 Preview p = new Preview.Builder()
-                        .setTargetAspectRatio((Integer) Config.get(CameraConsts.PREVIEW_ASPECT_RATIO))
+                        .setTargetAspectRatio((Integer) Config.get(Config.PREVIEW_ASPECT_RATIO))
                         .build();
 
                 p.setSurfaceProvider(previewView_.getSurfaceProvider());
                 return p;
 
-            case CameraConsts.USECASE_VIDEO_CAPTURE:
+            case USECASE_VIDEO_CAPTURE:
 
                 videoCapture_ = new VideoCapture.Builder()
-                        .setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
-                        .setVideoFrameRate((Integer) Config.get(CameraConsts.VIDEO_FPS))
-                        .setBitRate((Integer) Config.get(CameraConsts.VIDEO_BITRATE_MBPS) * 1048576)
+                        .setTargetResolution((Size) Config.get(Config.VIDEO_RESOLUTION))
+                        .setVideoFrameRate((Integer) Config.get(Config.VIDEO_FPS))
+                        .setBitRate((Integer) Config.get(Config.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
 
                 return videoCapture_;
 
-            case CameraConsts.USECASE_IMAGE_CAPTURE:
+            case USECASE_IMAGE_CAPTURE:
 
                 imageCapture_ = new ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
@@ -187,10 +202,10 @@ public class CameraCore {
 
                 return imageCapture_;
 
-            case CameraConsts.USECASE_IMAGE_ANALYSIS:
+            case USECASE_IMAGE_ANALYSIS_BASIC:
 
                 ImageAnalysis ia = new ImageAnalysis.Builder()
-                        //.setTargetResolution((Size) Config.get(CameraConsts.VIDEO_RESOLUTION))
+                        //.setTargetResolution((Size) Config.get(Config.VIDEO_RESOLUTION))
                         .build();
 
                 //TODO: Do Analyzer stuff here
@@ -211,11 +226,11 @@ public class CameraCore {
         crob_
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AWB_LOCK,
-                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || isRecording_)
+                        (Boolean) Config.get(Config.AWB_LOCK) || isRecording_)
 
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AE_LOCK,
-                        (Boolean) Config.get(CameraConsts.AE_LOCK) || isRecording_);
+                        (Boolean) Config.get(Config.AE_LOCK) || isRecording_);
 
         flushCaptureRequest();
 
@@ -224,28 +239,29 @@ public class CameraCore {
     @SuppressLint("UnsafeOptInUsageError")
     public static void updateCameraConfig() {
 
-        boolean is_video_mode = (Boolean) Config.get(CameraConsts.VIDEO_MODE);
+        boolean is_video_mode = (Boolean) Config.get(Config.VIDEO_MODE),
+                isFrontFacing = (Boolean) Config.get(Config.FRONT_FACING);
 
-        int videoFps = (int) Config.get(CameraConsts.VIDEO_FPS);
+        int videoFps = (int) Config.get(Config.VIDEO_FPS);
 
         SAL.print("Max camera resolution: " +
-                CameraUtils.getCameraCharacteristics(context_, isFrontFacing_ ? 1 : 0)
+                CameraUtils.getCameraCharacteristics(context_, isFrontFacing ? 1 : 0)
                         .get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE).toString());
 
         //3A
         crob_
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AWB_LOCK,
-                        (Boolean) Config.get(CameraConsts.AWB_LOCK) || isRecording_)
+                        (Boolean) Config.get(Config.AWB_LOCK) || isRecording_)
 
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AE_LOCK,
-                        (Boolean) Config.get(CameraConsts.AE_LOCK) || isRecording_);
+                        (Boolean) Config.get(Config.AE_LOCK) || isRecording_);
 
         //Video-specfic settings
         if (is_video_mode) {
 
-            boolean is_log_enabled_ = !((String) Config.get(CameraConsts.VIDEO_LOG_PROFILE)).equals("OFF");
+            boolean is_log_enabled_ = !((String) Config.get(Config.VIDEO_LOG_PROFILE)).equals("OFF");
 
             crob_
                     .setCaptureRequestOption(
@@ -280,14 +296,14 @@ public class CameraCore {
 
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
-                            ((String) (Config.get(CameraConsts.VIDEO_LOG_PROFILE))).equals("CLOG") ?
+                            ((String) (Config.get(Config.VIDEO_LOG_PROFILE))).equals("CLOG") ?
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.CLOG,
-                                            CameraUtils.getCameraCharacteristics(context_, isFrontFacing_ ? 1 : 0)) :
+                                            CameraUtils.getCameraCharacteristics(context_, isFrontFacing ? 1 : 0)) :
 
                                     CameraUtils.makeToneMapCurve(
                                             CameraUtils.LogScheme.SLOG,
-                                            CameraUtils.getCameraCharacteristics(context_, isFrontFacing_ ? 1 : 0)));
+                                            CameraUtils.getCameraCharacteristics(context_, isFrontFacing ? 1 : 0)));
 
         }
         //Photo-specfic settings
@@ -298,7 +314,7 @@ public class CameraCore {
                     .clearCaptureRequestOption(CaptureRequest.EDGE_MODE)
                     //TODO: Uncomment this as soon as Google states that this works
                     //.clearCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE)
-                    .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, ((Integer) Config.get(CameraConsts.STILL_JPEG_QUALITY)).byteValue());
+                    .setCaptureRequestOption(CaptureRequest.JPEG_QUALITY, ((Integer) Config.get(Config.STILL_JPEG_QUALITY)).byteValue());
         }
         flushCaptureRequest();
     }
@@ -440,6 +456,6 @@ public class CameraCore {
     }
 
     public static boolean isFrontFacing() {
-        return isFrontFacing_;
+        return (Boolean) Config.get(Config.FRONT_FACING);
     }
 }

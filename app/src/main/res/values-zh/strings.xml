@@ -3,6 +3,10 @@
     <string name="title_activity_settings">设置</string>
     <string name="settings_category_about">关于</string>
     <string name="settings_version">应用版本</string>
+
+
+    <string name="fmt_focus_mode">当前对焦模式: %s</string>
     <string name="activity_camera_focus_one_shot">单次自动</string>
     <string name="activity_camera_focus_continuous">连续自动</string>
+    <string name="activity_camera_focus_clear">清除对焦点</string>
 </resources>

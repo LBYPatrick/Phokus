@@ -150,7 +150,7 @@ public class CameraCore {
 
         new Thread( ()-> {
 
-            LiveDat6fa<CameraState> state = camera_.getCameraInfo().getCameraState();
+            LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
 
             while(state.getValue().getType() != CameraState.Type.OPEN)  {
                 SAL.print("Camera is opening");

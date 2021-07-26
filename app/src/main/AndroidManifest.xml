@@ -20,15 +20,14 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/CameraTheme">
-
-        <activity android:name=".ui.ShareActivity"/>
-
+        <activity android:name=".ui.ShareActivity" />
         <activity android:name=".ui.GalleryActivity" />
-
-        <activity android:name=".ui.CameraActivity"
+        <activity
+            android:name=".ui.CameraActivity"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -36,12 +35,11 @@
             android:name=".ui.SettingsActivity"
             android:label="@string/title_activity_settings"
             android:theme="@style/SettingsTheme">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
     </application>
 

@@ -50,6 +50,59 @@
         android:elevation="1dp"
         />
 
+    <TextView
+        android:id="@+id/tv_preview_center_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"
+        app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
+        app:layout_constraintTop_toTopOf="@id/v_ui_aligner_169"
+        app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_169"
+        android:text="16:9"
+        android:textSize="30dp"
+        android:fontFamily="monospace"
+        android:elevation="4dp"
+        android:alpha="0"
+        />
+
+    <ImageView
+        android:id="@+id/iv_preview_chev_left"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_chevron_left_48dp"
+        app:tint="#FF0000"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:elevation="4dp"
+        android:alpha="0"
+        />
+
+    <ImageView
+        android:id="@+id/iv_preview_chev_right"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_chevron_right_48dp"
+        app:tint="#FF0000"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:elevation="4dp"
+        android:alpha="0"
+        />
+
+    <View
+        android:id="@+id/v_preview_mask"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        app:layout_constraintLeft_toLeftOf="@id/pv_preview"
+        app:layout_constraintRight_toRightOf="@id/pv_preview"
+        android:elevation="3dp"
+        android:foreground="#808080"
+        android:alpha="0"
+        />
+
+
     <View
         android:id="@+id/v_record_rect"
         android:layout_width="0dp"
@@ -229,7 +282,7 @@
 
     <!-- Other stuff -->
     <Button
-        app:icon="@drawable/ic_clear_white_24dp"
+        app:icon="@drawable/ic_clear_24dp"
         android:text="@string/activity_camera_focus_clear"
         android:scaleType="center"
         style="@style/ThemeCameraToggle"
@@ -249,7 +302,7 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_switch_side"
-        android:src="@drawable/ic_rotate_right_white_48dp"
+        android:src="@drawable/ic_rotate_right_48dp"
         app:fabCustomSize="50dp"
         android:layout_width="50dp"
         android:layout_height="50dp"
@@ -257,7 +310,9 @@
         app:layout_constraintRight_toRightOf="@id/v_shutter_base"
         app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
         android:layout_marginBottom="30dp"
-        android:backgroundTint="@color/colorCameraButton"
+        app:tint="#FFFFFF"
+        app:backgroundTint="@color/colorCameraButton_43"
+        app:borderWidth="0dp"
         android:elevation="4dp"
         android:alpha="1"
         android:outlineSpotShadowColor="#00FFFFFF"

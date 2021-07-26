@@ -22,7 +22,6 @@ public class Config {
     @Retention(SOURCE)
     @StringDef(
             {FRONT_FACING,
-                    PREVIEW_ASPECT_RATIO,
                     VIDEO_MODE,
                     VIDEO_RESOLUTION,
                     VIDEO_BITRATE_MBPS,
@@ -36,7 +35,6 @@ public class Config {
     )
     public @interface Options{}
     final public static String FRONT_FACING = "camera_front_facing",
-            PREVIEW_ASPECT_RATIO = "camera_preview_aspect_ratio",
             VIDEO_MODE = "camera_video_mode",
             VIDEO_RESOLUTION = "camera_video_resolution",
             VIDEO_BITRATE_MBPS  = "camera_video_bitrate_mbps",
@@ -51,7 +49,6 @@ public class Config {
     static {
 
         putDefault(FRONT_FACING, false);
-        putDefault(PREVIEW_ASPECT_RATIO, AspectRatio.RATIO_4_3);
         putDefault(VIDEO_MODE, false);
         putDefault(VIDEO_RESOLUTION, new Size(3840, 2160));
         putDefault(VIDEO_BITRATE_MBPS, 100);

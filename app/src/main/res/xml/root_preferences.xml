@@ -1,32 +1,39 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <PreferenceCategory app:title="Photo">
+    <PreferenceCategory app:title="@string/settings_category_photo">
 
         <SwitchPreferenceCompat
             app:key="switch_sharpening"
-            app:title="Sharpening"
+            app:title="@string/settings_sharpening_title"
             app:defaultValue="true"
-            app:summary="Toggle built-in image sharpening."/>
+            app:summary="@string/settings_sharpening_detail"/>
 
         <SwitchPreferenceCompat
             app:key="switch_min_latency"
-            app:title="Minimize Shutter Latency"
-            app:summary="Minimize shutter lag at the cost of, potentially, lower image quality."
+            app:title="@string/settings_min_latency_title"
+            app:summary="@string/settings_min_latency_detail"
+            app:defaultValue="false"
             />
 
     </PreferenceCategory>
 
-    <PreferenceCategory app:title="Video">
+    <PreferenceCategory app:title="@string/settings_category_video">
 
         <SwitchPreferenceCompat
             app:key="switch_crop_mark"
-            app:title="Crop Mark"
-            app:summary="Display crop mark and center cross mark."/>
+            app:title="@string/settings_crop_mark_title"
+            app:summary="@string/settings_crop_mark_detail"/>
 
         <SwitchPreferenceCompat
-            app:key="switch_composition_guide"
-            app:title="Composition Guide"
+            app:key="switch_crosshair"
+            app:title="@string/settings_crosshair_title"
+            app:summary="@string/settings_crosshair_detail"/>
+
+        <SwitchPreferenceCompat
+            app:key="switch_rot_guide"
+            app:title="@string/switch_rot_guide_title"
+            app:summary="@string/switch_rot_guide_detail"
            />
 
         <SwitchPreferenceCompat
@@ -54,7 +61,9 @@
         <ListPreference
             key="listpref_video_fps"
             app:title="FPS"
-            app:entries="@array/settings_video_fps"/>
+            app:entries="@array/settings_video_fps"
+            app:entryValues="@array/settings_video_fps"
+            app:defaultValue="30"/>
 
     </PreferenceCategory>
 

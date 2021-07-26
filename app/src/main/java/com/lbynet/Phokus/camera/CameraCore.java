@@ -39,6 +39,7 @@ import com.lbynet.Phokus.utils.SAL;
 import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
+import java.util.HashSet;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -76,6 +77,7 @@ public class CameraCore {
     static ImageCapture imageCapture_;
     static VideoCapture videoCapture_;
     static ProcessCameraProvider pcp;
+    static HashSet<UseCase> prevUseCaseArray_ = null;
     static float defaultZoom_ = -1,
             prevZoom_ = -1;
     static Executor uiThreadExecutor_;
@@ -114,6 +116,10 @@ public class CameraCore {
         );
     }
 
+    public static void restart() {
+
+    }
+
     @SuppressLint("RestrictedApi")
     private static void bindCameraX() {
 
@@ -144,7 +150,7 @@ public class CameraCore {
 
         new Thread( ()-> {
 
-            LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
+            LiveDat6fa<CameraState> state = camera_.getCameraInfo().getCameraState();
 
             while(state.getValue().getType() != CameraState.Type.OPEN)  {
                 SAL.print("Camera is opening");
@@ -177,7 +183,6 @@ public class CameraCore {
             case USECASE_PREVIEW:
 
                 Preview p = new Preview.Builder()
-                        .setTargetAspectRatio((Integer) Config.get(Config.PREVIEW_ASPECT_RATIO))
                         .build();
 
                 p.setSurfaceProvider(previewView_.getSurfaceProvider());
@@ -344,7 +349,7 @@ public class CameraCore {
 
         imageCapture_.setTargetRotation(rotationMinor_);
 
-        imageCapture_.takePicture(CameraIO.getImageOFO(context_), uiThreadExecutor_, new ImageCapture.OnImageSavedCallback() {
+        imageCapture_.takePicture(CameraIO.getImageOFO(context_), Executors.newSingleThreadExecutor(), new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull @NotNull ImageCapture.OutputFileResults outputFileResults) {
                 SAL.runFileScan(context_, outputFileResults.getSavedUri());
@@ -377,7 +382,7 @@ public class CameraCore {
 
         update3A();
 
-        videoCapture_.startRecording(CameraIO.getVideoOFO(context_), uiThreadExecutor_, new VideoCapture.OnVideoSavedCallback() {
+        videoCapture_.startRecording(CameraIO.getVideoOFO(context_), Executors.newSingleThreadExecutor(), new VideoCapture.OnVideoSavedCallback() {
             @Override
             public void onVideoSaved(@NonNull @NotNull VideoCapture.OutputFileResults outputFileResults) {
 

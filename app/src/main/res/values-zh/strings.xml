@@ -9,4 +9,16 @@
     <string name="activity_camera_focus_one_shot">单次自动</string>
     <string name="activity_camera_focus_continuous">连续自动</string>
     <string name="activity_camera_focus_clear">清除对焦点</string>
+    <string name="settings_sharpening_title">图像锐化</string>
+    <string name="settings_sharpening_detail">启用原生图像锐化。</string>
+    <string name="settings_min_latency_title">降低快门延迟</string>
+    <string name="settings_min_latency_detail">优先保证快门延迟，但可能会导致图像画质降低。</string>
+    <string name="settings_category_photo">照相</string>
+    <string name="settings_category_video">视频</string>
+    <string name="settings_crop_mark_title">裁切线</string>
+    <string name="settings_crop_mark_detail">启用 2.35:1 电影裁切线 (输出时不可见)。</string>
+    <string name="settings_crosshair_title">中心十字线</string>
+    <string name="settings_crosshair_detail">启用中心十字线 (输出时不可见)。</string>
+    <string name="switch_rot_guide_title">三分法构图线</string>
+    <string name="switch_rot_guide_detail">启用三分法构图线。</string>
 </resources>

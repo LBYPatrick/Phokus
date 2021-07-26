@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.graphics.drawable.AnimationDrawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -21,6 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.TextView;
@@ -56,7 +58,9 @@ public class CameraActivity extends AppCompatActivity {
             viewFocusRect = null;
     private Button buttonCaptureMode = null,
             buttonFocusCancel = null,
-            buttonFocusFreqMode = null;
+            buttonFocusFreqMode = null,
+            buttonWhiteBalance = null,
+            buttonExposure = null;
     private TextView textAperture,
             textFocalLength,
             textExposure,
@@ -275,15 +279,15 @@ public class CameraActivity extends AppCompatActivity {
         viewShutterUp.setOnTouchListener(this::onShutterTouched);
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
-        buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
-
         buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
-        buttonFocusCancel.setOnClickListener(this::cancelFocus);
-
         buttonFocusFreqMode = findViewById(R.id.btn_focus_freq);
-        buttonFocusFreqMode.setOnClickListener(this::toggleFocusFreqMode);
-
+        buttonExposure = findViewById(R.id.btn_exposure);
+        buttonWhiteBalance = findViewById(R.id.btn_awb);
         fabSwitchSide = findViewById(R.id.fab_switch_side);
+
+        buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
+        buttonFocusCancel.setOnClickListener(this::cancelFocus);
+        buttonFocusFreqMode.setOnClickListener(this::toggleFocusFreqMode);
         fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
 
     }
@@ -467,7 +471,7 @@ public class CameraActivity extends AppCompatActivity {
         new Thread( () -> {
             if (previewDimensions == null) previewDimensions = UIHelper.getViewDimensions(preview);
 
-            int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
+            final int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
             UIHelper.resizeView(preview,
                     previewDimensions,
                     new int[]{targetWidth, previewDimensions[1]},
@@ -477,6 +481,9 @@ public class CameraActivity extends AppCompatActivity {
             SAL.print("Dimensions: " + Arrays.toString(previewDimensions));
 
             previewDimensions[0] = targetWidth;
+
+            updateButtonColors();
+
         }).start();
 
     }
@@ -501,7 +508,6 @@ public class CameraActivity extends AppCompatActivity {
         cancelFocus(null);
 
         Config.set(Config.VIDEO_MODE,isVideoMode);
-        Config.set(Config.PREVIEW_ASPECT_RATIO,isVideoMode ? AspectRatio.RATIO_16_9 : AspectRatio.RATIO_4_3);
 
         updatePreviewSize();
         resetLensInfo();
@@ -609,7 +615,7 @@ public class CameraActivity extends AppCompatActivity {
 
         fabSwitchSide.animate()
                 .rotationBy(360.0f)
-                .setInterpolator(new AccelerateDecelerateInterpolator())
+                .setInterpolator(new DecelerateInterpolator())
                 .setDuration(500)
                 .start();
 
@@ -650,6 +656,22 @@ public class CameraActivity extends AppCompatActivity {
             b.setClickable(true);
             //b.setEnabled(true);
         }
+    }
+
+    private void updateButtonColors() {
+
+        final ColorStateList targetState =
+                UIHelper.makeCSLwithID(
+                        this,
+                    isVideoMode ? R.color.colorCameraButton_169 : R.color.colorCameraButton_43);
+
+        root.post( ()-> {
+            buttonCaptureMode.setBackgroundTintList(targetState);
+            buttonFocusFreqMode.setBackgroundTintList(targetState);
+            buttonExposure.setBackgroundTintList(targetState);
+            buttonWhiteBalance.setBackgroundTintList(targetState);
+            fabSwitchSide.setBackgroundTintList(targetState);
+        });
     }
 
 

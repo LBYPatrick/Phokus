@@ -71,15 +71,12 @@ public class CameraActivity extends AppCompatActivity {
     private FloatingActionButton fabSwitchSide = null;
     private Timer videoTimer = new Timer("Video Timer");
     private OrientationEventListener orientationListener;
-    private boolean isShutterBusy = false,
-            isVideoMode = false,
+    private boolean isVideoMode = false,
             isRecording = false,
             isContinuousFocus = false,
-            isFocused = false,
-            isZoomGesture = false;
+            isFocused = false;
 
     static int[] previewDimensions = null;
-    //static int [] previewCurrentDimensions = null;
     static String bottomInfo;
 
     final private Runnable
@@ -89,7 +86,6 @@ public class CameraActivity extends AppCompatActivity {
             rFadeTopInfo = () -> UIHelper.setViewAlpha(cardTopInfo, 50, 0.5f, true),
             rOnShutterPressed = () -> {
 
-                isShutterBusy = false;
                 SAL.simulatePress(this, false);
 
                 if (isVideoMode) {
@@ -108,12 +104,14 @@ public class CameraActivity extends AppCompatActivity {
 
     rOnShutterReleased = () -> {
 
-        isShutterBusy = false;
         SAL.simulatePress(this, true);
 
         if (isVideoMode) {
             UIHelper.setViewAlpha(viewVideoShutterDown, 50, 0, true);
         } else {
+            /**
+             * release shutter button -- make it big again
+             */
             viewShutterDown.animate()
                     .scaleX(1f)
                     .scaleY(1f)
@@ -121,13 +119,9 @@ public class CameraActivity extends AppCompatActivity {
                     .setDuration(50)
                     .start();
 
-            /*
-            viewCaptureRect.animate()
-                    .alpha(0)
-                    .setDuration(1000)
-                    .start();
+            /**
+             * Fade capture rectangle out
              */
-
             viewCaptureRect.animate()
                     .alpha(0)
                     .setDuration(1000)
@@ -137,19 +131,9 @@ public class CameraActivity extends AppCompatActivity {
         }
     },
             rHideNav = () -> {
-                root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE
+                root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                         | View.SYSTEM_UI_FLAG_FULLSCREEN
                         | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
-                /*
-                root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
-
-                 */
             };
 
 
@@ -167,21 +151,24 @@ public class CameraActivity extends AppCompatActivity {
 
                     UIHelper.setViewAlpha(viewFocusRect, 50, 0.5f);
 
-
                     buttonFocusCancel.post(() -> {
-
                         buttonFocusCancel.setClickable(true);
-
                         buttonFocusCancel.animate()
                                 .alpha(1)
                                 .setDuration(200)
                                 .start();
                     });
 
+                    /**
+                     * Make focus rectangle grey when AF is busy
+                     */
                     viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
                     break;
 
                 case FocusAction.MSG_SUCCESS:
+                    /**
+                     * Make focus rectangle green/blue(depending on the AF mode) when AF succeeds.
+                     */
                     UIHelper.setViewAlpha(viewFocusRect, 50, 1);
                     viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), (isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)));
                     isFocused = true;
@@ -196,8 +183,6 @@ public class CameraActivity extends AppCompatActivity {
     final private ScaleGestureDetector.SimpleOnScaleGestureListener pToZListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
-
-            isZoomGesture = true;
 
             float factor = detector.getScaleFactor();
 
@@ -305,6 +290,12 @@ public class CameraActivity extends AppCompatActivity {
         buttonFocusFreqMode.setOnClickListener(this::toggleFocusFreqMode);
         fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
 
+        preview.post(() -> {
+            new Thread( ()-> {
+                previewDimensions = UIHelper.getViewDimensions(preview);
+            }).start();
+        });
+
     }
 
     @Override
@@ -344,7 +335,6 @@ public class CameraActivity extends AppCompatActivity {
                 switch (dataType) {
                     case VOID_CAMERA_BINDING:
                         runOnUiThread(() -> {
-
                             lockButtons(buttonCaptureMode,
                                     fabSwitchSide);
                         });
@@ -368,16 +358,13 @@ public class CameraActivity extends AppCompatActivity {
         preview.setOnTouchListener(this::onPreviewTouched);
 
         resetLensInfo();
-        //wakeBottomInfo();
     }
 
     // Credits to Saurabh Thorat:
     // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
     public boolean onPreviewTouched(View v, MotionEvent event) {
 
-        isZoomGesture = false;
         //Pinch-to-zoom
-
         float x = event.getX(),
                 y = event.getY();
 
@@ -421,9 +408,6 @@ public class CameraActivity extends AppCompatActivity {
     public boolean onShutterTouched(View v, MotionEvent event) {
 
         if (event.getAction() != MotionEvent.ACTION_DOWN) return false;
-
-        if (!isVideoMode && isShutterBusy) return false;
-        //else if(!isVideoMode) isShutterBusy = true;
 
         requireExecutor().execute(rOnShutterPressed);
 
@@ -473,10 +457,7 @@ public class CameraActivity extends AppCompatActivity {
                     CameraCore.resumeFocus();
 
                     if (dataType != DataType.URI_PICTURE_SAVED) return false;
-
                     runOnUiThread(() -> updateBottomInfo("Picture saved!"));
-
-                    //isShutterBusy = false;
 
                     return super.onEventUpdated(dataType, data);
                 }
@@ -491,7 +472,7 @@ public class CameraActivity extends AppCompatActivity {
         SAL.print("Attempting to update preview size.");
 
         new Thread(() -> {
-            if (previewDimensions == null) previewDimensions = UIHelper.getViewDimensions(preview);
+            while(previewDimensions == null) SAL.sleepFor(10);
 
             final int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
             UIHelper.resizeView(preview,

@@ -2,7 +2,6 @@ package com.lbynet.Phokus.ui;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.core.AspectRatio;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
@@ -12,7 +11,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
-import android.graphics.drawable.AnimationDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.MotionEvent;
@@ -20,12 +18,9 @@ import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.AccelerateInterpolator;
-import android.view.animation.DecelerateInterpolator;
-import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -51,12 +46,12 @@ public class CameraActivity extends AppCompatActivity {
     final public static String TAG = CameraActivity.class.getCanonicalName();
 
     private View root = null,
-            viewShutterUp = null,
             viewShutterDown = null,
             viewVideoShutterDown = null,
             viewRecordRect = null,
             viewCaptureRect = null,
             viewFocusRect = null;
+    private ImageView ivShutterBase;
     private Button buttonCaptureMode = null,
             buttonFocusCancel = null,
             buttonFocusFreqMode = null,
@@ -74,7 +69,8 @@ public class CameraActivity extends AppCompatActivity {
     private boolean isVideoMode = false,
             isRecording = false,
             isContinuousFocus = false,
-            isFocused = false;
+            isFocused = false,
+            isZooming = false;
 
     static int[] previewDimensions = null;
     static String bottomInfo;
@@ -181,8 +177,16 @@ public class CameraActivity extends AppCompatActivity {
 
     private PreviewView preview;
     final private ScaleGestureDetector.SimpleOnScaleGestureListener pToZListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+
+        @Override
+        public boolean onScaleBegin(ScaleGestureDetector detector) {
+            isZooming = true;
+            return true;
+        }
+
         @Override
         public boolean onScale(ScaleGestureDetector detector) {
+
 
             float factor = detector.getScaleFactor();
 
@@ -220,7 +224,12 @@ public class CameraActivity extends AppCompatActivity {
                 }
             });
 
-            return super.onScale(detector);
+            return true;
+        }
+
+        @Override
+        public void onScaleEnd(ScaleGestureDetector detector) {
+            isZooming = false;
         }
     };
     private ScaleGestureDetector pToZDetector = null;
@@ -268,7 +277,7 @@ public class CameraActivity extends AppCompatActivity {
         cardTopInfo = findViewById(R.id.cv_top_info);
         cardBottomInfo = findViewById(R.id.cv_bottom_info);
         preview = findViewById(R.id.pv_preview);
-        viewShutterUp = findViewById(R.id.v_shutter_base);
+        ivShutterBase = findViewById(R.id.iv_shutter_base);
         viewShutterDown = findViewById(R.id.v_shutter_photo);
         viewVideoShutterDown = findViewById(R.id.v_shutter_video);
         viewRecordRect = findViewById(R.id.v_record_rect);
@@ -276,7 +285,7 @@ public class CameraActivity extends AppCompatActivity {
         viewCaptureRect = findViewById(R.id.v_capture_rect);
 
         pToZDetector = new ScaleGestureDetector(requireContext(), pToZListener);
-        viewShutterUp.setOnTouchListener(this::onShutterTouched);
+        ivShutterBase.setOnTouchListener(this::onShutterTouched);
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
         buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
@@ -292,6 +301,7 @@ public class CameraActivity extends AppCompatActivity {
 
         preview.post(() -> {
             new Thread( ()-> {
+                SAL.sleepFor(100);
                 previewDimensions = UIHelper.getViewDimensions(preview);
             }).start();
         });
@@ -368,10 +378,9 @@ public class CameraActivity extends AppCompatActivity {
         float x = event.getX(),
                 y = event.getY();
 
-        pToZDetector.onTouchEvent(event);
-
+        if(event.getPointerCount() > 1) pToZDetector.onTouchEvent(event);
         //Tap-to-focus
-        if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        else if (event.getAction() == MotionEvent.ACTION_DOWN && !isZooming) {
 
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) viewFocusRect.getLayoutParams();
             params.setMargins((int) x - 50, (int) y - 50, 0, 0);
@@ -479,7 +488,7 @@ public class CameraActivity extends AppCompatActivity {
                     previewDimensions,
                     new int[]{targetWidth, previewDimensions[1]},
                     200,
-                    true);
+                    UIHelper.InterpolatorType.DECEL);
 
             SAL.print("Dimensions: " + Arrays.toString(previewDimensions));
 
@@ -678,6 +687,7 @@ public class CameraActivity extends AppCompatActivity {
             buttonExposure.setBackgroundTintList(targetState);
             buttonWhiteBalance.setBackgroundTintList(targetState);
             fabSwitchSide.setBackgroundTintList(targetState);
+            ivShutterBase.setForegroundTintList(targetState);
         });
     }
 

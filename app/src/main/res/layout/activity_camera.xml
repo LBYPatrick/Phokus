@@ -212,16 +212,17 @@
     </androidx.cardview.widget.CardView>
 
     <!--Shutter Button -->
-    <View
-        android:id="@+id/v_shutter_base"
+    <ImageView
+        android:id="@+id/iv_shutter_base"
         android:layout_width="65dp"
         android:layout_height="65dp"
         android:layout_marginEnd="10dp"
         android:foreground="@drawable/ic_shutter_base"
+        android:foregroundTint="@color/colorCameraButton_43"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
         app:layout_constraintTop_toTopOf="parent"
-        android:alpha="0.3"
+        android:alpha="1"
         android:elevation="3dp"/>
 
     <View
@@ -229,10 +230,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:foreground="@drawable/ic_shutter_photo"
-        app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/v_shutter_base"
-        app:layout_constraintTop_toTopOf="@id/v_shutter_base"
-        app:layout_constraintBottom_toBottomOf="@id/v_shutter_base"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
+        app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
+        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_base"
         android:alpha="1"
         android:elevation="3dp"/>
 
@@ -241,10 +242,10 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:foreground="@drawable/ic_shutter_video"
-        app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/v_shutter_base"
-        app:layout_constraintTop_toTopOf="@id/v_shutter_base"
-        app:layout_constraintBottom_toBottomOf="@id/v_shutter_base"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
+        app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
+        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_base"
         android:alpha="0"
         android:elevation="3dp"/>
 
@@ -304,13 +305,13 @@
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_switch_side"
-        android:src="@drawable/ic_rotate_right_48dp"
+        android:src="@drawable/ic_flip_camera_48dp"
         app:fabCustomSize="50dp"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        app:layout_constraintBottom_toTopOf="@id/v_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/v_shutter_base"
-        app:layout_constraintLeft_toLeftOf="@id/v_shutter_base"
+        app:layout_constraintBottom_toTopOf="@id/iv_shutter_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
         android:layout_marginBottom="30dp"
         app:tint="#FFFFFF"
         app:backgroundTint="@color/colorCameraButton_43"

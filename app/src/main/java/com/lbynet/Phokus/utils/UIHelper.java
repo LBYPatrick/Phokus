@@ -1,10 +1,12 @@
 package com.lbynet.Phokus.utils;
 
+import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
+import android.graphics.Interpolator;
 import android.graphics.Point;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
@@ -17,15 +19,20 @@ import android.view.ViewGroup;
 import android.view.ViewPropertyAnimator;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
 
+import androidx.annotation.IntDef;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.lbynet.Phokus.deprecated.listener.ColorListener;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,6 +48,14 @@ public class UIHelper {
     static HashMap<View,ValueAnimator> mapValueAnimator_ = new HashMap<>();
     static HashMap<View, Boolean> mapHapticView_ = new HashMap<>();
     static HashMap<Integer, ColorStateList> mapColorState_ = new HashMap<>();
+
+    public enum InterpolatorType {
+        LINEAR,
+        ACCEL,
+        DECEL,
+        ACCEL_DECEL,
+        OVERSHOOT
+    }
 
     public static void printSystemToast(Activity activity, String msg, boolean isLongTime) {
         activity.runOnUiThread( () -> {
@@ -139,16 +154,31 @@ public class UIHelper {
     public static void resizeView(View view,
                                   int [] oldDimensions,
                                   int [] newDimensions,
-                                  int durationInMs,
-                                  boolean isNonLinear) {
+                                  int durationInMs
+                                  ) {
 
+        resizeView(view,oldDimensions,newDimensions,durationInMs,InterpolatorType.LINEAR);
+
+    }
+
+    public static void resizeView(View view,
+                                  int [] oldDimensions,
+                                  int [] newDimensions,
+                                  int durationInMs,
+                                  InterpolatorType interpolatorType) {
+
+        /**
+         * Setup ValueAnimator
+         */
         ValueAnimator h = ValueAnimator.ofFloat(oldDimensions[1],newDimensions[1]).setDuration(durationInMs),
                       w = ValueAnimator.ofFloat(oldDimensions[0],newDimensions[0]).setDuration(durationInMs);
 
-        if(isNonLinear) {
-            h.setInterpolator(new AccelerateDecelerateInterpolator());
-            w.setInterpolator(new AccelerateDecelerateInterpolator());
-        }
+
+        /**
+         * Setup Interpolator
+         */
+        h.setInterpolator(getInterpolator(interpolatorType));
+        w.setInterpolator(getInterpolator(interpolatorType));
 
 
         h.addUpdateListener(animation -> {
@@ -273,6 +303,18 @@ public class UIHelper {
         script.setInput(input);
         script.forEach(output);
         output.copyTo(image);
+    }
+
+    public static TimeInterpolator getInterpolator(InterpolatorType type) {
+
+        switch(type) {
+            case ACCEL: return new AccelerateInterpolator();
+            case DECEL: return new DecelerateInterpolator();
+            case ACCEL_DECEL: return new AccelerateDecelerateInterpolator();
+            case OVERSHOOT: return new OvershootInterpolator();
+            case LINEAR:
+            default: return new LinearInterpolator();
+        }
     }
 
     public static boolean hapticFeedback(View view, MotionEvent e) {

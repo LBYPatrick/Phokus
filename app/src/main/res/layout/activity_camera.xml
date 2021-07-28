@@ -8,7 +8,6 @@
     tools:context=".ui.CameraActivity">
 
 
-
     <androidx.camera.view.PreviewView
         android:id="@+id/pv_preview"
         android:layout_width="0dp"
@@ -217,15 +216,15 @@
         android:layout_width="65dp"
         android:layout_height="65dp"
         android:layout_marginEnd="10dp"
-        android:foreground="@drawable/ic_shutter_base"
-        android:foregroundTint="@color/colorCameraButton_43"
+        android:src="@drawable/ic_shutter_base"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
         app:layout_constraintTop_toTopOf="parent"
+        app:tint="@color/colorShutterBasePhoto"
         android:alpha="1"
         android:elevation="3dp"/>
 
-    <View
+    <ImageView
         android:id="@+id/v_shutter_photo"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -237,11 +236,12 @@
         android:alpha="1"
         android:elevation="3dp"/>
 
-    <View
-        android:id="@+id/v_shutter_video"
+    <ImageView
+        android:id="@+id/iv_shutter_video_busy"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:foreground="@drawable/ic_shutter_video"
+        android:layout_margin="20dp"
+        android:src="@drawable/ic_shutter_video_busy"
         app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
         app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
         app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
@@ -249,9 +249,22 @@
         android:alpha="0"
         android:elevation="3dp"/>
 
+    <ImageView
+        android:id="@+id/iv_shutter_video_idle"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:src="@drawable/ic_shutter_video"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
+        app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
+        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_base"
+        android:alpha="0"
+        android:elevation="3dp"/>
+
+
     <Button
         android:layout_marginLeft="10dp"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="30dp"
         style="@style/ThemeCameraToggle"
         android:id="@+id/btn_capture_mode"
         android:text="MODE"

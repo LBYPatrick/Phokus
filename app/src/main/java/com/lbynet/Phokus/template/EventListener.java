@@ -7,6 +7,7 @@ public abstract class EventListener {
     public enum DataType {
         INT_VIDEO_FPS,
         INT_ARR_LUMA_INFO,
+        INT_ARR_VIEW_DIMENSION,
         FLOAT_CAM_FOCAL_LENGTH,
         VOID_CAMERA_BOUND,
         VOID_CAMERA_BINDING,

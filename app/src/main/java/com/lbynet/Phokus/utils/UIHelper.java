@@ -8,6 +8,7 @@ import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Interpolator;
 import android.graphics.Point;
+import android.graphics.drawable.Drawable;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
@@ -23,6 +24,7 @@ import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.IntDef;
@@ -30,6 +32,7 @@ import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.lbynet.Phokus.deprecated.listener.ColorListener;
+import com.lbynet.Phokus.template.EventListener;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -136,6 +139,23 @@ public class UIHelper {
         });
     }
 
+    public static void setImageViewTint(ImageView imageView, long durationInMs,int sourceColor, int targetColor, InterpolatorType type) {
+
+        ValueAnimator animator = ValueAnimator.ofArgb(sourceColor,targetColor)
+                .setDuration(durationInMs);
+
+        animator.setInterpolator(getInterpolator(type));
+
+        final Drawable drawable = imageView.getDrawable();
+
+        animator.addUpdateListener(instant -> {
+            int color = ((int)instant.getAnimatedValue());
+            drawable.setTint(color);
+        });
+
+        imageView.post(animator::start);
+    }
+
     @Deprecated
     public static ValueAnimator setViewAlphaOld(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
 
@@ -234,7 +254,7 @@ public class UIHelper {
         return animator;
     }
 
-    public static int [] getViewDimensions(View view) {
+    public static void queryViewDimensions(View view, EventListener listener) {
 
         AtomicInteger width = new AtomicInteger(-1),
                       height = new AtomicInteger(-1);
@@ -246,14 +266,11 @@ public class UIHelper {
             width.set(view.getWidth());
             height.set(view.getHeight());
 
+            int [] res = new int [] {view.getWidth(),view.getHeight()};
+
+            listener.onEventUpdated(EventListener.DataType.INT_ARR_VIEW_DIMENSION,res);
+
         });
-
-        while(width.get() == -1 || height.get() == -1) SAL.sleepFor(1);
-
-        int [] res = new int [] {width.get(),height.get()};
-
-        return res;
-
     }
 
     public static String getString(Context context, int resid) {

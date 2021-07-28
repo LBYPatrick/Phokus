@@ -18,6 +18,7 @@ import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -45,18 +46,19 @@ public class CameraActivity extends AppCompatActivity {
 
     final public static String TAG = CameraActivity.class.getCanonicalName();
 
-    private View root = null,
-            viewShutterDown = null,
-            viewVideoShutterDown = null,
-            viewRecordRect = null,
-            viewCaptureRect = null,
-            viewFocusRect = null;
-    private ImageView ivShutterBase;
-    private Button buttonCaptureMode = null,
-            buttonFocusCancel = null,
-            buttonFocusFreqMode = null,
-            buttonWhiteBalance = null,
-            buttonExposure = null;
+    private View root,
+            viewRecordRect,
+            viewCaptureRect,
+            viewFocusRect;
+    private ImageView ivShutterBase,
+                      ivShutterPhoto,
+                      ivShutterVideoIdle,
+                      ivShutterVideoBusy;
+    private Button buttonCaptureMode,
+            buttonFocusCancel,
+            buttonFocusFreqMode,
+            buttonWhiteBalance,
+            buttonExposure;
     private TextView textAperture,
             textFocalLength,
             textExposure,
@@ -85,9 +87,17 @@ public class CameraActivity extends AppCompatActivity {
                 SAL.simulatePress(this, false);
 
                 if (isVideoMode) {
-                    UIHelper.setViewAlpha(viewVideoShutterDown, 50, 1, true);
+
+                    ivShutterVideoIdle.animate()
+                            .scaleX(0)
+                            .scaleY(0)
+                            .setDuration(500)
+                            .setInterpolator(new OvershootInterpolator())
+                            .start();
+
+                    //UIHelper.setViewAlpha(ivShutterVideoIdle, 50, 1, true);
                 } else {
-                    viewShutterDown.animate()
+                    ivShutterPhoto.animate()
                             .scaleX(0.95f)
                             .scaleY(0.95f)
                             .alpha(0.5f)
@@ -103,12 +113,17 @@ public class CameraActivity extends AppCompatActivity {
         SAL.simulatePress(this, true);
 
         if (isVideoMode) {
-            UIHelper.setViewAlpha(viewVideoShutterDown, 50, 0, true);
+            ivShutterVideoIdle.animate()
+                    .scaleX(1)
+                    .scaleY(1)
+                    .setInterpolator(new OvershootInterpolator())
+                    .setDuration(300)
+                    .start();
         } else {
             /**
              * release shutter button -- make it big again
              */
-            viewShutterDown.animate()
+            ivShutterPhoto.animate()
                     .scaleX(1f)
                     .scaleY(1f)
                     .alpha(1f)
@@ -278,8 +293,9 @@ public class CameraActivity extends AppCompatActivity {
         cardBottomInfo = findViewById(R.id.cv_bottom_info);
         preview = findViewById(R.id.pv_preview);
         ivShutterBase = findViewById(R.id.iv_shutter_base);
-        viewShutterDown = findViewById(R.id.v_shutter_photo);
-        viewVideoShutterDown = findViewById(R.id.v_shutter_video);
+        ivShutterPhoto = findViewById(R.id.v_shutter_photo);
+        ivShutterVideoIdle = findViewById(R.id.iv_shutter_video_idle);
+        ivShutterVideoBusy = findViewById(R.id.iv_shutter_video_busy);
         viewRecordRect = findViewById(R.id.v_record_rect);
         viewFocusRect = findViewById(R.id.v_focus_rect);
         viewCaptureRect = findViewById(R.id.v_capture_rect);
@@ -298,14 +314,6 @@ public class CameraActivity extends AppCompatActivity {
         buttonFocusCancel.setOnClickListener(this::cancelFocus);
         buttonFocusFreqMode.setOnClickListener(this::toggleFocusFreqMode);
         fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
-
-        preview.post(() -> {
-            new Thread( ()-> {
-                SAL.sleepFor(100);
-                previewDimensions = UIHelper.getViewDimensions(preview);
-            }).start();
-        });
-
     }
 
     @Override
@@ -490,11 +498,7 @@ public class CameraActivity extends AppCompatActivity {
                     200,
                     UIHelper.InterpolatorType.DECEL);
 
-            SAL.print("Dimensions: " + Arrays.toString(previewDimensions));
-
             previewDimensions[0] = targetWidth;
-
-            updateButtonColors();
 
         }).start();
 
@@ -522,7 +526,20 @@ public class CameraActivity extends AppCompatActivity {
         Config.set(Config.VIDEO_MODE, isVideoMode);
 
         updatePreviewSize();
+        updateButtonColors();
         resetLensInfo();
+
+        int [] shutterBaseColors = UIHelper.getColors(this,R.color.colorShutterBasePhoto,R.color.colorShutterBaseVideo);
+
+        UIHelper.setImageViewTint(ivShutterBase,
+                100,
+                isVideoMode ? shutterBaseColors[0] : shutterBaseColors[1],
+                isVideoMode ? shutterBaseColors[1] : shutterBaseColors[0],
+                UIHelper.InterpolatorType.LINEAR);
+
+        UIHelper.setViewAlpha(ivShutterVideoIdle,100,isVideoMode? 1.0f:0);
+        UIHelper.setViewAlpha(ivShutterVideoBusy,isVideoMode ? 100 : 0,isVideoMode? 1.0f:0);
+        UIHelper.setViewAlpha(ivShutterPhoto,100,isVideoMode ? 0 : 1.0f);
 
         animationHandler.postDelayed(() -> CameraCore.start(preview), 200);
 
@@ -630,7 +647,7 @@ public class CameraActivity extends AppCompatActivity {
         //fabSwitchSide.setEnabled(false);
 
         fabSwitchSide.animate()
-                .rotationBy(360.0f)
+                .rotationBy(curr ? -180.0f : 180.0f)
                 .setInterpolator(new OvershootInterpolator())
                 .setDuration(500)
                 .start();
@@ -687,7 +704,6 @@ public class CameraActivity extends AppCompatActivity {
             buttonExposure.setBackgroundTintList(targetState);
             buttonWhiteBalance.setBackgroundTintList(targetState);
             fabSwitchSide.setBackgroundTintList(targetState);
-            ivShutterBase.setForegroundTintList(targetState);
         });
     }
 
@@ -696,11 +712,22 @@ public class CameraActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        root.post(() -> {
-            fullscreenHandler.removeCallbacks(rHideNav);
-            fullscreenHandler.postDelayed(rHideNav, 100);
-            orientationListener.enable();
-        });
+        fullscreenHandler.removeCallbacks(rHideNav);
+        fullscreenHandler.postDelayed(rHideNav, 100);
+        orientationListener.enable();
+
+        if (previewDimensions == null) {
+            new Thread(() -> {
+                SAL.sleepFor(150);
+                UIHelper.queryViewDimensions(preview, new EventListener() {
+                    @Override
+                    public boolean onEventUpdated(DataType dataType, Object extra) {
+                        previewDimensions = (int[]) extra;
+                        return true;
+                    }
+                });
+            }).start();
+        }
     }
 
     @Override

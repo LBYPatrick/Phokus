@@ -23,6 +23,7 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.LinearInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.TextView;
@@ -105,26 +106,40 @@ public class CameraActivity extends AppCompatActivity {
 
             },
 
-            rOnShutterReleased = () -> {
+    rOnShutterReleased = () -> {
 
-                isShutterBusy = false;
-                SAL.simulatePress(this, true);
+        isShutterBusy = false;
+        SAL.simulatePress(this, true);
 
-                if (isVideoMode) {
-                    UIHelper.setViewAlpha(viewVideoShutterDown, 50, 0, true);
-                } else {
-                    viewShutterDown.animate()
-                            .scaleX(1f)
-                            .scaleY(1f)
-                            .alpha(1f)
-                            .setDuration(50)
-                            .start();
-                }
-            },
+        if (isVideoMode) {
+            UIHelper.setViewAlpha(viewVideoShutterDown, 50, 0, true);
+        } else {
+            viewShutterDown.animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .alpha(1f)
+                    .setDuration(50)
+                    .start();
+
+            /*
+            viewCaptureRect.animate()
+                    .alpha(0)
+                    .setDuration(1000)
+                    .start();
+             */
+
+            viewCaptureRect.animate()
+                    .alpha(0)
+                    .setDuration(1000)
+                    .start();
+
+
+        }
+    },
             rHideNav = () -> {
                 root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE
-                |View.SYSTEM_UI_FLAG_FULLSCREEN
-                |View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+                        | View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
 
                 /*
                 root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE
@@ -153,15 +168,15 @@ public class CameraActivity extends AppCompatActivity {
                     UIHelper.setViewAlpha(viewFocusRect, 50, 0.5f);
 
 
-                    buttonFocusCancel.post ( () -> {
+                    buttonFocusCancel.post(() -> {
 
-                                buttonFocusCancel.setClickable(true);
+                        buttonFocusCancel.setClickable(true);
 
-                                buttonFocusCancel.animate()
-                                        .alpha(1)
-                                        .setDuration(200)
-                                        .start();
-                            });
+                        buttonFocusCancel.animate()
+                                .alpha(1)
+                                .setDuration(200)
+                                .start();
+                    });
 
                     viewFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
                     break;
@@ -186,15 +201,15 @@ public class CameraActivity extends AppCompatActivity {
 
             float factor = detector.getScaleFactor();
 
-            if(factor < 1) factor = - (1 / factor);
+            if (factor < 1) factor = -(1 / factor);
             else factor -= 1;
 
-            float delta =  factor * 0.1f;
+            float delta = factor * 0.1f;
 
             currZoomRatio += delta;
 
-            if(currZoomRatio < 1) currZoomRatio = 1;
-            else if(currZoomRatio > 5) currZoomRatio = 5;
+            if (currZoomRatio < 1) currZoomRatio = 1;
+            else if (currZoomRatio > 5) currZoomRatio = 5;
 
             wakeTopInfo();
 
@@ -203,15 +218,15 @@ public class CameraActivity extends AppCompatActivity {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
 
-                    if(dataType != DataType.FLOAT_CAM_FOCAL_LENGTH) return false;
+                    if (dataType != DataType.FLOAT_CAM_FOCAL_LENGTH) return false;
 
-                     UIHelper.runLater(requireContext(),() -> {
+                    UIHelper.runLater(requireContext(), () -> {
 
-                        textFocalLength.setText(String.format("%.2fmm",(Float)data));
+                        textFocalLength.setText(String.format("%.2fmm", (Float) data));
 
-                        updateBottomInfo(String.format("Scale factor: %.2fx",currZoomRatio));
+                        updateBottomInfo(String.format("Scale factor: %.2fx", currZoomRatio));
 
-                        int [] colors = UIHelper.getColors(requireContext(),R.color.colorText,R.color.colorPrimary);
+                        int[] colors = UIHelper.getColors(requireContext(), R.color.colorText, R.color.colorPrimary);
                         textFocalLength.setTextColor(currZoomRatio == 1 ? colors[0] : colors[1]);
 
                     });
@@ -251,7 +266,7 @@ public class CameraActivity extends AppCompatActivity {
         /**
          * Grant permission
          */
-        if(allPermissionsGood())
+        if (allPermissionsGood())
             startCamera();
         else
             ActivityCompat.requestPermissions(this, Consts.PERMISSIONS, Consts.PERM_REQUEST_CODE);
@@ -272,10 +287,10 @@ public class CameraActivity extends AppCompatActivity {
         viewShutterDown = findViewById(R.id.v_shutter_photo);
         viewVideoShutterDown = findViewById(R.id.v_shutter_video);
         viewRecordRect = findViewById(R.id.v_record_rect);
-        viewFocusRect  = findViewById(R.id.v_focus_rect);
+        viewFocusRect = findViewById(R.id.v_focus_rect);
         viewCaptureRect = findViewById(R.id.v_capture_rect);
 
-        pToZDetector =  new ScaleGestureDetector(requireContext(),pToZListener);
+        pToZDetector = new ScaleGestureDetector(requireContext(), pToZListener);
         viewShutterUp.setOnTouchListener(this::onShutterTouched);
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
@@ -297,11 +312,11 @@ public class CameraActivity extends AppCompatActivity {
                                            @NonNull @NotNull String[] permissions,
                                            @NonNull @NotNull int[] grantResults) {
 
-        if(requestCode == Consts.PERM_REQUEST_CODE) {
-            if(allPermissionsGood()) startCamera();
+        if (requestCode == Consts.PERM_REQUEST_CODE) {
+            if (allPermissionsGood()) startCamera();
 
         } else {
-            UIHelper.printSystemToast(this,"Not all permissions were granted.",false);
+            UIHelper.printSystemToast(this, "Not all permissions were granted.", false);
             finish();
         }
 
@@ -309,8 +324,9 @@ public class CameraActivity extends AppCompatActivity {
     }
 
     public boolean allPermissionsGood() {
-        for(String p : Consts.PERMISSIONS) {
-            if(ContextCompat.checkSelfPermission(this,p) == PackageManager.PERMISSION_DENIED) return false;
+        for (String p : Consts.PERMISSIONS) {
+            if (ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_DENIED)
+                return false;
         }
         return true;
     }
@@ -339,7 +355,8 @@ public class CameraActivity extends AppCompatActivity {
                                     fabSwitchSide);
                         });
                         break;
-                    default: break;
+                    default:
+                        break;
                 }
 
                 return super.onEventUpdated(dataType, extra);
@@ -358,25 +375,25 @@ public class CameraActivity extends AppCompatActivity {
     // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
     public boolean onPreviewTouched(View v, MotionEvent event) {
 
-            isZoomGesture = false;
-            //Pinch-to-zoom
+        isZoomGesture = false;
+        //Pinch-to-zoom
 
-            float x = event.getX(),
+        float x = event.getX(),
                 y = event.getY();
 
-            pToZDetector.onTouchEvent(event);
+        pToZDetector.onTouchEvent(event);
 
-            //Tap-to-focus
-            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+        //Tap-to-focus
+        if (event.getAction() == MotionEvent.ACTION_DOWN) {
 
-                ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) viewFocusRect.getLayoutParams();
-                params.setMargins((int) x - 50, (int) y - 50, 0, 0);
-                viewFocusRect.setLayoutParams(params);
+            ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) viewFocusRect.getLayoutParams();
+            params.setMargins((int) x - 50, (int) y - 50, 0, 0);
+            viewFocusRect.setLayoutParams(params);
 
-                isFocused = false;
+            isFocused = false;
 
-                CameraCore.focusToPoint(x, y, true, focusListener);
-            }
+            CameraCore.focusToPoint(x, y, isContinuousFocus, focusListener);
+        }
 
         return true;
     }
@@ -385,8 +402,8 @@ public class CameraActivity extends AppCompatActivity {
     public void resetLensInfo() {
         int camera_id = (Boolean) Config.get(Config.FRONT_FACING) ? 1 : 0;
 
-        textAperture.setText(String.format("F/%.2f",CameraUtils.get35Aperture(this,camera_id)));
-        textAperture.setTextColor(UIHelper.getColors(this,R.color.colorSecondary)[0]);
+        textAperture.setText(String.format("F/%.2f", CameraUtils.get35Aperture(this, camera_id)));
+        textAperture.setTextColor(UIHelper.getColors(this, R.color.colorSecondary)[0]);
 
         textFocalLength.setText(
                 String.format("%.2fmm",
@@ -396,53 +413,58 @@ public class CameraActivity extends AppCompatActivity {
 
         currZoomRatio = 1;
 
-        textFocalLength.setTextColor(UIHelper.getColors(requireContext(),R.color.colorText)[0]);
+        textFocalLength.setTextColor(UIHelper.getColors(requireContext(), R.color.colorText)[0]);
 
         wakeTopInfo();
     }
 
     public boolean onShutterTouched(View v, MotionEvent event) {
 
-        if(event.getAction() != MotionEvent.ACTION_DOWN) return false;
+        if (event.getAction() != MotionEvent.ACTION_DOWN) return false;
 
         if (!isVideoMode && isShutterBusy) return false;
         //else if(!isVideoMode) isShutterBusy = true;
 
         requireExecutor().execute(rOnShutterPressed);
 
-        if(isVideoMode && !isRecording) {
+        if (isVideoMode && !isRecording) {
 
             isRecording = true;
 
-            UIHelper.setViewAlpha(viewRecordRect,200,1);
+            UIHelper.setViewAlpha(viewRecordRect, 200, 1);
 
             CameraCore.startRecording(new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
 
-                    if(dataType != DataType.URI_VIDEO_SAVED) return false;
+                    /**
+                     * This event would only be called when the video is saved.
+                     */
+                    if (dataType != DataType.URI_VIDEO_SAVED) return false;
 
-                    //runOnUiThread(() -> updateBottomInfo("Video saved!"));
                     requireExecutor().execute(rOnShutterReleased);
 
-                    UIHelper.setViewAlpha(viewRecordRect,200,0);
+                    UIHelper.setViewAlpha(viewRecordRect, 200, 0);
 
                     return super.onEventUpdated(dataType, data);
                 }
             });
 
             startVideoTimer();
-        }
-        else if(isVideoMode) {
+        } else if (isVideoMode) {
             CameraCore.stopRecording();
             stopVideoTimer();
             isRecording = false;
-        }
-        else {
+        } else {
 
             CameraCore.pauseFocus();
 
-            animationHandler.postDelayed(rOnShutterReleased,100);
+            viewCaptureRect.animate()
+                    .alpha(1)
+                    .setDuration(10)
+                    .start();
+
+            animationHandler.postDelayed(rOnShutterReleased, 100);
 
             CameraCore.takePicture(new EventListener() {
                 @Override
@@ -468,7 +490,7 @@ public class CameraActivity extends AppCompatActivity {
 
         SAL.print("Attempting to update preview size.");
 
-        new Thread( () -> {
+        new Thread(() -> {
             if (previewDimensions == null) previewDimensions = UIHelper.getViewDimensions(preview);
 
             final int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
@@ -491,7 +513,7 @@ public class CameraActivity extends AppCompatActivity {
     public boolean toggleVideoMode(View view) {
 
         //Terminate current video recording session if there is one
-        if(isVideoMode && isRecording) {
+        if (isVideoMode && isRecording) {
             CameraCore.stopRecording();
             stopVideoTimer();
             isRecording = false;
@@ -507,12 +529,12 @@ public class CameraActivity extends AppCompatActivity {
 
         cancelFocus(null);
 
-        Config.set(Config.VIDEO_MODE,isVideoMode);
+        Config.set(Config.VIDEO_MODE, isVideoMode);
 
         updatePreviewSize();
         resetLensInfo();
 
-        animationHandler.postDelayed(() -> CameraCore.start(preview),200);
+        animationHandler.postDelayed(() -> CameraCore.start(preview), 200);
 
         return true;
     }
@@ -527,32 +549,36 @@ public class CameraActivity extends AppCompatActivity {
 
     private void startVideoTimer() {
 
-        new Thread( () -> {
+        new Thread(() -> {
 
             videoTimer.start();
 
-            String [] time = new String[4];
+            String[] time = new String[4];
 
-            while(videoTimer.isBusy()) {
+            while (videoTimer.isBusy()) {
 
                 //Limit timer refresh rate to be roughly 10fps
-                while(videoTimer.isBusy() && videoTimer.getElaspedTimeInMs() % 100 != 0) {
+                while (videoTimer.isBusy() && videoTimer.getElaspedTimeInMs() % 100 != 0) {
                     SAL.sleepFor(1);
                 }
 
-                MathTools.formatTime(videoTimer.getElaspedTimeInMs(),time);
+                MathTools.formatTime(videoTimer.getElaspedTimeInMs(), time);
                 StringBuilder sb = new StringBuilder().append(time[0]);
 
-                for(int i = 1; i < 3; ++i) { sb.append(':').append(time[i]);}
+                for (int i = 1; i < 3; ++i) {
+                    sb.append(':').append(time[i]);
+                }
 
                 updateBottomInfo(sb.toString());
             }
 
             //Extra run after loop
-            MathTools.formatTime(videoTimer.getElaspedTimeInMs(),time);
+            MathTools.formatTime(videoTimer.getElaspedTimeInMs(), time);
             StringBuilder sb = new StringBuilder().append(time[0]);
 
-            for(int i = 1; i < 3; ++i) { sb.append(':').append(time[i]);}
+            for (int i = 1; i < 3; ++i) {
+                sb.append(':').append(time[i]);
+            }
 
             updateBottomInfo(sb.toString());
 
@@ -569,7 +595,7 @@ public class CameraActivity extends AppCompatActivity {
 
         animationHandler.removeCallbacks(rFadeTopInfo);
         ContextCompat.getMainExecutor(this).execute(rShowTopInfo);
-        animationHandler.postDelayed(rFadeTopInfo,2000);
+        animationHandler.postDelayed(rFadeTopInfo, 2000);
     }
 
     private void updateBottomInfo(String newInfo) {
@@ -584,7 +610,7 @@ public class CameraActivity extends AppCompatActivity {
     private void wakeBottomInfo() {
         animationHandler.removeCallbacks(rHideBottomInfo);
         ContextCompat.getMainExecutor(this).execute(rShowBottomInfo);
-        animationHandler.postDelayed(rHideBottomInfo,4000);
+        animationHandler.postDelayed(rHideBottomInfo, 4000);
     }
 
     private boolean cancelFocus(View view) {
@@ -598,7 +624,7 @@ public class CameraActivity extends AppCompatActivity {
                 .setDuration(50)
                 .start();
 
-        UIHelper.setViewAlpha(viewFocusRect,50,0);
+        UIHelper.setViewAlpha(viewFocusRect, 50, 0);
 
         return true;
 
@@ -608,14 +634,14 @@ public class CameraActivity extends AppCompatActivity {
 
         boolean curr = (Boolean) Config.get(Config.FRONT_FACING);
 
-        Config.set(Config.FRONT_FACING,!curr);
+        Config.set(Config.FRONT_FACING, !curr);
 
         //fabSwitchSide.setClickable(false);
         //fabSwitchSide.setEnabled(false);
 
         fabSwitchSide.animate()
                 .rotationBy(360.0f)
-                .setInterpolator(new DecelerateInterpolator())
+                .setInterpolator(new OvershootInterpolator())
                 .setDuration(500)
                 .start();
 
@@ -637,14 +663,14 @@ public class CameraActivity extends AppCompatActivity {
 
         buttonFocusFreqMode.setText(focusModeText);
 
-        updateBottomInfo(String.format(getString(R.string.fmt_focus_mode),focusModeText));
+        updateBottomInfo(String.format(getString(R.string.fmt_focus_mode), focusModeText));
 
         return true;
     }
 
 
     private void lockButtons(View... buttons) {
-        for(View b : buttons) {
+        for (View b : buttons) {
             //b.setEnabled(false);
             b.setClickable(false);
         }
@@ -652,7 +678,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private void unlockButtons(View... buttons) {
 
-        for(View b : buttons) {
+        for (View b : buttons) {
             b.setClickable(true);
             //b.setEnabled(true);
         }
@@ -663,9 +689,9 @@ public class CameraActivity extends AppCompatActivity {
         final ColorStateList targetState =
                 UIHelper.makeCSLwithID(
                         this,
-                    isVideoMode ? R.color.colorCameraButton_169 : R.color.colorCameraButton_43);
+                        isVideoMode ? R.color.colorCameraButton_169 : R.color.colorCameraButton_43);
 
-        root.post( ()-> {
+        root.post(() -> {
             buttonCaptureMode.setBackgroundTintList(targetState);
             buttonFocusFreqMode.setBackgroundTintList(targetState);
             buttonExposure.setBackgroundTintList(targetState);
@@ -679,7 +705,7 @@ public class CameraActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        root.post ( ()-> {
+        root.post(() -> {
             fullscreenHandler.removeCallbacks(rHideNav);
             fullscreenHandler.postDelayed(rHideNav, 100);
             orientationListener.enable();

@@ -1,12 +1,10 @@
 package com.lbynet.Phokus.utils;
 
-import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
-import android.graphics.Interpolator;
 import android.graphics.Point;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
@@ -16,12 +14,11 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewPropertyAnimator;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
-import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.LinearInterpolator;
-import android.view.animation.OvershootInterpolator;
 import android.widget.Toast;
 
 import androidx.cardview.widget.CardView;
@@ -41,9 +38,9 @@ public class UIHelper {
     static DelayedAnimation animation = null;
     static Executor toastExecutor_ = null;
     static CardView toastView_ = null;
-    static HashMap<View,ValueAnimator> animatorMap = new HashMap<>();
-    static HashMap<View, Boolean> hapticViewMap = new HashMap<>();
-    static HashMap<Integer, ColorStateList> cslMap = new HashMap<>();
+    static HashMap<View,ValueAnimator> mapValueAnimator_ = new HashMap<>();
+    static HashMap<View, Boolean> mapHapticView_ = new HashMap<>();
+    static HashMap<Integer, ColorStateList> mapColorState_ = new HashMap<>();
 
     public static void printSystemToast(Activity activity, String msg, boolean isLongTime) {
         activity.runOnUiThread( () -> {
@@ -127,13 +124,13 @@ public class UIHelper {
     @Deprecated
     public static ValueAnimator setViewAlphaOld(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
 
-        if(animatorMap.get(view) != null) animatorMap.get(view).cancel();
+        if(mapValueAnimator_.get(view) != null) mapValueAnimator_.get(view).cancel();
 
         ValueAnimator a = getAlphaAnimator(view,durationInMs,targetAlpha,isNonLinear);
 
         ContextCompat.getMainExecutor(view.getContext()).execute(a::start);
 
-        animatorMap.put(view,a);
+        mapValueAnimator_.put(view,a);
 
         return a;
 
@@ -248,11 +245,11 @@ public class UIHelper {
 
     public static ColorStateList makeCSLwithID(Context context, int resId) {
 
-        if(cslMap.containsKey(resId)) return cslMap.get(resId);
+        if(mapColorState_.containsKey(resId)) return mapColorState_.get(resId);
 
         ColorStateList entry = ContextCompat.getColorStateList(context,resId);
 
-        cslMap.put(resId,entry);
+        mapColorState_.put(resId,entry);
 
         return entry;
 
@@ -283,10 +280,10 @@ public class UIHelper {
         final int action = e.getActionMasked();
         final boolean isDown = action == MotionEvent.ACTION_DOWN;
 
-        if((hapticViewMap.containsKey(view) && hapticViewMap.get(view)) && isDown) { return true; }
+        if((mapHapticView_.containsKey(view) && mapHapticView_.get(view)) && isDown) { return true; }
         else {
             SAL.simulatePress(view.getContext(),!isDown);
-            hapticViewMap.put(view,isDown);
+            mapHapticView_.put(view,isDown);
             return isDown;
         }
     }

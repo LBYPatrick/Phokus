@@ -9,8 +9,10 @@ import androidx.core.content.ContextCompat;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
+import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.view.MotionEvent;
@@ -31,7 +33,10 @@ import com.lbynet.Phokus.camera.CameraUtils;
 import com.lbynet.Phokus.camera.FocusAction;
 import com.lbynet.Phokus.global.Config;
 import com.lbynet.Phokus.global.Consts;
+import com.lbynet.Phokus.global.SysInfo;
+import com.lbynet.Phokus.template.BatteryListener;
 import com.lbynet.Phokus.template.EventListener;
+import com.lbynet.Phokus.template.RotationListener;
 import com.lbynet.Phokus.utils.MathTools;
 import com.lbynet.Phokus.utils.SAL;
 import com.lbynet.Phokus.utils.Timer;
@@ -372,10 +377,45 @@ public class CameraActivity extends AppCompatActivity {
         });
 
         CameraCore.start(preview);
+        resetLensInfo();
 
+        /**
+         * Configure preview params for handling user interactions (MUST be this late rather than at bindViews())
+         * DEBUGGED
+         */
         preview.setOnTouchListener(this::onPreviewTouched);
 
-        resetLensInfo();
+        preview.post(() -> {
+            new Thread(() -> {
+                SAL.sleepFor(150);
+                UIHelper.queryViewDimensions(preview, new EventListener() {
+                    @Override
+                    public boolean onEventUpdated(DataType dataType, Object extra) {
+                        previewDimensions = (int[]) extra;
+                        return true;
+                    }
+                });
+            }).start();
+        });
+
+        SysInfo.initialize(this);
+
+        SysInfo.addListener(new BatteryListener() {
+            @Override
+            public void onDataAvailable(Intent batteryIntent) {
+                SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
+            }
+        });
+
+        SysInfo.addListener(new RotationListener() {
+            @Override
+            public void onDataAvailable(float azimuth, float pitch, float roll) {
+
+                runOnUiThread( () -> viewFocusRect.setRotation((float)MathTools.radianToDegrees(pitch,true)));
+                //SAL.print(azimuth + ", " + pitch + ", " + roll);
+            }
+        });
+
     }
 
     // Credits to Saurabh Thorat:
@@ -491,7 +531,9 @@ public class CameraActivity extends AppCompatActivity {
         new Thread(() -> {
             while(previewDimensions == null) SAL.sleepFor(10);
 
+
             final int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
+
             UIHelper.resizeView(preview,
                     previewDimensions,
                     new int[]{targetWidth, previewDimensions[1]},
@@ -529,6 +571,11 @@ public class CameraActivity extends AppCompatActivity {
         updateButtonColors();
         resetLensInfo();
 
+        animationHandler.postDelayed(CameraCore::updateVideoMode, 200);
+
+        /**
+         * Update shutter button color
+         */
         int [] shutterBaseColors = UIHelper.getColors(this,R.color.colorShutterBasePhoto,R.color.colorShutterBaseVideo);
 
         UIHelper.setImageViewTint(ivShutterBase,
@@ -540,8 +587,6 @@ public class CameraActivity extends AppCompatActivity {
         UIHelper.setViewAlpha(ivShutterVideoIdle,100,isVideoMode? 1.0f:0);
         UIHelper.setViewAlpha(ivShutterVideoBusy,isVideoMode ? 100 : 0,isVideoMode? 1.0f:0);
         UIHelper.setViewAlpha(ivShutterPhoto,100,isVideoMode ? 0 : 1.0f);
-
-        animationHandler.postDelayed(() -> CameraCore.start(preview), 200);
 
         return true;
     }
@@ -711,23 +756,12 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
+        
         fullscreenHandler.removeCallbacks(rHideNav);
         fullscreenHandler.postDelayed(rHideNav, 100);
         orientationListener.enable();
 
-        if (previewDimensions == null) {
-            new Thread(() -> {
-                SAL.sleepFor(150);
-                UIHelper.queryViewDimensions(preview, new EventListener() {
-                    @Override
-                    public boolean onEventUpdated(DataType dataType, Object extra) {
-                        previewDimensions = (int[]) extra;
-                        return true;
-                    }
-                });
-            }).start();
-        }
+        SysInfo.onResume();
     }
 
     @Override
@@ -735,5 +769,6 @@ public class CameraActivity extends AppCompatActivity {
         super.onPause();
 
         orientationListener.disable();
+        SysInfo.onPause();
     }
 }

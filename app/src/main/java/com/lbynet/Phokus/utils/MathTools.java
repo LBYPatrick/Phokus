@@ -52,6 +52,28 @@ public class MathTools {
 
     }
 
+    /**
+     * Caps radian to [0,2\pi].
+     * @param rad raw radian [-\infinity,+\infinity].
+     * @return capped radian.
+     */
+    public static double getCappedRadian(double rad) {
+
+        final double twoPi = 2 * Math.PI;
+        double remainder = rad % (twoPi);
+
+        if(remainder < 0) remainder += twoPi;
+
+        return remainder;
+    }
+
+    public static double radianToDegrees(double rad, boolean isAlwaysPositive) {
+
+        if(!isAlwaysPositive) return radianToDegrees(rad);
+        else return radianToDegrees(getCappedRadian(rad));
+
+    }
+
     public static double radianToDegrees(double rad) {
         return rad * 180 / Math.PI;
     }

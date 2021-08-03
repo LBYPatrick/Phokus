@@ -77,7 +77,6 @@ public class CameraCore {
     static ImageCapture imageCapture_;
     static VideoCapture videoCapture_;
     static ProcessCameraProvider pcp;
-    static HashSet<UseCase> prevUseCaseArray_ = null;
     static float defaultZoom_ = -1,
             prevZoom_ = -1;
     static Executor uiThreadExecutor_;
@@ -116,7 +115,36 @@ public class CameraCore {
         );
     }
 
-    public static void restart() {
+    public static void updateVideoMode() {
+
+        boolean isVideoMode = (boolean) Config.get(Config.VIDEO_MODE),
+                isChangeDetected = false;
+
+        /**
+         * See if there are usecases that needs to be un-bound
+         */
+        if(isVideoMode && imageCapture_ != null) {
+            pcp.unbind(imageCapture_);
+            imageCapture_ = null;
+            isChangeDetected = true;
+        }
+        else if(!isVideoMode && videoCapture_ != null) {
+            pcp.unbind(videoCapture_);
+            videoCapture_ = null;
+            isChangeDetected = true;
+        }
+
+        /**
+         * Bind new UseCase when necessary (and notify user via statusListener_)
+         */
+        if(isChangeDetected) {
+
+            statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
+
+            camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs_, buildUseCase(isVideoMode ? USECASE_VIDEO_CAPTURE : USECASE_IMAGE_CAPTURE));
+            updateCameraConfig();
+            detectCameraBoundState();
+        }
 
     }
 
@@ -129,9 +157,8 @@ public class CameraCore {
 
         boolean isFrontFacing = (boolean)Config.get(Config.FRONT_FACING);
 
-        statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
 
-        CameraSelector cs = new CameraSelector.Builder()
+        cs_ = new CameraSelector.Builder()
                 .requireLensFacing(isFrontFacing ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
                 .build();
         boolean is_video_mode = (Boolean) Config.get(Config.VIDEO_MODE);
@@ -142,12 +169,15 @@ public class CameraCore {
                 (is_video_mode ? USECASE_VIDEO_CAPTURE :
                         USECASE_IMAGE_CAPTURE));
 
-        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs, useCaseArray);
+        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs_, useCaseArray);
         defaultZoom_ = CameraUtils.get35FocalLength(context_, isFrontFacing ? 1 : 0);
         prevZoom_ = defaultZoom_;
 
         updateCameraConfig();
+        detectCameraBoundState();
+    }
 
+    private static void detectCameraBoundState() {
         new Thread( ()-> {
 
             LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
@@ -160,8 +190,6 @@ public class CameraCore {
             statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BOUND,null);
 
         }).start();
-
-        SAL.print(TAG, "CameraX bound.");
     }
 
     public static UseCase[] buildUseCaseArray(@UseCaseType String... types) {
@@ -420,7 +448,6 @@ public class CameraCore {
     }
 
     public static void updateRotation(int surface_rotation) {
-
         rotationMinor_ = surface_rotation;
 
         if(surface_rotation == Surface.ROTATION_90 || surface_rotation == Surface.ROTATION_270) {

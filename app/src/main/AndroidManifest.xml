@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.lbynet.Phokus">
+    package="com.lbynet.phokus">
 
     <uses-feature android:name="android.hardware.camera.any" />
 
@@ -20,10 +20,10 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/CameraTheme">
-        <activity android:name=".ui.ShareActivity" />
-        <activity android:name=".ui.GalleryActivity" />
+        <activity android:name="com.lbynet.phokus.ui.ShareActivity" />
+        <activity android:name="com.lbynet.phokus.ui.GalleryActivity" />
         <activity
-            android:name=".ui.CameraActivity"
+            android:name="com.lbynet.phokus.ui.CameraActivity"
             android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -32,7 +32,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".ui.SettingsActivity"
+            android:name="com.lbynet.phokus.ui.SettingsActivity"
             android:label="@string/title_activity_settings"
             android:theme="@style/SettingsTheme">
             <intent-filter>

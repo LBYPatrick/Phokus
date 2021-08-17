@@ -131,6 +131,10 @@ public class UIHelper {
     public static void setViewAlpha(View v, long durationInMs, float targetAlpha, boolean isNonLinear) {
 
         v.post( () -> {
+
+            //In case user set view visibility to INVISIBLE or GONE wihout setting alpha to zero
+            if(v.getVisibility() != View.VISIBLE && targetAlpha != 0) v.setAlpha(0);
+
             v.animate()
                     .alpha(targetAlpha)
                     .setDuration(durationInMs)

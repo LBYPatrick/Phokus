@@ -70,7 +70,7 @@
         android:id="@+id/iv_preview_chev_left"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:src="@drawable/ic_chevron_left_48dp"
+        android:src="@drawable/vector_chevron_left"
         app:tint="#FF0000"
         app:layout_constraintLeft_toLeftOf="@id/pv_preview"
         app:layout_constraintTop_toTopOf="parent"
@@ -83,7 +83,7 @@
         android:id="@+id/iv_preview_chev_right"
         android:layout_width="48dp"
         android:layout_height="48dp"
-        android:src="@drawable/ic_chevron_right_48dp"
+        android:src="@drawable/vector_chevron_right"
         app:tint="#FF0000"
         app:layout_constraintRight_toRightOf="@id/pv_preview"
         app:layout_constraintTop_toTopOf="parent"
@@ -289,12 +289,13 @@
 
     <Button
         style="@style/ThemeCameraToggle"
-        android:text="@string/activity_camera_focus_one_shot"
+        android:foreground="@drawable/selector_focus_mode"
         android:id="@+id/btn_focus_freq"
+        android:enabled="false"
+        android:backgroundTint="#00FFFFFF"
         app:layout_constraintLeft_toLeftOf="@id/btn_exposure"
         app:layout_constraintTop_toBottomOf="@id/btn_exposure"
         />
-
 
     <!-- Other stuff -->
     <Button

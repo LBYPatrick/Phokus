@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:enterFadeDuration="@integer/material_motion_duration_short_1"
+    android:exitFadeDuration="@integer/material_motion_duration_long_1"
+    >
+
+    <item android:state_checked="false"
+        android:drawable="@drawable/vector_focus_single"/>
+    <item android:state_checked="true"
+        android:drawable="@drawable/vector_focus_continuous"/>
+</selector>

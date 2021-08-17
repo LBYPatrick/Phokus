@@ -54,11 +54,14 @@ public class CameraActivity extends AppCompatActivity {
     private View root,
             viewRecordRect,
             viewCaptureRect,
-            viewFocusRect;
+            viewFocusRect,
+            viewPreviewMask;
     private ImageView ivShutterBase,
                       ivShutterPhoto,
                       ivShutterVideoIdle,
-                      ivShutterVideoBusy;
+                      ivShutterVideoBusy,
+                      ivChevLeft,
+                      ivChevRight;
     private Button buttonCaptureMode,
             buttonFocusCancel,
             buttonFocusFreqMode,
@@ -112,7 +115,6 @@ public class CameraActivity extends AppCompatActivity {
                 }
 
             },
-
     rOnShutterReleased = () -> {
 
         SAL.simulatePress(this, true);
@@ -142,8 +144,6 @@ public class CameraActivity extends AppCompatActivity {
                     .alpha(0)
                     .setDuration(1000)
                     .start();
-
-
         }
     },
             rHideNav = () -> {
@@ -232,7 +232,6 @@ public class CameraActivity extends AppCompatActivity {
                     UIHelper.runLater(requireContext(), () -> {
 
                         textFocalLength.setText(String.format("%.2fmm", (Float) data));
-
                         updateBottomInfo(String.format("Scale factor: %.2fx", currZoomRatio));
 
                         int[] colors = UIHelper.getColors(requireContext(), R.color.colorText, R.color.colorPrimary);
@@ -266,7 +265,6 @@ public class CameraActivity extends AppCompatActivity {
         bindViews();
         SAL.setActivity(this);
 
-
         /**
          * Configure rotation listener
          */
@@ -290,17 +288,20 @@ public class CameraActivity extends AppCompatActivity {
     public void bindViews() {
 
         root = findViewById(R.id.cl_camera);
+        preview = findViewById(R.id.pv_preview);
         textAperture = findViewById(R.id.tv_aperture);
         textBottomInfo = findViewById(R.id.tv_bottom_info);
         textExposure = findViewById(R.id.tv_exposure);
         textFocalLength = findViewById(R.id.tv_focal_length);
         cardTopInfo = findViewById(R.id.cv_top_info);
         cardBottomInfo = findViewById(R.id.cv_bottom_info);
-        preview = findViewById(R.id.pv_preview);
         ivShutterBase = findViewById(R.id.iv_shutter_base);
         ivShutterPhoto = findViewById(R.id.v_shutter_photo);
         ivShutterVideoIdle = findViewById(R.id.iv_shutter_video_idle);
         ivShutterVideoBusy = findViewById(R.id.iv_shutter_video_busy);
+        ivChevLeft = findViewById(R.id.iv_preview_chev_left);
+        ivChevRight = findViewById(R.id.iv_preview_chev_right);
+
         viewRecordRect = findViewById(R.id.v_record_rect);
         viewFocusRect = findViewById(R.id.v_focus_rect);
         viewCaptureRect = findViewById(R.id.v_capture_rect);
@@ -326,10 +327,8 @@ public class CameraActivity extends AppCompatActivity {
                                            @NonNull @NotNull String[] permissions,
                                            @NonNull @NotNull int[] grantResults) {
 
-        if (requestCode == Consts.PERM_REQUEST_CODE) {
-            if (allPermissionsGood()) startCamera();
-
-        } else {
+        if (requestCode == Consts.PERM_REQUEST_CODE && allPermissionsGood()) startCamera();
+        else {
             UIHelper.printSystemToast(this, "Not all permissions were granted.", false);
             finish();
         }
@@ -354,7 +353,6 @@ public class CameraActivity extends AppCompatActivity {
         CameraCore.setStatusListener_(new EventListener() {
             @Override
             public boolean onEventUpdated(DataType dataType, Object extra) {
-
                 switch (dataType) {
                     case VOID_CAMERA_BINDING:
                         runOnUiThread(() -> {
@@ -713,7 +711,10 @@ public class CameraActivity extends AppCompatActivity {
                 R.string.activity_camera_focus_continuous
                 : R.string.activity_camera_focus_one_shot);
 
-        buttonFocusFreqMode.setText(focusModeText);
+        /**
+         * Toggle
+         */
+        buttonFocusFreqMode.setEnabled(isContinuousFocus);
 
         updateBottomInfo(String.format(getString(R.string.fmt_focus_mode), focusModeText));
 
@@ -722,18 +723,13 @@ public class CameraActivity extends AppCompatActivity {
 
 
     private void lockButtons(View... buttons) {
-        for (View b : buttons) {
-            //b.setEnabled(false);
-            b.setClickable(false);
-        }
+
+        for (View b : buttons) b.setClickable(false);
     }
 
     private void unlockButtons(View... buttons) {
 
-        for (View b : buttons) {
-            b.setClickable(true);
-            //b.setEnabled(true);
-        }
+        for (View b : buttons) b.setClickable(true);
     }
 
     private void updateButtonColors() {
@@ -745,7 +741,6 @@ public class CameraActivity extends AppCompatActivity {
 
         root.post(() -> {
             buttonCaptureMode.setBackgroundTintList(targetState);
-            buttonFocusFreqMode.setBackgroundTintList(targetState);
             buttonExposure.setBackgroundTintList(targetState);
             buttonWhiteBalance.setBackgroundTintList(targetState);
             fabSwitchSide.setBackgroundTintList(targetState);

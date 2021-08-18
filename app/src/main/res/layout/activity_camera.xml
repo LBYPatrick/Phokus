@@ -5,8 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     tools:context=".ui.CameraActivity">
-
 
     <androidx.camera.view.PreviewView
         android:id="@+id/pv_preview"
@@ -279,23 +279,26 @@
         app:layout_constraintTop_toBottomOf="@id/btn_capture_mode"
         />
 
-    <Button
+
+    <com.lbynet.phokus.ui.widget.ToggleView
+        android:id="@+id/toggle_exposure_menu"
         style="@style/CameraTheme.Toggle.Button"
-        android:id="@+id/btn_exposure"
-        android:text="EXPOSURE"
-        app:layout_constraintLeft_toLeftOf="@id/btn_awb"
         app:layout_constraintTop_toBottomOf="@id/btn_awb"
+        app:layout_constraintLeft_toLeftOf="@id/btn_awb"
+        app:toggleOnDrawable="@drawable/vector_ev_on"
+        app:toggleOffDrawable="@drawable/vector_ev_off"
+        app:isToggledOn="false"
+        app:toggleOffPersistent="false"
         />
 
     <com.lbynet.phokus.ui.widget.ToggleView
         android:id="@+id/toggle_focus_freq"
         style="@style/CameraTheme.Toggle.Button"
-        app:layout_constraintTop_toBottomOf="@id/btn_exposure"
-        app:layout_constraintLeft_toLeftOf="@id/btn_exposure"
+        app:layout_constraintTop_toBottomOf="@id/toggle_exposure_menu"
+        app:layout_constraintLeft_toLeftOf="@id/toggle_exposure_menu"
         app:toggleOnDrawable="@drawable/vector_focus_continuous"
         app:toggleOffDrawable="@drawable/vector_focus_single"
         app:isToggledOn="false"
-        app:transitionDurationInMs="100"
         />
 
     <!-- Other stuff -->

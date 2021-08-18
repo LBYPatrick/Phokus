@@ -4,6 +4,7 @@ import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
+import android.view.MotionEvent
 import android.view.View
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -12,7 +13,7 @@ import com.lbynet.phokus.utils.SAL
 import com.lbynet.phokus.utils.UIHelper
 import com.lbynet.phokus.utils.UIHelper.InterpolatorType
 
-class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(context,attrs),View.OnClickListener {
+class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(context,attrs),View.OnTouchListener {
 
     private var ivToggleOn_ : ImageView
     private var ivToggleOff_ : ImageView
@@ -20,11 +21,12 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
     private var isToggledOn_ = true
     private var isToggleOffPersistent_ = true
     private var transitionDuration_ : Long  = 0
+    private var actualClickListener: OnClickListener? = null
     private lateinit var interpolator: TimeInterpolator
 
     init {
 
-        inflate(context, R.layout.view_toggle,this)
+        val view = inflate(context, R.layout.view_toggle,this)
 
         ivToggleOn_ = findViewById(R.id.iv_toggle_on)
         ivToggleOff_ = findViewById(R.id.iv_toggle_off)
@@ -34,14 +36,24 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
         try {
             ivToggleOn_.setImageDrawable(attr.getDrawable(R.styleable.ToggleView_toggleOnDrawable))
             ivToggleOff_.setImageDrawable(attr.getDrawable(R.styleable.ToggleView_toggleOffDrawable))
-            transitionDuration_ = attr.getInteger(R.styleable.ToggleView_transitionDurationInMs, 300).toLong()
+            transitionDuration_ = attr.getInteger(R.styleable.ToggleView_transitionDurationInMs, 150).toLong()
             isToggleOffPersistent_ = attr.getBoolean(R.styleable.ToggleView_toggleOffPersistent,true);
 
             setInterpolator(attr.getInteger(R.styleable.ToggleView_interpolator, UIHelper.INTRPL_LINEAR))
 
             val currState = attr.getBoolean(R.styleable.ToggleView_isToggledOn, false)
-
             setToggleState(currState)
+
+            super.setOnClickListener {
+                if(actualClickListener == null) {
+                    SAL.print("Default routine");
+                    setToggleState(!isToggledOn_)
+                }
+                else {
+                    SAL.print("custom routine");
+                        actualClickListener?.onClick(it)
+                }
+            }
 
         } catch (e : Exception) {
             SAL.print(e)
@@ -51,27 +63,32 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
         }
     }
 
-    override fun onClick(v: View?) {
-        setToggleState(!isToggledOn_)
+    override fun setOnClickListener(l: OnClickListener?) {
+        //super.setOnClickListener(l)
+        actualClickListener = l
+    }
+
+    override fun onTouch(v: View?, event: MotionEvent?): Boolean {
+        TODO("Not yet implemented")
     }
 
     fun setToggleState(isToggledOn: Boolean) {
         if (isToggledOn == isToggledOn_) return
 
         isToggledOn_ = isToggledOn
-        ivToggleOn_.animate()
+
+        var onAnimation = ivToggleOn_.animate()
                 .alpha(if (isToggledOn) 1f else 0f)
                 .setDuration(if (isInitialized_) transitionDuration_ else 0)
                 .setInterpolator(interpolator)
-                .start()
 
-        if(!isToggleOffPersistent_) {
-            ivToggleOff_.animate()
+        var offAnimation = ivToggleOff_.animate()
                 .alpha(if (isToggledOn) 0f else 1f)
                 .setDuration(if (isInitialized_) transitionDuration_ else 0)
                 .setInterpolator(interpolator)
-                .start()
-        }
+
+        if(!isToggleOffPersistent_) offAnimation.start()
+        onAnimation.start()
     }
 
 

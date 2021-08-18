@@ -1,26 +1,5 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
-    <style name="CameraTheme" parent="Theme.MaterialComponents.NoActionBar">
-        <!-- Customize your theme here. -->
-        <item name="colorPrimary">@color/colorPrimary</item>
-        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
-        <item name="colorAccent">@color/colorAccent</item>
-        <item name="android:forceDarkAllowed" tools:ignore="NewApi">false</item>
-        <item name="android:windowLayoutInDisplayCutoutMode" tools:ignore="NewApi">shortEdges</item>
-        <item name="android:windowFullscreen">true</item>
-        <item name="android:windowBackground">#000000</item>
-    </style>
-
-    <style name="SettingsTheme" parent="Theme.MaterialComponents">
-
-        <item name="android:forceDarkAllowed" tools:ignore="NewApi">false</item>
-        <item name="colorPrimary">#FFF</item>
-        <item name="colorPrimaryDark">#000</item>
-        <item name="colorAccent">@color/colorPrimary</item>
-        <item name="android:windowBackground">#000000</item>
-        <item name="windowActionBar">true</item>
-        <item name="windowNoTitle">false</item>
-    </style>
 
     <style name="CameraTheme.Toggle" parent="">
         <item name="android:layout_width">50dp</item>
@@ -29,7 +8,7 @@
         <item name="android:layout_marginTop">10dp</item>
     </style>
 
-    <!-- Deprecated soon -->
+    <!-- Deprecate soon -->
     <style name="CameraTheme.Toggle.Button" parent="CameraTheme.Toggle">
         <item name="android:outlineAmbientShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
         <item name="android:outlineSpotShadowColor" tools:ignore="NewApi">#00FFFFFF</item>

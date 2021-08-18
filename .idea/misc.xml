@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="DesignSurface">
+    <option name="filePathToZoomLevelMap">
+      <map>
+        <entry key="..\:/Code/Phokus/app/src/main/res/drawable/ic_toggle_ev_off.xml" value="0.36033755274261603" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/drawable/toggle_ev_on.xml" value="0.36033755274261603" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/drawable/vector_focus_continuous.xml" value="0.36033755274261603" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/drawable/vector_focus_single.xml" value="0.36033755274261603" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/layout/activity_camera.xml" value="0.35170940170940174" />
+      </map>
+    </option>
+  </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_11" default="true" project-jdk-name="11" project-jdk-type="JavaSDK">
     <output url="file://$PROJECT_DIR$/build/classes" />
   </component>

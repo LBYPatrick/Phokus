@@ -20,6 +20,7 @@ import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -63,9 +64,9 @@ public class CameraActivity extends AppCompatActivity {
                       ivChevRight;
     private Button buttonCaptureMode,
             buttonFocusCancel,
-            buttonWhiteBalance,
-            buttonExposure;
-    private ToggleView toggleFocusFreq;
+            buttonWhiteBalance;
+    private ToggleView toggleFocusFreq,
+                       toggleExposureMenu;
     private TextView textAperture,
             textFocalLength,
             textExposure,
@@ -146,9 +147,13 @@ public class CameraActivity extends AppCompatActivity {
         }
     },
             rHideNav = () -> {
-                root.setSystemUiVisibility(View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                        | View.SYSTEM_UI_FLAG_FULLSCREEN
-                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
+                getWindow().getDecorView().setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                        | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                        );
             };
 
 
@@ -310,9 +315,9 @@ public class CameraActivity extends AppCompatActivity {
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
         buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
-        toggleFocusFreq = findViewById(R.id.toggle_focus_freq);
-        buttonExposure = findViewById(R.id.btn_exposure);
         buttonWhiteBalance = findViewById(R.id.btn_awb);
+        toggleFocusFreq = findViewById(R.id.toggle_focus_freq);
+        toggleExposureMenu = findViewById(R.id.toggle_exposure_menu);
         fabSwitchSide = findViewById(R.id.fab_switch_side);
 
         buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
@@ -740,7 +745,6 @@ public class CameraActivity extends AppCompatActivity {
 
         root.post(() -> {
             buttonCaptureMode.setBackgroundTintList(targetState);
-            buttonExposure.setBackgroundTintList(targetState);
             buttonWhiteBalance.setBackgroundTintList(targetState);
             fabSwitchSide.setBackgroundTintList(targetState);
         });

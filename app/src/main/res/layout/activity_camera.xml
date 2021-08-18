@@ -265,14 +265,14 @@
     <Button
         android:layout_marginLeft="10dp"
         android:layout_marginTop="30dp"
-        style="@style/ThemeCameraToggle"
+        style="@style/CameraTheme.Toggle.Button"
         android:id="@+id/btn_capture_mode"
         android:text="MODE"
         app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"
         app:layout_constraintTop_toTopOf="parent"/>
 
     <Button
-        style="@style/ThemeCameraToggle"
+        style="@style/CameraTheme.Toggle.Button"
         android:id="@+id/btn_awb"
         android:text="AWB"
         app:layout_constraintLeft_toLeftOf="@id/btn_capture_mode"
@@ -280,21 +280,22 @@
         />
 
     <Button
-        style="@style/ThemeCameraToggle"
+        style="@style/CameraTheme.Toggle.Button"
         android:id="@+id/btn_exposure"
         android:text="EXPOSURE"
         app:layout_constraintLeft_toLeftOf="@id/btn_awb"
         app:layout_constraintTop_toBottomOf="@id/btn_awb"
         />
 
-    <Button
-        style="@style/ThemeCameraToggle"
-        android:foreground="@drawable/selector_focus_mode"
-        android:id="@+id/btn_focus_freq"
-        android:enabled="false"
-        android:backgroundTint="#00FFFFFF"
-        app:layout_constraintLeft_toLeftOf="@id/btn_exposure"
+    <com.lbynet.phokus.ui.widget.ToggleView
+        android:id="@+id/toggle_focus_freq"
+        style="@style/CameraTheme.Toggle.Button"
         app:layout_constraintTop_toBottomOf="@id/btn_exposure"
+        app:layout_constraintLeft_toLeftOf="@id/btn_exposure"
+        app:toggleOnDrawable="@drawable/vector_focus_continuous"
+        app:toggleOffDrawable="@drawable/vector_focus_single"
+        app:isToggledOn="false"
+        app:transitionDurationInMs="100"
         />
 
     <!-- Other stuff -->
@@ -302,7 +303,7 @@
         app:icon="@drawable/ic_clear_24dp"
         android:text="@string/activity_camera_focus_clear"
         android:scaleType="center"
-        style="@style/ThemeCameraToggle"
+        style="@style/CameraTheme.Toggle.Button"
         app:iconTint="#FFFFFF"
         android:textColor="#FFFFFF"
         android:layout_width="wrap_content"

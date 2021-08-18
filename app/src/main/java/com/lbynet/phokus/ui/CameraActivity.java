@@ -36,6 +36,7 @@ import com.lbynet.phokus.global.SysInfo;
 import com.lbynet.phokus.template.BatteryListener;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.RotationListener;
+import com.lbynet.phokus.ui.widget.ToggleView;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
 import com.lbynet.phokus.utils.Timer;
@@ -62,9 +63,9 @@ public class CameraActivity extends AppCompatActivity {
                       ivChevRight;
     private Button buttonCaptureMode,
             buttonFocusCancel,
-            buttonFocusFreqMode,
             buttonWhiteBalance,
             buttonExposure;
+    private ToggleView toggleFocusFreq;
     private TextView textAperture,
             textFocalLength,
             textExposure,
@@ -309,14 +310,14 @@ public class CameraActivity extends AppCompatActivity {
 
         buttonCaptureMode = findViewById(R.id.btn_capture_mode);
         buttonFocusCancel = findViewById(R.id.btn_focus_cancel);
-        buttonFocusFreqMode = findViewById(R.id.btn_focus_freq);
+        toggleFocusFreq = findViewById(R.id.toggle_focus_freq);
         buttonExposure = findViewById(R.id.btn_exposure);
         buttonWhiteBalance = findViewById(R.id.btn_awb);
         fabSwitchSide = findViewById(R.id.fab_switch_side);
 
         buttonCaptureMode.setOnClickListener(this::toggleVideoMode);
         buttonFocusCancel.setOnClickListener(this::cancelFocus);
-        buttonFocusFreqMode.setOnClickListener(this::toggleFocusFreqMode);
+        toggleFocusFreq.setOnClickListener(this::toggleFocusFreqMode);
         fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
     }
 
@@ -534,7 +535,7 @@ public class CameraActivity extends AppCompatActivity {
                     previewDimensions,
                     new int[]{targetWidth, previewDimensions[1]},
                     200,
-                    UIHelper.InterpolatorType.DECEL);
+                    UIHelper.INTRPL_DECEL);
 
             previewDimensions[0] = targetWidth;
 
@@ -578,7 +579,7 @@ public class CameraActivity extends AppCompatActivity {
                 100,
                 isVideoMode ? shutterBaseColors[0] : shutterBaseColors[1],
                 isVideoMode ? shutterBaseColors[1] : shutterBaseColors[0],
-                UIHelper.InterpolatorType.LINEAR);
+                UIHelper.INTRPL_LINEAR);
 
         UIHelper.setViewAlpha(ivShutterVideoIdle,100,isVideoMode? 1.0f:0);
         UIHelper.setViewAlpha(ivShutterVideoBusy,isVideoMode ? 100 : 0,isVideoMode? 1.0f:0);
@@ -712,7 +713,7 @@ public class CameraActivity extends AppCompatActivity {
         /**
          * Toggle
          */
-        buttonFocusFreqMode.setEnabled(isContinuousFocus);
+        toggleFocusFreq.setToggleState(isContinuousFocus);
 
         updateBottomInfo(String.format(getString(R.string.fmt_focus_mode), focusModeText));
 

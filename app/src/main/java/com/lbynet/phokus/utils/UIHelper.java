@@ -25,12 +25,15 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import android.widget.Toast;
 
+import androidx.annotation.IntDef;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
 import com.lbynet.phokus.deprecated.listener.ColorListener;
 import com.lbynet.phokus.template.EventListener;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,13 +50,22 @@ public class UIHelper {
     static HashMap<View, Boolean> mapHapticView_ = new HashMap<>();
     static HashMap<Integer, ColorStateList> mapColorState_ = new HashMap<>();
 
-    public enum InterpolatorType {
-        LINEAR,
-        ACCEL,
-        DECEL,
-        ACCEL_DECEL,
-        OVERSHOOT
-    }
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+            INTRPL_LINEAR,
+            INTRPL_ACCEL,
+            INTRPL_DECEL,
+            INTRPL_ACCEL_DECEL,
+            INTRPL_OVERSHOOT
+    })
+    public @interface InterpolatorType{};
+
+    final public static int INTRPL_LINEAR = 0,
+            INTRPL_ACCEL = 1,
+            INTRPL_DECEL = 2,
+            INTRPL_ACCEL_DECEL = 3,
+            INTRPL_OVERSHOOT = 4;
+
 
     public static void printSystemToast(Activity activity, String msg, boolean isLongTime) {
         activity.runOnUiThread( () -> {
@@ -138,7 +150,11 @@ public class UIHelper {
         });
     }
 
-    public static void setImageViewTint(ImageView imageView, long durationInMs,int sourceColor, int targetColor, InterpolatorType type) {
+    public static void setImageViewTint(ImageView imageView,
+                                        long durationInMs,
+                                        int sourceColor,
+                                        int targetColor,
+                                        @InterpolatorType int type) {
 
         ValueAnimator animator = ValueAnimator.ofArgb(sourceColor,targetColor)
                 .setDuration(durationInMs);
@@ -176,7 +192,7 @@ public class UIHelper {
                                   int durationInMs
                                   ) {
 
-        resizeView(view,oldDimensions,newDimensions,durationInMs,InterpolatorType.LINEAR);
+        resizeView(view,oldDimensions,newDimensions,durationInMs,INTRPL_LINEAR);
 
     }
 
@@ -184,7 +200,7 @@ public class UIHelper {
                                   int [] oldDimensions,
                                   int [] newDimensions,
                                   int durationInMs,
-                                  InterpolatorType interpolatorType) {
+                                  @InterpolatorType int interpolatorType) {
 
         /**
          * Setup ValueAnimator
@@ -321,14 +337,14 @@ public class UIHelper {
         output.copyTo(image);
     }
 
-    public static TimeInterpolator getInterpolator(InterpolatorType type) {
+    public static TimeInterpolator getInterpolator(@InterpolatorType int type) {
 
         switch(type) {
-            case ACCEL: return new AccelerateInterpolator();
-            case DECEL: return new DecelerateInterpolator();
-            case ACCEL_DECEL: return new AccelerateDecelerateInterpolator();
-            case OVERSHOOT: return new OvershootInterpolator();
-            case LINEAR:
+            case INTRPL_ACCEL: return new AccelerateInterpolator();
+            case INTRPL_DECEL: return new DecelerateInterpolator();
+            case INTRPL_ACCEL_DECEL: return new AccelerateDecelerateInterpolator();
+            case INTRPL_OVERSHOOT: return new OvershootInterpolator();
+            case INTRPL_LINEAR:
             default: return new LinearInterpolator();
         }
     }

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- format="integer" could not only refer to integers (as the name suggests) but also Resource IDs
+            - Drawable, View, Color, anything...
+    -->
+
+    <declare-styleable name="ToggleView">
+        <attr name="toggleOffDrawable" format="integer"/>
+        <attr name="toggleOnDrawable" format="integer"/>
+        <attr name="transitionDurationInMs" format="integer"/>
+        <attr name="isToggledOn" format="boolean"/>
+        <attr name="toggleOffPersistent" format="boolean"/>
+
+        <!-- Per UIHelper.InterpolatorType (IntDef) entries -->
+        <attr name="interpolator" format="enum">
+            <enum name="linear" value="0"/>
+            <enum name="accel" value="1"/>
+            <enum name="decel" value="2"/>
+            <enum name="accel_decel" value="3"/>
+            <enum name="overshoot" value="4"/>
+        </attr>
+    </declare-styleable>
+
+</resources>

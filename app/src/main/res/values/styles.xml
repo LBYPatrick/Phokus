@@ -22,15 +22,20 @@
         <item name="windowNoTitle">false</item>
     </style>
 
-    <style name="ThemeCameraToggle" parent="Widget.MaterialComponents.Button">
-        <item name="android:outlineAmbientShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
-        <item name="android:outlineSpotShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
+    <style name="CameraTheme.Toggle" parent="">
         <item name="android:layout_width">50dp</item>
         <item name="android:layout_height">50dp</item>
         <item name="android:elevation">4dp</item>
+        <item name="android:layout_marginTop">10dp</item>
+    </style>
+
+    <!-- Deprecated soon -->
+    <style name="CameraTheme.Toggle.Button" parent="CameraTheme.Toggle">
+        <item name="android:outlineAmbientShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
+        <item name="android:outlineSpotShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
         <item name="android:textSize">10dp</item>
+        <item name="elevation">4dp</item>
         <item name="backgroundTint">@color/colorCameraButton_43</item>
         <item name="android:textColor">#FFFFFF</item>
-        <item name="android:layout_marginTop">10dp</item>
     </style>
 </resources>

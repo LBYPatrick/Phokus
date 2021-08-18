@@ -77,18 +77,19 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
 
         isToggledOn_ = isToggledOn
 
-        var onAnimation = ivToggleOn_.animate()
+        ivToggleOn_.animate()
                 .alpha(if (isToggledOn) 1f else 0f)
                 .setDuration(if (isInitialized_) transitionDuration_ else 0)
                 .setInterpolator(interpolator)
+                .start();
 
-        var offAnimation = ivToggleOff_.animate()
-                .alpha(if (isToggledOn) 0f else 1f)
-                .setDuration(if (isInitialized_) transitionDuration_ else 0)
-                .setInterpolator(interpolator)
-
-        if(!isToggleOffPersistent_) offAnimation.start()
-        onAnimation.start()
+        if(!isToggleOffPersistent_) {
+            ivToggleOff_.animate()
+                    .alpha(if (isToggledOn) 0f else 1f)
+                    .setDuration(if (isInitialized_) transitionDuration_ else 0)
+                    .setInterpolator(interpolator)
+                    .start()
+        }
     }
 
 

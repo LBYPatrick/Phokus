@@ -1,10 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="CameraTheme" parent="Theme.MaterialComponents.NoActionBar">
-
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
-
+        <item name="android:forceDarkAllowed" tools:ignore="NewApi">false</item>
+        <item name="android:windowFullscreen">true</item>
     </style>
 
+    <style name="SettingsTheme" parent="Theme.MaterialComponents">
+
+        <item name="android:forceDarkAllowed" tools:ignore="NewApi">false</item>
+        <item name="colorPrimary">#FFF</item>
+        <item name="colorPrimaryDark">#000</item>
+        <item name="colorAccent">@color/colorPrimary</item>
+        <item name="android:windowBackground">#000000</item>
+        <item name="windowActionBar">true</item>
+        <item name="windowNoTitle">false</item>
+    </style>
 </resources>

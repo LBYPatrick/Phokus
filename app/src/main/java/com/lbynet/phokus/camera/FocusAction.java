@@ -123,6 +123,10 @@ public class FocusAction {
         coordinate_ = newCoordinate;
     }
 
+    public synchronized float [] getLastCoordinate() {
+        return coordinate_.clone();
+    }
+
     public void interrupt() {
 
         is_interrupted_ = true;

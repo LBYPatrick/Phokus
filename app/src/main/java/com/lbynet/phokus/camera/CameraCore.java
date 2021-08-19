@@ -484,6 +484,11 @@ public class CameraCore {
                 listener);
     }
 
+    public static float [] getLastFocusCoordinate() {
+
+        return focusAction_ == null ? null : focusAction_.getLastCoordinate();
+    }
+
     public static boolean isFrontFacing() {
         return (Boolean) Config.get(Config.FRONT_FACING);
     }

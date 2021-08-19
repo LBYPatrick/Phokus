@@ -667,6 +667,7 @@ public class CameraActivity extends AppCompatActivity {
         animationHandler.postDelayed(rHideBottomInfo, 4000);
     }
 
+
     private boolean cancelFocus(View view) {
 
         CameraCore.interruptFocus();
@@ -709,7 +710,14 @@ public class CameraActivity extends AppCompatActivity {
     private boolean toggleFocusFreqMode(View view) {
 
         isContinuousFocus = !isContinuousFocus;
-        cancelFocus(null);
+        //cancelFocus(null);
+        if(viewFocusRect.getAlpha() != 0) {
+            CameraCore.interruptFocus();
+
+            float [] prev = CameraCore.getLastFocusCoordinate();
+
+            CameraCore.focusToPoint(prev[0],prev[1],isContinuousFocus,focusListener);
+        }
 
         String focusModeText = getString(isContinuousFocus ?
                 R.string.activity_camera_focus_continuous

@@ -89,4 +89,16 @@ public class MathTools {
             } else buffer[i] = Integer.toString(time[i]);
         }
     }
+
+    public static String parseTimeToString(double elaspedTimeInMs) {
+
+        String [] buffer = new String[4];
+        formatTime(elaspedTimeInMs,buffer);
+
+        StringBuilder sb = new StringBuilder().append(buffer[0]);
+
+        for (int i = 1; i < 4; ++i) { sb.append(':').append(buffer[i]); }
+
+        return sb.toString();
+    }
 }

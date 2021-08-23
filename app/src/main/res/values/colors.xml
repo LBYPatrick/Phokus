@@ -20,5 +20,5 @@
     <color name="colorCameraButton_169">#80000000</color>
 
     <color name="white_highlight">#FFF</color>
-    <color name="white_shadow">#CCFFFFFF</color>
+    <color name="white_shadow">#B3C0C0C0</color>
 </resources>

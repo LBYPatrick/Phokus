@@ -83,7 +83,13 @@ public class UIHelper {
         return screenDimensions_;
     }
 
-    public static void setViewAlpha(View view, int durationInMs, float targetAlpha) {
+    public static void setViewAlphas(int durationInMs, float targetAlpha, View...views) {
+
+        for(View v : views) setViewAlpha(durationInMs,targetAlpha,v);
+
+    }
+
+    public static void setViewAlpha(int durationInMs, float targetAlpha, View view) {
         setViewAlpha(view,durationInMs,targetAlpha,true);
     }
 
@@ -161,11 +167,9 @@ public class UIHelper {
 
         animator.setInterpolator(getInterpolator(type));
 
-        final Drawable drawable = imageView.getDrawable();
-
         animator.addUpdateListener(instant -> {
             int color = ((int)instant.getAnimatedValue());
-            drawable.setTint(color);
+            imageView.setColorFilter(color);
         });
 
         imageView.post(animator::start);

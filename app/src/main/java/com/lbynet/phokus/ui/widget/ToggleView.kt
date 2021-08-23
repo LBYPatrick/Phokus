@@ -39,6 +39,7 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
             transitionDuration_ = attr.getInteger(R.styleable.ToggleView_transitionDurationInMs, 150).toLong()
             isToggleOffPersistent_ = attr.getBoolean(R.styleable.ToggleView_toggleOffPersistent,true);
 
+
             setInterpolator(attr.getInteger(R.styleable.ToggleView_interpolator, UIHelper.INTRPL_LINEAR))
 
             val currState = attr.getBoolean(R.styleable.ToggleView_isToggledOn, false)
@@ -72,6 +73,11 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
         TODO("Not yet implemented")
     }
 
+    fun setTint(color : Int) {
+        ivToggleOn_.setColorFilter(color)
+        ivToggleOff_.setColorFilter(color)
+    }
+
     fun setToggleState(isToggledOn: Boolean) {
         if (isToggledOn == isToggledOn_) return
 
@@ -81,7 +87,7 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
                 .alpha(if (isToggledOn) 1f else 0f)
                 .setDuration(if (isInitialized_) transitionDuration_ else 0)
                 .setInterpolator(interpolator)
-                .start();
+                .start()
 
         if(!isToggleOffPersistent_) {
             ivToggleOff_.animate()

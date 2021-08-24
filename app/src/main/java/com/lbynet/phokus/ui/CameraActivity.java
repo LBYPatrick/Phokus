@@ -82,7 +82,7 @@ public class CameraActivity extends AppCompatActivity {
             rHideBottomInfo = () -> UIHelper.setViewAlpha(binding.cvBottomInfo, 200, 0, true),
             rShowBottomInfo = () -> UIHelper.setViewAlpha(binding.cvBottomInfo, 10, 1, true),
             rShowTopInfo = () -> UIHelper.setViewAlpha(binding.cvTopInfo, 10, 1, true),
-            rFadeTopInfo = () -> UIHelper.setViewAlpha(binding.cvTopInfo, 50, 0.5f, true),
+            rFadeTopInfo = () -> UIHelper.setViewAlpha(binding.cvTopInfo, 200, 0.5f, true),
             rOnShutterPressed = () -> {
 
                 SAL.simulatePress(this, false);
@@ -497,7 +497,6 @@ public class CameraActivity extends AppCompatActivity {
 
         /* Visual stuff */
         updatePreviewSize();
-        updateButtonColors();
         resetLensInfo();
 
         binding.ivChevTl.setRotation(isVideoMode ? 0 : 180);
@@ -534,6 +533,8 @@ public class CameraActivity extends AppCompatActivity {
         updateShutterState(isVideoMode ? STATE_VIDEO_IDLE : STATE_PHOTO_IDLE);
 
         animationHandler.postDelayed(() -> {
+
+            updateButtonColors();
 
             UIHelper.setViewAlphas(200,0,showGroup);
             UIHelper.setViewAlphas(200,1,hideGroup);
@@ -587,6 +588,7 @@ public class CameraActivity extends AppCompatActivity {
                 binding.ivShutterPhotoBase.animate()
                         .scaleX(1)
                         .scaleY(1)
+                        .setInterpolator(new DecelerateInterpolator())
                         .setDuration(DURATION_SHUTTER_ANIM)
                         .start();
 
@@ -606,6 +608,13 @@ public class CameraActivity extends AppCompatActivity {
 
             case STATE_VIDEO_IDLE:
 
+                binding.ivShutterPhotoBase.animate()
+                        .scaleX(0.5f)
+                        .scaleY(0.5f)
+                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setInterpolator(new AccelerateInterpolator())
+                        .start();
+
                 binding.ivShutterWhiteCenter.animate()
                         .scaleX(1f)
                         .scaleY(1f)
@@ -622,6 +631,7 @@ public class CameraActivity extends AppCompatActivity {
                         .alpha(0)
                         .setDuration(DURATION_SHUTTER_ANIM)
                         .start();
+
                 break;
 
             case STATE_VIDEO_BUSY:
@@ -696,7 +706,7 @@ public class CameraActivity extends AppCompatActivity {
             while (videoTimer.isBusy()) {
 
                 /*Limit timer refresh rate to be roughly 10fps*/
-                while (videoTimer.isBusy() && videoTimer.getElaspedTimeInMs() % 100 != 0) { SAL.sleepFor(1); }
+                while (videoTimer.isBusy() && videoTimer.getElaspedTimeInMs() % 8 != 0) { SAL.sleepFor(1); }
 
                 updateBottomInfo(MathTools.parseTimeToString(videoTimer.getElaspedTimeInMs()));
             }

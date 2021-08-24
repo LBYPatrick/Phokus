@@ -1,8 +1,8 @@
 package com.lbynet.phokus.ui;
 
+import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.camera.view.PreviewView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -11,7 +11,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
-import android.graphics.Color;
 import android.os.BatteryManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -20,18 +19,19 @@ import android.view.OrientationEventListener;
 import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.lbynet.phokus.R;
 import com.lbynet.phokus.camera.CameraCore;
 import com.lbynet.phokus.camera.CameraUtils;
 import com.lbynet.phokus.camera.FocusAction;
 import com.lbynet.phokus.databinding.ActivityCameraBinding;
 import com.lbynet.phokus.global.Config;
-import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.global.SysInfo;
+import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.template.BatteryListener;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.RotationListener;
@@ -42,12 +42,15 @@ import com.lbynet.phokus.utils.UIHelper;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.Executor;
 
 public class CameraActivity extends AppCompatActivity {
 
     final public static String TAG = CameraActivity.class.getCanonicalName();
-    final public static int PREVIEW_RESIZE_DURATION = 400;
+    final public static int DURATION_PREVIEW_RESIZE_ANIM = 400,
+                            DURATION_SHUTTER_ANIM = 300;
 
     private ActivityCameraBinding binding;
     private Timer videoTimer = new Timer("Video Timer");
@@ -61,6 +64,20 @@ public class CameraActivity extends AppCompatActivity {
     static int[] previewDimensions = null;
     static String bottomInfo;
 
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef ( {
+            STATE_PHOTO_IDLE,
+            STATE_PHOTO_PRESS,
+            STATE_PHOTO_RELEASE,
+            STATE_VIDEO_IDLE,
+            STATE_VIDEO_BUSY,
+            STATE_VIDEO_STOP,
+    })
+    private @interface ShutterState { }
+
+    final private static int STATE_PHOTO_IDLE = 0, STATE_PHOTO_PRESS = 1, STATE_PHOTO_RELEASE = 2, STATE_VIDEO_IDLE = 3, STATE_VIDEO_BUSY = 4,STATE_VIDEO_STOP = 5;
+
+
     final private Runnable
             rHideBottomInfo = () -> UIHelper.setViewAlpha(binding.cvBottomInfo, 200, 0, true),
             rShowBottomInfo = () -> UIHelper.setViewAlpha(binding.cvBottomInfo, 10, 1, true),
@@ -70,57 +87,21 @@ public class CameraActivity extends AppCompatActivity {
 
                 SAL.simulatePress(this, false);
 
-                if (isVideoMode) {
+                updateShutterState(isVideoMode ? STATE_VIDEO_BUSY : STATE_PHOTO_PRESS);
 
-                    binding.ivShutterVideoIdle.animate()
-                            .scaleX(0)
-                            .scaleY(0)
-                            .setDuration(500)
-                            .setInterpolator(new OvershootInterpolator())
-                            .start();
-
-                    //UIHelper.setViewAlpha(ivShutterVideoIdle, 50, 1, true);
-                } else {
-                    binding.ivShutterPhoto.animate()
-                            .scaleX(0.95f)
-                            .scaleY(0.95f)
-                            .alpha(0.5f)
-                            .setDuration(50)
-                            .start();
-
-                }
+                if(isVideoMode) UIHelper.setViewAlpha(200, 1, binding.vRecordRect);
+                else UIHelper.setViewAlpha(50,1,binding.vCaptureRect);
 
             },
     rOnShutterReleased = () -> {
 
         SAL.simulatePress(this, true);
 
-        if (isVideoMode) {
-            binding.ivShutterVideoIdle.animate()
-                    .scaleX(1)
-                    .scaleY(1)
-                    .setInterpolator(new OvershootInterpolator())
-                    .setDuration(300)
-                    .start();
-        } else {
-            /**
-             * release shutter button -- make it big again
-             */
-            binding.ivShutterPhoto.animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .alpha(1f)
-                    .setDuration(50)
-                    .start();
+        updateShutterState(isVideoMode ? STATE_VIDEO_STOP : STATE_PHOTO_RELEASE);
 
-            /**
-             * Fade capture rectangle out
-             */
-            binding.vCaptureRect.animate()
-                    .alpha(0)
-                    .setDuration(1000)
-                    .start();
-        }
+        if(isVideoMode) UIHelper.setViewAlpha(200, 0, binding.vRecordRect);
+        else UIHelper.setViewAlpha(1000,0,binding.vCaptureRect);
+
     },
             rHideNav = () -> {
                 getWindow().getDecorView().setSystemUiVisibility(
@@ -272,7 +253,7 @@ public class CameraActivity extends AppCompatActivity {
 
         pToZDetector = new ScaleGestureDetector(requireContext(), pToZListener);
 
-        binding.ivShutterBase.setOnTouchListener(this::onShutterTouched);
+        binding.ivShutterPhotoBase.setOnTouchListener(this::onShutterTouched);
         binding.btnCaptureMode.setOnClickListener(this::toggleVideoMode);
         binding.btnFocusCancel.setOnClickListener(this::cancelFocus);
         binding.toggleFocusFreq.setOnClickListener(this::toggleFocusFreqMode);
@@ -353,14 +334,14 @@ public class CameraActivity extends AppCompatActivity {
 
         SysInfo.initialize(this);
 
-        SysInfo.addListener(new BatteryListener() {
+        SysInfo.addListener(this,new BatteryListener() {
             @Override
             public void onDataAvailable(Intent batteryIntent) {
                 SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
             }
         });
 
-        SysInfo.addListener(new RotationListener() {
+        SysInfo.addListener(this,new RotationListener() {
             @Override
             public void onDataAvailable(float azimuth, float pitch, float roll) {
 
@@ -386,7 +367,7 @@ public class CameraActivity extends AppCompatActivity {
             if(binding.btnFocusCancel.getAlpha() == 0) hideAfOverlay();
 
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) binding.vFocusRect.getLayoutParams();
-            params.setMargins((int) x - 50, (int) y - 50, 0, 0);
+            params.setMargins((int) x - 80, (int) y - 80, 0, 0);
             binding.vFocusRect.setLayoutParams(params);
 
             isFocused = false;
@@ -426,7 +407,6 @@ public class CameraActivity extends AppCompatActivity {
         if (isVideoMode && !isRecording) {
 
             isRecording = true;
-            UIHelper.setViewAlpha(200, 1, binding.vRecordRect);
 
             CameraCore.startRecording(new EventListener() {
                 @Override
@@ -436,10 +416,7 @@ public class CameraActivity extends AppCompatActivity {
                      * This event would only be called when the video is saved.
                      */
                     if (dataType != DataType.URI_VIDEO_SAVED) return false;
-
                     requireExecutor().execute(rOnShutterReleased);
-
-                    UIHelper.setViewAlpha(200, 0, binding.vRecordRect);
 
                     return super.onEventUpdated(dataType, data);
                 }
@@ -454,13 +431,7 @@ public class CameraActivity extends AppCompatActivity {
 
             CameraCore.pauseFocus();
 
-            binding.vCaptureRect.animate()
-                    .alpha(1)
-                    .setDuration(10)
-                    .start();
-
             animationHandler.postDelayed(rOnShutterReleased, 100);
-
             CameraCore.takePicture(new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
@@ -491,7 +462,7 @@ public class CameraActivity extends AppCompatActivity {
             UIHelper.resizeView(binding.cvPreviewWrapper,
                     previewDimensions,
                     new int[]{targetWidth, previewDimensions[1]},
-                    PREVIEW_RESIZE_DURATION,
+                    DURATION_PREVIEW_RESIZE_ANIM,
                     UIHelper.INTRPL_DECEL);
 
             previewDimensions[0] = targetWidth;
@@ -543,14 +514,11 @@ public class CameraActivity extends AppCompatActivity {
 
         final View [] hideGroup = {
 
-                binding.ivShutterBase,
-                binding.ivShutterVideoIdle,
-                binding.ivShutterVideoBusy,
-                binding.ivShutterPhoto,
                 binding.toggleExposureMenu,
                 binding.toggleFocusFreq,
                 binding.btnCaptureMode,
-                binding.btnAwb
+                binding.btnAwb,
+                binding.fabSwitchSide
         };
 
         final boolean isAfOverlayVisible = binding.ivAfOverlay.getAlpha() != 0;
@@ -563,24 +531,16 @@ public class CameraActivity extends AppCompatActivity {
         UIHelper.setViewAlphas(100,0,hideGroup);
         if(isAfOverlayVisible) hideAfOverlay();
 
+        updateShutterState(isVideoMode ? STATE_VIDEO_IDLE : STATE_PHOTO_IDLE);
+
         animationHandler.postDelayed(() -> {
 
             UIHelper.setViewAlphas(200,0,showGroup);
             UIHelper.setViewAlphas(200,1,hideGroup);
 
-            binding.ivShutterBase.animate()
-                    .alpha(isVideoMode ? 1f : 0.6f)
-                    .setInterpolator(UIHelper.getInterpolator(UIHelper.INTRPL_LINEAR))
-                    .setDuration(100)
-                    .start();
-
-            UIHelper.setViewAlpha(100, isVideoMode? 1.0f:0, binding.ivShutterVideoIdle);
-            UIHelper.setViewAlpha(isVideoMode ? 100 : 0, isVideoMode? 1.0f:0, binding.ivShutterVideoBusy);
-            UIHelper.setViewAlpha(100, isVideoMode ? 0 : 1.0f, binding.ivShutterPhoto);
-
             if(isAfOverlayVisible) showAfOverlay();
 
-        }, PREVIEW_RESIZE_DURATION);
+        }, DURATION_PREVIEW_RESIZE_ANIM);
 
 
         return true;
@@ -616,6 +576,104 @@ public class CameraActivity extends AppCompatActivity {
                 .alpha(0)
                 .setInterpolator(UIHelper.getInterpolator(UIHelper.INTRPL_ACCEL))
                 .start();
+
+    }
+
+    private void updateShutterState(@ShutterState int state) {
+
+        switch (state) {
+            case STATE_PHOTO_IDLE:
+
+                binding.ivShutterPhotoBase.animate()
+                        .scaleX(1)
+                        .scaleY(1)
+                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .start();
+
+                binding.ivShutterWhiteCenter.animate()
+                        .scaleX(0.85f)
+                        .scaleY(0.85f)
+                        .setInterpolator(new AccelerateInterpolator())
+                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .start();
+
+                binding.ivShutterVideoIdle.animate()
+                    .alpha(0)
+                    .setDuration(DURATION_SHUTTER_ANIM)
+                    .start();
+
+                break;
+
+            case STATE_VIDEO_IDLE:
+
+                binding.ivShutterWhiteCenter.animate()
+                        .scaleX(1f)
+                        .scaleY(1f)
+                        .setInterpolator(new DecelerateInterpolator())
+                        .setDuration(DURATION_SHUTTER_ANIM * 2)
+                        .start();
+
+                binding.ivShutterVideoIdle.animate()
+                        .alpha(1)
+                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .start();
+
+                binding.ivShutterVideoBusy.animate()
+                        .alpha(0)
+                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .start();
+                break;
+
+            case STATE_VIDEO_BUSY:
+                binding.ivShutterVideoIdle.animate()
+                        .scaleX(0)
+                        .scaleY(0)
+                        .setDuration(500)
+                        .setInterpolator(new DecelerateInterpolator())
+                        .start();
+
+                binding.ivShutterVideoBusy.animate()
+                        .alpha(1)
+                        .setDuration(0)
+                        .start();
+
+                break;
+
+            case STATE_VIDEO_STOP:
+
+                binding.ivShutterVideoIdle.animate()
+                        .scaleX(0.85f)
+                        .scaleY(0.85f)
+                        .setDuration(500)
+                        .setInterpolator(new OvershootInterpolator())
+                        .start();
+
+                binding.ivShutterVideoBusy.animate()
+                        .alpha(0)
+                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .start();
+
+                break;
+
+            case STATE_PHOTO_PRESS:
+
+                binding.ivShutterWhiteCenter.animate()
+                        .scaleX(0.8f)
+                        .scaleY(0.8f)
+                        .alpha(0.6f)
+                        .setDuration(50)
+                        .start();
+                break;
+
+            case STATE_PHOTO_RELEASE:
+                binding.ivShutterWhiteCenter.animate()
+                        .scaleX(0.85f)
+                        .scaleY(0.85f)
+                        .alpha(1)
+                        .setDuration(50)
+                        .start();
+
+        }
 
     }
 

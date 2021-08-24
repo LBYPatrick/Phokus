@@ -4,11 +4,14 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Code/Phokus/app/src/main/res/drawable/ic_toggle_ev_off.xml" value="0.36033755274261603" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/drawable/shape_shutter_base.xml" value="0.36033755274261603" />
         <entry key="..\:/Code/Phokus/app/src/main/res/drawable/toggle_ev_on.xml" value="0.36033755274261603" />
         <entry key="..\:/Code/Phokus/app/src/main/res/drawable/vector_ev_on.xml" value="0.2128205128205128" />
         <entry key="..\:/Code/Phokus/app/src/main/res/drawable/vector_focus_continuous.xml" value="0.36033755274261603" />
         <entry key="..\:/Code/Phokus/app/src/main/res/drawable/vector_focus_single.xml" value="0.36033755274261603" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/drawable/vector_shutter_center_circle.xml" value="0.36033755274261603" />
         <entry key="..\:/Code/Phokus/app/src/main/res/layout/activity_camera.xml" value="0.35170940170940174" />
+        <entry key="..\:/Code/Phokus/app/src/main/res/layout/activity_gallery.xml" value="0.21495726495726497" />
       </map>
     </option>
   </component>

@@ -40,8 +40,8 @@
 
     <View
         android:id="@+id/v_focus_rect"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
         app:layout_constraintTop_toTopOf="@id/cv_preview_wrapper"
         app:layout_constraintLeft_toLeftOf="@id/cv_preview_wrapper"
         android:foreground="@drawable/vector_focus_rect"
@@ -255,11 +255,11 @@
 
     <!--Shutter Button -->
     <ImageView
-        android:id="@+id/iv_shutter_base"
+        android:id="@+id/iv_shutter_photo_base"
         android:layout_width="65dp"
         android:layout_height="65dp"
         android:layout_marginEnd="10dp"
-        android:src="@drawable/shape_shutter_base"
+        android:src="@drawable/shape_circle"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
         app:layout_constraintTop_toTopOf="parent"
@@ -268,14 +268,16 @@
         android:elevation="3dp"/>
 
     <ImageView
-        android:id="@+id/iv_shutter_photo"
+        android:id="@+id/iv_shutter_white_center"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:foreground="@drawable/vector_shutter_center_circle"
-        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
-        app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
-        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_base"
+        android:foreground="@drawable/shape_circle"
+        android:scaleY="0.85"
+        android:scaleX="0.85"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_photo_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_photo_base"
+        app:layout_constraintTop_toTopOf="@id/iv_shutter_photo_base"
+        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_photo_base"
         android:alpha="1"
         android:elevation="3dp"/>
 
@@ -285,10 +287,10 @@
         android:layout_height="0dp"
         android:layout_margin="20dp"
         android:src="@drawable/vector_shutter_video_busy"
-        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
-        app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
-        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_base"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_photo_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_photo_base"
+        app:layout_constraintTop_toTopOf="@id/iv_shutter_photo_base"
+        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_photo_base"
         android:alpha="0"
         android:elevation="3dp"/>
 
@@ -296,12 +298,14 @@
         android:id="@+id/iv_shutter_video_idle"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:src="@drawable/vector_shutter_center_circle"
+        android:src="@drawable/shape_circle"
+        android:scaleX="0.85"
+        android:scaleY="0.85"
         app:tint="#FF0000"
-        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
-        app:layout_constraintTop_toTopOf="@id/iv_shutter_base"
-        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_base"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_photo_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_photo_base"
+        app:layout_constraintTop_toTopOf="@id/iv_shutter_photo_base"
+        app:layout_constraintBottom_toBottomOf="@id/iv_shutter_photo_base"
         android:alpha="0"
         android:elevation="3dp"/>
 
@@ -371,9 +375,9 @@
         app:fabCustomSize="50dp"
         android:layout_width="50dp"
         android:layout_height="50dp"
-        app:layout_constraintBottom_toTopOf="@id/iv_shutter_base"
-        app:layout_constraintRight_toRightOf="@id/iv_shutter_base"
-        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_base"
+        app:layout_constraintBottom_toTopOf="@id/iv_shutter_photo_base"
+        app:layout_constraintRight_toRightOf="@id/iv_shutter_photo_base"
+        app:layout_constraintLeft_toLeftOf="@id/iv_shutter_photo_base"
         android:layout_marginBottom="30dp"
         app:tint="#FFFFFF"
         app:backgroundTint="@color/colorCameraButton_43"

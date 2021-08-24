@@ -1,7 +1,6 @@
 package com.lbynet.phokus.ui.widget
 
 import android.animation.TimeInterpolator
-import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
 import android.view.MotionEvent
@@ -15,29 +14,35 @@ import com.lbynet.phokus.utils.UIHelper.InterpolatorType
 
 class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(context,attrs),View.OnTouchListener {
 
-    private var ivToggleOn_ : ImageView
-    private var ivToggleOff_ : ImageView
-    private var isInitialized_ = false
-    private var isToggledOn_ = true
-    private var isToggleOffPersistent_ = true
-    private var transitionDuration_ : Long  = 0
+    private var ivToggleOn : ImageView
+    private var ivToggleOff : ImageView
+    private var isInitialized = false
+    private var isToggledOn = true
+    private var isToggleOffPersistent = true
+    private var transitionDuration : Long  = 0
     private var actualClickListener: OnClickListener? = null
     private lateinit var interpolator: TimeInterpolator
 
     init {
 
-        val view = inflate(context, R.layout.view_toggle,this)
+        /**
+         * Why would I use view.findViewById(int)? and not findViewById(int) ?
+         * Because our "smart" IDE thinks that I could call findViewById(int) WITHOUT inflating the view...
+         * This would force the IDE to interpret my code THE RIGHT WAY.
+         * -- LBYPatrick, 08/24/2021
+         */
+        val root = inflate(context, R.layout.view_toggle,this)
 
-        ivToggleOn_ = findViewById(R.id.iv_toggle_on)
-        ivToggleOff_ = findViewById(R.id.iv_toggle_off)
+        ivToggleOn = root.findViewById(R.id.iv_toggle_on)
+        ivToggleOff = root.findViewById(R.id.iv_toggle_off)
 
         val attr = context.obtainStyledAttributes(attrs,R.styleable.ToggleView,0,0)
 
         try {
-            ivToggleOn_.setImageDrawable(attr.getDrawable(R.styleable.ToggleView_toggleOnDrawable))
-            ivToggleOff_.setImageDrawable(attr.getDrawable(R.styleable.ToggleView_toggleOffDrawable))
-            transitionDuration_ = attr.getInteger(R.styleable.ToggleView_transitionDurationInMs, 150).toLong()
-            isToggleOffPersistent_ = attr.getBoolean(R.styleable.ToggleView_toggleOffPersistent,true);
+            ivToggleOn.setImageDrawable(attr.getDrawable(R.styleable.ToggleView_toggleOnDrawable))
+            ivToggleOff.setImageDrawable(attr.getDrawable(R.styleable.ToggleView_toggleOffDrawable))
+            transitionDuration = attr.getInteger(R.styleable.ToggleView_transitionDurationInMs, 150).toLong()
+            isToggleOffPersistent = attr.getBoolean(R.styleable.ToggleView_toggleOffPersistent,true);
 
 
             setInterpolator(attr.getInteger(R.styleable.ToggleView_interpolator, UIHelper.INTRPL_LINEAR))
@@ -48,7 +53,7 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
             super.setOnClickListener {
                 if(actualClickListener == null) {
                     SAL.print("Default routine");
-                    setToggleState(!isToggledOn_)
+                    setToggleState(!isToggledOn)
                 }
                 else {
                     SAL.print("custom routine");
@@ -60,7 +65,7 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
             SAL.print(e)
         } finally {
             attr.recycle()
-            isInitialized_ = true
+            isInitialized = true
         }
     }
 
@@ -74,25 +79,25 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
     }
 
     fun setTint(color : Int) {
-        ivToggleOn_.setColorFilter(color)
-        ivToggleOff_.setColorFilter(color)
+        ivToggleOn.setColorFilter(color)
+        ivToggleOff.setColorFilter(color)
     }
 
     fun setToggleState(isToggledOn: Boolean) {
-        if (isToggledOn == isToggledOn_) return
+        if (isToggledOn == this.isToggledOn) return
 
-        isToggledOn_ = isToggledOn
+        this.isToggledOn = isToggledOn
 
-        ivToggleOn_.animate()
+        ivToggleOn.animate()
                 .alpha(if (isToggledOn) 1f else 0f)
-                .setDuration(if (isInitialized_) transitionDuration_ else 0)
+                .setDuration(if (isInitialized) transitionDuration else 0)
                 .setInterpolator(interpolator)
                 .start()
 
-        if(!isToggleOffPersistent_) {
-            ivToggleOff_.animate()
+        if(!isToggleOffPersistent) {
+            ivToggleOff.animate()
                     .alpha(if (isToggledOn) 0f else 1f)
-                    .setDuration(if (isInitialized_) transitionDuration_ else 0)
+                    .setDuration(if (isInitialized) transitionDuration else 0)
                     .setInterpolator(interpolator)
                     .start()
         }

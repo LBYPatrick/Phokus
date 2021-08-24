@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
 import android.graphics.Point;
-import android.graphics.drawable.Drawable;
 import android.renderscript.Allocation;
 import android.renderscript.Element;
 import android.renderscript.RenderScript;
@@ -29,6 +28,7 @@ import androidx.annotation.IntDef;
 import androidx.cardview.widget.CardView;
 import androidx.core.content.ContextCompat;
 
+import com.lbynet.phokus.deprecated.DelayedAnimation;
 import com.lbynet.phokus.deprecated.listener.ColorListener;
 import com.lbynet.phokus.template.EventListener;
 

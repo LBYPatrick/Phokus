@@ -1,6 +1,9 @@
-package com.lbynet.phokus.utils;
+package com.lbynet.phokus.deprecated;
 
 import android.animation.Animator;
+
+import com.lbynet.phokus.utils.SAL;
+import com.lbynet.phokus.utils.Timer;
 
 import java.util.concurrent.Executor;
 

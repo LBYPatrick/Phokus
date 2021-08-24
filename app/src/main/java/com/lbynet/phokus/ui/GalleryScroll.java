@@ -16,6 +16,7 @@ import com.lbynet.phokus.R;
 
 import org.jetbrains.annotations.NotNull;
 
+//TODO: Finish This
 public class GalleryScroll extends Fragment {
 
     private View rootView = null;
@@ -50,8 +51,6 @@ public class GalleryScroll extends Fragment {
         recyclerGallery.setLayoutManager(new GridLayoutManager(requireContext(),5));
 
         recyclerGallery.setAdapter(galleryScrollAdapter);
-
-
 
     }
 }

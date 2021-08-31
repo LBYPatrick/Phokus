@@ -32,7 +32,6 @@ object SysInfo {
         }
     }
 
-
     private val angles = FloatArray(3)
     private val rotationMatrix = FloatArray(9)
     private val accelReading = FloatArray(3)
@@ -42,16 +41,6 @@ object SysInfo {
             batteryIntent_ = intent
             for (i in batteryListeners) i.onDataAvailable(batteryIntent_)
         }
-    }
-
-    @JvmStatic
-    fun initialize(activity: Activity) {
-        /**
-         * Setup accelerometer and magnetometer
-         */
-        sm = ContextCompat.getSystemService(activity, SensorManager::class.java)
-        accel = sm!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-        magnetic = sm!!.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
     }
 
     fun onRotationSensorChanged(event: SensorEvent, isAccelerometer: Boolean) {
@@ -84,16 +73,17 @@ object SysInfo {
     }
 
     @JvmStatic
-    fun addListener(activity : Activity, listener: Any) {
+    fun addListener(context : Context, listener: Any) {
         if (listener is RotationListener) {
-            rotationListeners.add(listener)
+            rotationListeners.add(context,listener)
             if (rotationListeners.size == 1) enableRotationSensor(true)
         } else {
             batteryListeners.add(listener as BatteryListener)
-            if (batteryListeners.size == 1) enableBatterySensor(activity,true)
+            if (batteryListeners.size == 1) enableBatterySensor(context,true)
         }
     }
 
+    @JvmStatic
     fun removeListener(activity : Activity, listener: Any) {
         if (listener is RotationListener) {
             rotationListeners.remove(listener)
@@ -104,17 +94,27 @@ object SysInfo {
         }
     }
 
+    @JvmStatic
     private val isRotationSensorEnabled: Boolean
         get() = rotationListeners.size > 0
 
-    private fun enableBatterySensor(activity : Activity, isEnabled: Boolean) {
-        if (isEnabled) activity.registerReceiver(bmsReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) else activity.unregisterReceiver(bmsReceiver)
+    @JvmStatic
+    private fun enableBatterySensor(context : Context, isEnabled: Boolean) {
+        if (isEnabled) context.registerReceiver(bmsReceiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) else context.unregisterReceiver(bmsReceiver)
     }
 
-    private fun enableRotationSensor(isEnabled: Boolean) {
+    @JvmStatic
+    private fun enableRotationSensor(context : Context, isEnabled: Boolean) {
         if (isEnabled) {
+
+            sm = ContextCompat.getSystemService(context, SensorManager::class.java)
+            accel = sm!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+            magnetic = sm!!.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD)
+
             sm!!.registerListener(sensorListener, accel, SensorManager.SENSOR_DELAY_GAME, SensorManager.SENSOR_DELAY_GAME)
             sm!!.registerListener(sensorListener, magnetic, SensorManager.SENSOR_DELAY_GAME, SensorManager.SENSOR_DELAY_GAME)
-        } else sm!!.unregisterListener(sensorListener)
+        }
+
+        else sm!!.unregisterListener(sensorListener)
     }
 }

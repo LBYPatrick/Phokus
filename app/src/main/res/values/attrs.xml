@@ -22,4 +22,14 @@
         </attr>
     </declare-styleable>
 
+    <declare-styleable name="DeviceRotationView">
+
+        <attr name="rotationPerfectColor" format="color"/>
+        <attr name="rotationWarningColor" format="color"/>
+        <attr name="isAngleInfoVisible" format="boolean"/>
+        <attr name="colorTransitionDuration" format="integer"/>
+
+    </declare-styleable>
+
+
 </resources>

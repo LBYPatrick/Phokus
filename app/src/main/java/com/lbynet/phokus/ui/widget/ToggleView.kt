@@ -24,7 +24,6 @@ class ToggleView(context: Context, attrs : AttributeSet) : ConstraintLayout(cont
     private lateinit var interpolator: TimeInterpolator
 
     init {
-
         /**
          * Why would I use view.findViewById(int)? and not findViewById(int) ?
          * Because our "smart" IDE thinks that I could call findViewById(int) WITHOUT inflating the view...

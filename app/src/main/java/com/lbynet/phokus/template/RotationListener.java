@@ -1,6 +1,6 @@
 package com.lbynet.phokus.template;
 
-public abstract class RotationListener {
+public interface RotationListener {
 
 
     /**
@@ -31,6 +31,6 @@ public abstract class RotationListener {
      *                edge of the device toward the ground creates a positive
      *                roll angle. The range of values is -&pi;/2 to &pi;/2.</li>
      */
-    public abstract void onDataAvailable(float azimuth, float pitch, float roll);
+    void onDataAvailable(float azimuth, float pitch, float roll);
 
 }

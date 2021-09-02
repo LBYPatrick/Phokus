@@ -4,15 +4,9 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import androidx.core.content.ContextCompat
-import com.lbynet.phokus.global.SysInfo
 import com.lbynet.phokus.template.BatteryListener
 
-class BatterySensor(context : Context, listener : BatteryListener) {
-
-
-    private val listener : BatteryListener = listener
-    private val context : Context = context
+class BatterySensor(private val context : Context, private val listener : BatteryListener) {
 
     private val bmsReceiver: BroadcastReceiver = object : BroadcastReceiver() {
 

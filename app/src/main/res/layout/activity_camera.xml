@@ -368,6 +368,15 @@
         android:alpha="0"
         />
 
+    <com.lbynet.phokus.ui.widget.DeviceRotationView
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        app:layout_constraintTop_toTopOf="@id/v_ui_aligner_169"
+        app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_169"
+        app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"
+        app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
+        android:elevation="4dp"/>
+
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_switch_side"

@@ -6,7 +6,6 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.core.content.ContextCompat
-import com.lbynet.phokus.global.SysInfo
 import com.lbynet.phokus.template.RotationListener
 
 class RotationSensor(context : Context, listener : RotationListener) {

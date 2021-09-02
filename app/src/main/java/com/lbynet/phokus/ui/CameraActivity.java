@@ -30,8 +30,9 @@ import com.lbynet.phokus.camera.CameraUtils;
 import com.lbynet.phokus.camera.FocusAction;
 import com.lbynet.phokus.databinding.ActivityCameraBinding;
 import com.lbynet.phokus.global.Config;
-import com.lbynet.phokus.global.SysInfo;
 import com.lbynet.phokus.global.Consts;
+import com.lbynet.phokus.hardware.BatterySensor;
+import com.lbynet.phokus.hardware.RotationSensor;
 import com.lbynet.phokus.template.BatteryListener;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.RotationListener;
@@ -63,6 +64,8 @@ public class CameraActivity extends AppCompatActivity {
 
     static int[] previewDimensions = null;
     static String bottomInfo;
+    static BatterySensor batterySensor;
+    static RotationSensor rotationSensor;
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef ( {
@@ -332,22 +335,16 @@ public class CameraActivity extends AppCompatActivity {
 
         showAfOverlay();
 
-        SysInfo.initialize(this);
 
-        SysInfo.addListener(this,new BatteryListener() {
-            @Override
-            public void onDataAvailable(Intent batteryIntent) {
-                SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
-            }
+
+        batterySensor = new BatterySensor(this, batteryIntent -> {
+            SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
         });
 
-        SysInfo.addListener(this,new RotationListener() {
-            @Override
-            public void onDataAvailable(float azimuth, float pitch, float roll) {
 
-                runOnUiThread( () -> binding.vFocusRect.setRotation((float)MathTools.radianToDegrees(pitch,true)));
-                //SAL.print(azimuth + ", " + pitch + ", " + roll);
-            }
+        rotationSensor = new RotationSensor(this, (RotationListener) (azimuth, pitch, roll) -> {
+            runOnUiThread( () -> binding.vFocusRect.setRotation((float)MathTools.radianToDegrees(pitch,true)));
+            //SAL.print(azimuth + ", " + pitch + ", " + roll);
         });
 
     }
@@ -857,7 +854,8 @@ public class CameraActivity extends AppCompatActivity {
         fullscreenHandler.postDelayed(rHideNav, 100);
         orientationListener.enable();
 
-        SysInfo.onResume();
+        batterySensor.resume();
+        rotationSensor.resume();
     }
 
     @Override
@@ -865,6 +863,8 @@ public class CameraActivity extends AppCompatActivity {
         super.onPause();
 
         orientationListener.disable();
-        SysInfo.onPause();
+
+        batterySensor.hibernate();
+        rotationSensor.hibernate();
     }
 }

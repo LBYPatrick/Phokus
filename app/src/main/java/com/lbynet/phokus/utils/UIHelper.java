@@ -31,6 +31,7 @@ import androidx.core.content.ContextCompat;
 import com.lbynet.phokus.deprecated.DelayedAnimation;
 import com.lbynet.phokus.deprecated.listener.ColorListener;
 import com.lbynet.phokus.template.EventListener;
+import com.lbynet.phokus.template.OnDimensionInfoReadyCallback;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -273,7 +274,7 @@ public class UIHelper {
         return animator;
     }
 
-    public static void queryViewDimensions(View view, EventListener listener) {
+    public static void queryViewDimensions(View view, OnDimensionInfoReadyCallback callback) {
 
         AtomicInteger width = new AtomicInteger(-1),
                       height = new AtomicInteger(-1);
@@ -285,9 +286,7 @@ public class UIHelper {
             width.set(view.getWidth());
             height.set(view.getHeight());
 
-            int [] res = new int [] {view.getWidth(),view.getHeight()};
-
-            listener.onEventUpdated(EventListener.DataType.INT_ARR_VIEW_DIMENSION,res);
+            callback.onDataAvailable(view.getWidth(), view.getHeight());
 
         });
     }

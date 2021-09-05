@@ -33,6 +33,14 @@ object MathTools {
     }
 
     @JvmStatic
+    fun capValue(value : Float, low : Float, high : Float) : Float {
+
+        if(value < low) return low
+        else if(value > high) return high
+        else return value
+    }
+
+    @JvmStatic
     fun getCropFactor(cmosDimensions: SizeF): Float {
         return fullFrameCmosSize / Math.sqrt(
             Math.pow(

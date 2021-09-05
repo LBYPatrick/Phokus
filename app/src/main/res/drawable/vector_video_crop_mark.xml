@@ -7,12 +7,12 @@
       android:fillColor="#FF000000"
       android:pathData="M0,941.5h1920v138.5h-1920z"
       android:strokeAlpha="0"
-      android:fillAlpha="0.3"/>
+      android:fillAlpha="0.8"/>
   <path
       android:fillColor="#FF000000"
       android:pathData="M0,0h1920v138.5h-1920z"
       android:strokeAlpha="0"
-      android:fillAlpha="0.3"/>
+      android:fillAlpha="0.8"/>
   <path
       android:pathData="M957.5,515h5v22.5h-5z"
       android:strokeAlpha="0.5"

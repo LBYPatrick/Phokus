@@ -35,7 +35,6 @@
             android:elevation="1dp"
             android:alpha="0"/>
 
-
     </androidx.cardview.widget.CardView>
 
     <View
@@ -142,7 +141,6 @@
         android:elevation="3dp"
         android:alpha="0"
         />
-
     <View
         android:id="@+id/v_record_rect"
         android:layout_width="0dp"
@@ -347,30 +345,20 @@
             app:toggleOffDrawable="@drawable/vector_focus_single"
             app:isToggledOn="false"
             />
+
+        <ImageView
+            android:id="@+id/btn_cancel_focus"
+            style="@style/CameraTheme.Toggle"
+            android:src="@drawable/vector_cancel_focus"
+            android:alpha="0"
+            />
     </LinearLayout>
 
     <!-- Other stuff -->
-    <Button
-        app:icon="@drawable/ic_clear_24dp"
-        android:text="@string/activity_camera_focus_clear"
-        android:scaleType="center"
-        style="@style/CameraTheme.Toggle.Button"
-        app:iconTint="#FFFFFF"
-        android:textColor="#FFFFFF"
-        android:layout_width="wrap_content"
-        android:layout_height="50dp"
-        android:id="@+id/btn_focus_cancel"
-        app:layout_constraintRight_toRightOf="@id/v_ui_aligner_43"
-        app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_43"
-        android:layout_marginBottom="10dp"
-        android:layout_marginRight="10dp"
-        android:backgroundTint="#FF0000"
-        android:alpha="0"
-        />
-
     <com.lbynet.phokus.ui.widget.DeviceRotationView
-        android:layout_width="200dp"
-        android:layout_height="200dp"
+        android:id="@+id/drv_rotation"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
         app:layout_constraintTop_toTopOf="@id/v_ui_aligner_169"
         app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_169"
         app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"

@@ -8,7 +8,7 @@ import android.hardware.SensorManager
 import androidx.core.content.ContextCompat
 import com.lbynet.phokus.template.RotationListener
 
-class RotationSensor(context : Context, listener : RotationListener) {
+class RotationSensor(private val context : Context, private val listener : RotationListener) {
 
 
     private var sm : SensorManager? = null
@@ -18,7 +18,6 @@ class RotationSensor(context : Context, listener : RotationListener) {
     private val rotationMatrix = FloatArray(9)
     private val accelReading = FloatArray(3)
     private val magneticReading = FloatArray(3)
-    lateinit var listener: RotationListener
 
     private val sensorListener: SensorEventListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {

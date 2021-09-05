@@ -23,6 +23,7 @@ import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.Button;
+import android.widget.ImageView;
 
 import com.lbynet.phokus.R;
 import com.lbynet.phokus.camera.CameraCore;
@@ -131,7 +132,7 @@ public class CameraActivity extends AppCompatActivity {
 
                     UIHelper.setViewAlpha(50, 0.5f, binding.vFocusRect);
 
-                    Button btn = binding.btnFocusCancel;
+                    ImageView btn = binding.btnCancelFocus;
 
                     btn.post(() -> {
                         btn.setClickable(true);
@@ -258,7 +259,9 @@ public class CameraActivity extends AppCompatActivity {
 
         binding.ivShutterPhotoBase.setOnTouchListener(this::onShutterTouched);
         binding.btnCaptureMode.setOnClickListener(this::toggleVideoMode);
-        binding.btnFocusCancel.setOnClickListener(this::cancelFocus);
+
+        binding.btnCancelFocus.setOnClickListener(this::cancelFocus);
+        //binding.btnFocusCancel.setOnClickListener(this::cancelFocus);
         binding.toggleFocusFreq.setOnClickListener(this::toggleFocusFreqMode);
         binding.fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
     }
@@ -323,12 +326,8 @@ public class CameraActivity extends AppCompatActivity {
         binding.preview.post(() -> {
             new Thread(() -> {
                 SAL.sleepFor(150);
-                UIHelper.queryViewDimensions(binding.cvPreviewWrapper, new EventListener() {
-                    @Override
-                    public boolean onEventUpdated(DataType dataType, Object extra) {
-                        previewDimensions = (int[]) extra;
-                        return true;
-                    }
+                UIHelper.queryViewDimensions(binding.cvPreviewWrapper, (width, height) -> {
+                    previewDimensions = new int[]{width,height};
                 });
             }).start();
         });
@@ -342,9 +341,18 @@ public class CameraActivity extends AppCompatActivity {
         });
 
 
-        rotationSensor = new RotationSensor(this, (RotationListener) (azimuth, pitch, roll) -> {
-            runOnUiThread( () -> binding.vFocusRect.setRotation((float)MathTools.radianToDegrees(pitch,true)));
-            //SAL.print(azimuth + ", " + pitch + ", " + roll);
+        rotationSensor = new RotationSensor(this,
+                (RotationListener) (azimuth, pitch, roll) -> {
+            runOnUiThread( () -> {
+                binding.drvRotation
+                        .setHorizontalAngle((float) MathTools.radianToDegrees(pitch, false))
+                        .setVerticalAngle((float) MathTools.radianToDegrees(roll,false) + 90);
+
+
+            });
+
+            SAL.print("Angle: " + MathTools.radianToDegrees(pitch,false));
+
         });
 
     }
@@ -361,7 +369,7 @@ public class CameraActivity extends AppCompatActivity {
         //Tap-to-focus
         else if (event.getAction() == MotionEvent.ACTION_DOWN && !isZooming) {
 
-            if(binding.btnFocusCancel.getAlpha() == 0) hideAfOverlay();
+            if(binding.btnCancelFocus.getAlpha() == 0) hideAfOverlay();
 
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) binding.vFocusRect.getLayoutParams();
             params.setMargins((int) x - 80, (int) y - 80, 0, 0);
@@ -418,8 +426,8 @@ public class CameraActivity extends AppCompatActivity {
                     return super.onEventUpdated(dataType, data);
                 }
             });
-
             startVideoTimer();
+
         } else if (isVideoMode) {
             CameraCore.stopRecording();
             stopVideoTimer();
@@ -538,6 +546,8 @@ public class CameraActivity extends AppCompatActivity {
 
             if(isAfOverlayVisible) showAfOverlay();
 
+            UIHelper.setViewAlpha(100,isVideoMode ? 1 : 0,binding.vVideoCropMark);
+
         }, DURATION_PREVIEW_RESIZE_ANIM);
 
 
@@ -548,11 +558,13 @@ public class CameraActivity extends AppCompatActivity {
 
         if(binding.ivAfOverlay.getAlpha() != 0) return;
 
+        final float targetScaleY = isVideoMode ? 0.8f : 1f;
+
         binding.ivAfOverlay.setScaleX(1.1f);
-        binding.ivAfOverlay.setScaleY(1.1f);
+        binding.ivAfOverlay.setScaleY(targetScaleY * 1.1f);
 
         binding.ivAfOverlay.animate()
-                .scaleY(1f)
+                .scaleY(targetScaleY)
                 .scaleX(1f)
                 .setDuration(300)
                 .alpha(1)
@@ -564,11 +576,13 @@ public class CameraActivity extends AppCompatActivity {
 
         if(binding.ivAfOverlay.getAlpha() != 1) return;
 
-        binding.ivAfOverlay.setScaleX(1f);
-        binding.ivAfOverlay.setScaleY(1f);
+        //binding.ivAfOverlay.setScaleX(1f);
+        //binding.ivAfOverlay.setScaleY(1f);
+
+        final float targetScaleY = isVideoMode ? 0.8f : 1f;
 
         binding.ivAfOverlay.animate()
-                .scaleY(1.1f)
+                .scaleY(targetScaleY * 1.1f)
                 .scaleX(1.1f)
                 .setDuration(300)
                 .alpha(0)
@@ -700,6 +714,8 @@ public class CameraActivity extends AppCompatActivity {
 
             String[] time = new String[4];
 
+            wakeBottomInfo();
+
             while (videoTimer.isBusy()) {
 
                 /*Limit timer refresh rate to be roughly 10fps*/
@@ -747,9 +763,9 @@ public class CameraActivity extends AppCompatActivity {
 
         CameraCore.interruptFocus();
 
-        binding.btnFocusCancel.setClickable(false);
+        binding.btnCancelFocus.setClickable(false);
 
-        binding.btnFocusCancel.animate()
+        binding.btnCancelFocus.animate()
                 .alpha(0)
                 .setDuration(50)
                 .start();

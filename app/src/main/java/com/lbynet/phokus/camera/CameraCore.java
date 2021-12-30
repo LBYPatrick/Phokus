@@ -39,6 +39,8 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.annotation.Retention;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
@@ -65,54 +67,75 @@ public class CameraCore {
 
     //From frontend
     static Context context_;
-    static PreviewView previewView_;
+    static PreviewView preview_view_;
     static CaptureRequestOptions.Builder crob_ = new CaptureRequestOptions.Builder();
 
     //CameraX components
     static CameraSelector cs_;
     static Camera camera_;
-    static ImageCapture imageCapture_;
-    static VideoCapture videoCapture_;
+    static ImageCapture image_capture_;
+    static VideoCapture video_capture_;
     static ProcessCameraProvider pcp;
-    static float defaultZoom_ = -1,
-            prevZoom_ = -1;
-    static Executor uiThreadExecutor_;
-    static FocusAction focusAction_;
-    static int rotationMinor_ = 0,
-               rotationMajor_ = 0;
-    static EventListener statusListener_ = new EventListener() {};
+    static float zoom_default_ = -1,
+            zoom_prev_ = -1;
+    static Executor ui_executor_,
+                    exec_cam_core_ = Executors.newSingleThreadExecutor();
+    static int rot_minor_ = 0,
+               rot_major_ = 0;
+    static EventListener listener_stat_ = new EventListener() {};
 
     //Other internal variables
-    static boolean isRecording_ = false;
+    private static boolean isRecording_ = false,
+                           is_camera_bound_ = false;
+    final private static ReentrantLock m_camera = new ReentrantLock();
+    final private static Condition cond_camera = m_camera.newCondition();
+
+
 
     public static void initialize() {
         Config.loadConfig();
     }
 
     public static void setStatusListener_(EventListener listener) {
-        statusListener_ = listener;}
+        listener_stat_ = listener;}
 
-    public static void start(PreviewView preview_view) {
+    public static void start(PreviewView previewView) {
 
-        context_ = preview_view.getContext();
-        previewView_ = preview_view;
-        uiThreadExecutor_ = ContextCompat.getMainExecutor(context_);
+        context_ = previewView.getContext();
+        preview_view_ = previewView;
+        ui_executor_ = ContextCompat.getMainExecutor(context_);
 
-        ListenableFuture<ProcessCameraProvider> listenable_future_ = ProcessCameraProvider.getInstance(context_);
+        ListenableFuture<ProcessCameraProvider> future = ProcessCameraProvider.getInstance(context_);
 
-        listenable_future_.addListener(() -> {
+        future.addListener(() -> {
                     try {
-                        pcp = listenable_future_.get();
+
+                        pcp = future.get();
                         bindCameraX();
+
+                        m_camera.lock();
+
+                        while(!is_camera_bound_) cond_camera.await();
+
+                        SAL.print("is camera null? " + (camera_ == null? "yes" : "no"));
+
+                        FocusAction.initialize(camera_.getCameraControl(), preview_view_, ui_executor_);
+
+                        m_camera.unlock();
+
                     } catch (Exception e) {
                         SAL.print(e);
                     }
                 }
-                , ContextCompat.getMainExecutor(context_)
+                , exec_cam_core_
         );
     }
 
     public static void updateVideoMode() {
+
+        m_camera.lock();
+
+        is_camera_bound_ = false;
 
         boolean isVideoMode = (boolean) Config.get(Config.VIDEO_MODE),
                 isChangeDetected = false;
@@ -120,14 +143,14 @@ public class CameraCore {
         /**
          * See if there are usecases that needs to be un-bound
          */
-        if(isVideoMode && imageCapture_ != null) {
-            pcp.unbind(imageCapture_);
-            imageCapture_ = null;
+        if(isVideoMode && image_capture_ != null) {
+            pcp.unbind(image_capture_);
+            image_capture_ = null;
             isChangeDetected = true;
         }
-        else if(!isVideoMode && videoCapture_ != null) {
-            pcp.unbind(videoCapture_);
-            videoCapture_ = null;
+        else if(!isVideoMode && video_capture_ != null) {
+            pcp.unbind(video_capture_);
+            video_capture_ = null;
             isChangeDetected = true;
         }
 
@@ -136,57 +159,74 @@ public class CameraCore {
          */
         if(isChangeDetected) {
 
-            statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
-
+            listener_stat_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
             camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs_, buildUseCase(isVideoMode ? USECASE_VIDEO_CAPTURE : USECASE_IMAGE_CAPTURE));
+
             updateCameraConfig();
-            detectCameraBoundState();
         }
 
+        detectCameraBoundState();
     }
 
     @SuppressLint("RestrictedApi")
     private static void bindCameraX() {
 
-        pcp.unbindAll();
+        m_camera.lock();
 
-        SAL.print(TAG, "CameraX binding...");
+        is_camera_bound_ = false;
 
-        boolean isFrontFacing = (boolean)Config.get(Config.FRONT_FACING);
+        ui_executor_.execute( ()-> {
+
+            pcp.unbindAll();
+
+            SAL.print(TAG, "CameraX binding...");
+
+            boolean isFrontFacing = (boolean)Config.get(Config.FRONT_FACING);
+
+            cs_ = new CameraSelector.Builder()
+                    .requireLensFacing(isFrontFacing ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
+                    .build();
+            boolean is_video_mode = (Boolean) Config.get(Config.VIDEO_MODE);
+
+            //Build usecase array
+            UseCase [] useCaseArray = buildUseCaseArray(
+                    USECASE_PREVIEW,
+                    (is_video_mode ? USECASE_VIDEO_CAPTURE : USECASE_IMAGE_CAPTURE));
 
 
-        cs_ = new CameraSelector.Builder()
-                .requireLensFacing(isFrontFacing ? CameraSelector.LENS_FACING_FRONT : CameraSelector.LENS_FACING_BACK)
-                .build();
-        boolean is_video_mode = (Boolean) Config.get(Config.VIDEO_MODE);
+            camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs_, useCaseArray);
+            zoom_default_ = CameraUtils.get35FocalLength(context_, isFrontFacing ? 1 : 0);
+            zoom_prev_ = zoom_default_;
 
-        //Build usecase array
-        UseCase [] useCaseArray = buildUseCaseArray(
-                USECASE_PREVIEW,
-                (is_video_mode ? USECASE_VIDEO_CAPTURE :
-                        USECASE_IMAGE_CAPTURE));
+            updateCameraConfig();
 
-        camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs_, useCaseArray);
-        defaultZoom_ = CameraUtils.get35FocalLength(context_, isFrontFacing ? 1 : 0);
-        prevZoom_ = defaultZoom_;
+        });
 
-        updateCameraConfig();
         detectCameraBoundState();
+
     }
 
     private static void detectCameraBoundState() {
-        new Thread( ()-> {
 
-            LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
 
-            while(state.getValue().getType() != CameraState.Type.OPEN)  {
-                SAL.print("Camera is opening");
-                SAL.sleepFor(10);
-            }
+        while(camera_ == null) SAL.sleepFor(1);
 
-            statusListener_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BOUND,null);
+        LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
 
-        }).start();
+        while(state.getValue().getType() != CameraState.Type.OPEN) {
+            //SAL.print("Camera is opening");
+            SAL.sleepFor(1);
+        }
+
+        is_camera_bound_ = true;
+
+        if (m_camera.isLocked()) {
+            cond_camera.signalAll();
+            m_camera.unlock();
+        }
+
+        listener_stat_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BOUND,null);
+
     }
 
     public static UseCase[] buildUseCaseArray(@UseCaseType String... types) {
@@ -210,27 +250,27 @@ public class CameraCore {
                 Preview p = new Preview.Builder()
                         .build();
 
-                p.setSurfaceProvider(previewView_.getSurfaceProvider());
+                p.setSurfaceProvider(preview_view_.getSurfaceProvider());
                 return p;
 
             case USECASE_VIDEO_CAPTURE:
 
-                videoCapture_ = new VideoCapture.Builder()
+                video_capture_ = new VideoCapture.Builder()
                         .setTargetResolution((Size) Config.get(Config.VIDEO_RESOLUTION))
                         .setVideoFrameRate((Integer) Config.get(Config.VIDEO_FPS))
                         .setBitRate((Integer) Config.get(Config.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
 
-                return videoCapture_;
+                return video_capture_;
 
             case USECASE_IMAGE_CAPTURE:
 
-                imageCapture_ = new ImageCapture.Builder()
+                image_capture_ = new ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .setTargetResolution(new Size(8000,6000))
                         .build();
 
-                return imageCapture_;
+                return image_capture_;
 
             case USECASE_IMAGE_ANALYSIS_BASIC:
 
@@ -239,7 +279,7 @@ public class CameraCore {
                         .build();
 
                 //TODO: Do Analyzer stuff here
-                ia.setAnalyzer(Executors.newSingleThreadExecutor(), image -> {
+                ia.setAnalyzer(exec_cam_core_, image -> {
                     SAL.print("New frame came in.");
                     //AnalysisResult.put(image);
                     image.close();
@@ -367,14 +407,14 @@ public class CameraCore {
                 SAL.print(e,false);
             }
 
-        }, Executors.newSingleThreadExecutor());
+        }, exec_cam_core_);
     }
 
     public static void takePicture(EventListener listener) {
 
-        imageCapture_.setTargetRotation(rotationMinor_);
+        image_capture_.setTargetRotation(rot_minor_);
 
-        imageCapture_.takePicture(CameraIO.getImageOFO(context_), Executors.newSingleThreadExecutor(), new ImageCapture.OnImageSavedCallback() {
+        image_capture_.takePicture(CameraIO.getImageOFO(context_), Executors.newSingleThreadExecutor(), new ImageCapture.OnImageSavedCallback() {
             @Override
             public void onImageSaved(@NonNull @NotNull ImageCapture.OutputFileResults outputFileResults) {
                 SAL.runFileScan(context_, outputFileResults.getSavedUri());
@@ -393,7 +433,7 @@ public class CameraCore {
 
         isRecording_ = false;
 
-        videoCapture_.stopRecording();
+        video_capture_.stopRecording();
 
         update3A();
     }
@@ -403,11 +443,11 @@ public class CameraCore {
 
         isRecording_ = true;
 
-        videoCapture_.setTargetRotation(rotationMajor_);
+        video_capture_.setTargetRotation(rot_major_);
 
         update3A();
 
-        videoCapture_.startRecording(CameraIO.getVideoOFO(context_), Executors.newSingleThreadExecutor(), new VideoCapture.OnVideoSavedCallback() {
+        video_capture_.startRecording(CameraIO.getVideoOFO(context_), Executors.newSingleThreadExecutor(), new VideoCapture.OnVideoSavedCallback() {
             @Override
             public void onVideoSaved(@NonNull @NotNull VideoCapture.OutputFileResults outputFileResults) {
 
@@ -430,44 +470,58 @@ public class CameraCore {
 
         camera_.getCameraControl().setZoomRatio(ratio);
 
-        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,ratio * defaultZoom_);
+        listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,ratio * zoom_default_);
     }
 
     public static void zoomByFocalLength(float focal_length,EventListener listener) {
 
-        if(focal_length < defaultZoom_) {
+        if(focal_length < zoom_default_) {
             listener.onEventFinished(false,"Queried Focal length too low.");
             return;
         }
 
-        camera_.getCameraControl().setZoomRatio(focal_length / defaultZoom_);
+        camera_.getCameraControl().setZoomRatio(focal_length / zoom_default_);
         listener.onEventUpdated(EventListener.DataType.FLOAT_CAM_FOCAL_LENGTH,focal_length);
     }
 
     public static void updateRotation(int surface_rotation) {
-        rotationMinor_ = surface_rotation;
+        rot_minor_ = surface_rotation;
 
         if(surface_rotation == Surface.ROTATION_90 || surface_rotation == Surface.ROTATION_270) {
-            rotationMajor_ = surface_rotation;
+            rot_major_ = surface_rotation;
         }
     }
 
-    public static void interruptFocus() {
-
-        if(focusAction_ != null) focusAction_.interrupt();
-
-    }
-
     public static void pauseFocus() {
-        if(focusAction_ != null) focusAction_.pause();
+        FocusAction.pause();
     }
 
     public static void resumeFocus() {
-        if(focusAction_ != null) focusAction_.resume();
+        FocusAction.resume();
     }
 
-    public static void focusToPoint(float x, float y, boolean is_continuous, EventListener listener) {
+    public static void resumeFreshFocus() {
+        FocusAction.resumeFresh();
+    }
 
+    public static void focus(FocusAction.FocusActionRequest request) {
+        FocusAction.issueRequest(request);
+    }
+
+    public static FocusAction.FocusActionRequest getLastRequest() {
+        return FocusAction.getLastRequest();
+    }
+
+    public static void focus(float x,
+                             float y,
+                             @FocusAction.FocusType int type) {
+
+        FocusAction.issueRequest(
+                new FocusAction.FocusActionRequest(
+                        type,
+                        new float[]{x,y})
+        );
+        /*
         if(focusAction_ != null && focusAction_.isContinuous() && !focusAction_.isInterrupted()) {
             focusAction_.updateFocusCoordinate(new float[]{x,y});
             return;
@@ -480,13 +534,13 @@ public class CameraCore {
                 new float[]{x,y},
                 camera_.getCameraControl(),
                 previewView_,
-                uiThreadExecutor_,
+                ui_executor_,
                 listener);
+         */
     }
 
-    public static float [] getLastFocusCoordinate() {
-
-        return focusAction_ == null ? null : focusAction_.getLastCoordinate();
+    public static void cancelFocus() {
+        focus(-1,-1,FocusAction.FOCUS_AUTO);
     }
 
     public static boolean isFrontFacing() {

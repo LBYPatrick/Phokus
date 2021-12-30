@@ -1,136 +1,302 @@
 package com.lbynet.phokus.camera;
 
+import static java.lang.annotation.RetentionPolicy.SOURCE;
+
+import androidx.annotation.IntDef;
 import androidx.camera.core.CameraControl;
 import androidx.camera.core.FocusMeteringAction;
 import androidx.camera.core.FocusMeteringResult;
-import androidx.camera.core.MeteringPoint;
-import androidx.camera.core.MeteringPointFactory;
 import androidx.camera.view.PreviewView;
 
 import com.google.common.util.concurrent.ListenableFuture;
-import com.lbynet.phokus.template.EventListener;
+import com.lbynet.phokus.template.FocusActionListener;
 import com.lbynet.phokus.utils.SAL;
 
+import java.lang.annotation.Retention;
 import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.Executors;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
+/**
+ * For the record, the original FocusAction was written back in August 17th, 2021, which is BEFORE I took Operating Systems
+ * And here we are! I realized that there are so many concurrency issues with FocusAction so I rewrote the entire thing
+ * 2021/12/19.
+ */
 public class FocusAction {
 
-    private EventListener listener_;
-    private boolean is_continuous_ = false,
-            is_interrupted_ = false,
-            is_paused_ = false;
-    private Thread thread_;
-    private PreviewView preview_view_ = null;
-    private Executor executor_ = null;
-    private CameraControl cc_ = null;
-    private float [] coordinate_ = {0,0};
-    final public static String MSG_BUSY = "focus_busy",
-                               MSG_SUCCESS = "focus_success",
-                               MSG_CANCELLED = "focus_cancelled";
+    @Retention(SOURCE)
+    @IntDef({
+         FOCUS_AUTO,
+            FOCUS_SINGLE,
+            FOCUS_SERVO
+    })
+    public @interface FocusType{}
+
+    final public static int FOCUS_AUTO = 0,
+                            FOCUS_SINGLE = 1,
+                            FOCUS_SERVO = 2;
+
+    public static class FocusActionRequest {
+
+        public @FocusType int type = FOCUS_AUTO;
+        public float [] point = {0,0};
+
+        public FocusActionRequest() {}
+
+        public FocusActionRequest(@FocusType int type, float [] point) {
+            this.type = type;
+            this.point[0] = point[0];
+            this.point[1] = point[1];
+        }
+
+        public FocusActionRequest(FocusActionRequest another) {
+            this(another.type,another.point);
+        }
+
+    }
+
+    public static class FocusActionResult {
+        public @FocusType int type = 0;
+        public boolean isSuccess = false;
+        public float [] point = {0,0};
+
+        public FocusActionResult() {}
+
+        public FocusActionResult(@FocusType int type, float [] point,boolean isSuccess) {
+            this.type = type;
+            this.isSuccess = isSuccess;
+            this.point[0] = point[0];
+            this.point[1] = point[1];
+        }
+
+        public FocusActionResult(FocusActionRequest request, boolean isSuccess) {
+            this(request.type,request.point,isSuccess);
+        }
+
+        public FocusActionResult(FocusActionResult another) {
+            this(another.type,another.point,another.isSuccess);
+        }
+
+    }
+
+    //Java's version of pthread_mutex
+    final private static ReentrantLock m_focus = new ReentrantLock(),
+                                 m_request = new ReentrantLock();
+
+    //Since Condition is tightly bound a mutex, this implicitly fulfills the concurrency commandment
+    //Instead of us passing the mutexes around
+    final private static Condition cond = m_focus.newCondition();
+
+    private static CameraControl cc_;
+    private static PreviewView pv_;
+    private static Executor ui_executor_;
+    private static Exception exception_ = null;
+    private static FocusActionListener listener_ = null;
+    private static Thread t_looper_ = null;
+
+    final private static Executor exec_listener_ = Executors.newSingleThreadExecutor();
 
 
-    public FocusAction(boolean isContinuous,
-                       float[] coordinate,
-                       CameraControl cameraControl,
-                       PreviewView previewView,
-                       Executor executor,
-                       EventListener listener) {
+    //AtomicBoolean is thread-safe so no need to worry about concurrency for them
+    private static boolean is_point_valid_ = false,
+                           is_busy_ = false,
+                           is_flying_change_ = false,
+                           is_paused_ = false;
 
-        is_continuous_ = isContinuous;
-        coordinate_ =  coordinate;
-        preview_view_ = previewView;
-        executor_ = executor;
+    private static FocusActionRequest currReq = new FocusActionRequest();
+
+    /**
+     *
+     * @param cameraControl CameraControl object returned from androidx.camera.core.Camera.getCameraControl()
+     * @param previewView the PreviewView Object from the frontend for translating user input into coordinates in CMOS
+     * @param uiExecutor the executor for the UI Thread (focus requests are required to be sent via this thread for some reason)
+     * @return 0 on success, < 0 on failure. (and no I don't like using errno)
+     */
+    public static int initialize(CameraControl cameraControl,
+                             PreviewView previewView,
+                                 Executor uiExecutor) {
         cc_ = cameraControl;
-        listener_ = listener;
+        pv_ = previewView;
+        ui_executor_ = uiExecutor;
 
-        thread_ = new Thread( () -> {
+        //Gotta Appreciate the simplicity of this
+        t_looper_ = new Thread(() -> {
 
-            if(!is_continuous_) focus();
-            else {
-                while(!is_interrupted_) {
-                    while(is_paused_) SAL.sleepFor(10);
-                    focus();
-                }
+            int r = 0;
+            while(r >= 0) {
+                r = exec();
+                //TODO: Remove this
+                SAL.sleepFor(1);
             }
         });
 
-        thread_.start();
+        t_looper_.start();
+
+        return 0;
     }
 
-    public boolean isContinuous() {
-        return is_continuous_;
+    public static void setListener(FocusActionListener listener) {
+        listener_ = listener;
     }
-    public boolean isInterrupted() {return is_interrupted_;}
 
-    private boolean focus() {
+    public static void issueRequest(FocusActionRequest request) {
+        //m_request ensures that ONE request may be processed at a time
+        m_request.lock();
+        is_flying_change_ = true;
 
-        AtomicBoolean is_completed = new AtomicBoolean(false);
+        cc_.cancelFocusAndMetering(); //This would make focus() release its lock
 
-        executor_.execute( () -> {
+        m_focus.lock();
 
-            MeteringPointFactory factory = preview_view_.getMeteringPointFactory();
-            MeteringPoint point = factory.createPoint(coordinate_[0], coordinate_[1]);
-            FocusMeteringAction action = new FocusMeteringAction.Builder(point).disableAutoCancel().build();
+        currReq = new FocusActionRequest(request);
+        is_point_valid_ = true;
+        is_flying_change_ = false;
+
+        //This wakes up the looper thread
+        cond.signalAll();
+        m_focus.unlock();
+
+        m_request.unlock();
+    }
+
+    public static FocusActionRequest getLastRequest() {
+
+        return new FocusActionRequest(currReq);
+
+    }
+
+    public static void pause() {
+
+        boolean wasBusy = is_busy_;
+
+        //cc_.cancelFocusAndMetering(); //This would make focus() release its lock ASAP
+        m_focus.lock();
+
+        is_paused_ = true;
+        if(wasBusy) is_point_valid_ = true; //So that as soon as we run resume(), focus() would pick up where it left off
+
+        m_focus.unlock();
+    }
+
+    public static void resume() {
+        m_focus.lock();
+
+        is_paused_ = false;
+
+        m_focus.unlock();
+    }
+
+    public static void resumeFresh() {
+        m_focus.lock();
+
+        is_point_valid_ = false;
+        is_paused_ = false;
+
+        m_focus.unlock();
+    }
+
+
+    private static int exec() {
+
+        boolean is_error = false;
+
+        try {
+            m_focus.lock();
+            while (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_) cond.await();
+            focus();
+        }
+        //Condition Interrupt Exception: idk how and when it would happen but fine I would treat it as an error
+        //TODO: Determine whether this exception matters or is simply annoying
+        catch (InterruptedException e) {
+            SAL.print(e);
+            exception_ = e;
+            is_error = true;
+        }
+        finally {
+            m_focus.unlock();
+        }
+
+        return is_error ? -1 : 0;
+    }
+
+    //TODO: This method is unlocking prematurely, waiting for a fix
+    private static void focus() {
+
+        //UI Thread is different from the thread focus() will run on
+        ui_executor_.execute(() -> {
+
+            //Since currReq is used, we are technically in a critical section
+            m_focus.lock();
+
+            if(currReq.type == FOCUS_AUTO) {
+
+                if(listener_ != null)
+                    listener_.onFocusBusy(new FocusActionRequest(currReq));
+
+                cc_.cancelFocusAndMetering();
+                is_busy_ = false;
+                is_point_valid_ = false;
+
+                if(listener_ != null)
+                    listener_.onFocusEnd(new FocusActionResult(currReq,true));
+
+                cond.signalAll();
+                m_focus.unlock();
+
+                return;
+            }
+
+            FocusMeteringAction action = new FocusMeteringAction.Builder
+                    (pv_
+                            .getMeteringPointFactory()
+                            .createPoint(currReq.point[0],currReq.point[1]))
+                    .disableAutoCancel()
+                    .build();
+
+            //Interact with CameraX
             ListenableFuture<FocusMeteringResult> future = cc_.startFocusAndMetering(action);
 
-            listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_BUSY);
+            //Set is_busy_ to true
+            is_busy_ = true;
+
+            //Notify via listener (if applicable)
+            if(listener_ != null) listener_.onFocusBusy(new FocusActionRequest(currReq));
 
             future.addListener(() -> {
 
+                //m_focus.lock();
+                FocusMeteringResult res = null;
+
+                //Obtain focus result
                 try {
-
-                    FocusMeteringResult result = ((FocusMeteringResult) (future.get()));
-
-                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_SUCCESS);
-
-                    is_completed.set(true);
-
-                } catch (Exception e) {
-
-                    listener_.onEventUpdated(EventListener.DataType.STRING_FOCUS_STAT, MSG_CANCELLED);
-
-
-                    /**
-                     * This almost always comes out as OperationCancelledException, which suggests
-                     * that the current focus action has been cancelled by the system
-                     * or user input (picking a new focus point BEFORE current focus action finishes)
-                     */
-
-                    SAL.print(e,false);
-
-                } finally {
-                    is_completed.set(true);
+                    res = future.get();
                 }
-            }, executor_);
+                //Focus Cancelled
+                catch (Exception e) {
+                    if(listener_ != null) listener_.onFocusEnd(new FocusActionResult(currReq,false));
+                    //SAL.print(e);
+                    exception_ = e;
+                }
+                //Deal with the variables in FocusAction (in a thread-safe way of course)
+                finally {
+
+                    if(currReq.type != FOCUS_SERVO) is_point_valid_ = false;
+                    is_busy_ = false;
+
+                    if(listener_ != null && res != null) listener_.onFocusEnd(new FocusActionResult(currReq,res.isFocusSuccessful()));
+                    //Equivalent of cond.broadcast(mutex) in Java
+
+                    SAL.print("Unlock!");
+                    cond.signalAll();
+                    m_focus.unlock();
+                }
+
+            },ui_executor_);
+
+            //m_focus.unlock();
         });
 
-        while (!is_completed.get()) SAL.sleepFor(1);
-
-        return true;
-    }
-
-    public synchronized void pause() {
-        is_paused_ = true;
-    }
-    public synchronized void resume() {
-        is_paused_ = false;
-    }
-
-    public synchronized void updateFocusCoordinate(float [] newCoordinate) {
-
-        cc_.cancelFocusAndMetering();
-        coordinate_ = newCoordinate;
-    }
-
-    public synchronized float [] getLastCoordinate() {
-        return coordinate_.clone();
-    }
-
-    public void interrupt() {
-
-        is_interrupted_ = true;
-        cc_.cancelFocusAndMetering();
     }
 
 }

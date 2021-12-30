@@ -8,7 +8,6 @@ import androidx.core.content.ContextCompat;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
 import android.os.BatteryManager;
@@ -22,20 +21,20 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
-import android.widget.Button;
 import android.widget.ImageView;
 
 import com.lbynet.phokus.R;
 import com.lbynet.phokus.camera.CameraCore;
 import com.lbynet.phokus.camera.CameraUtils;
 import com.lbynet.phokus.camera.FocusAction;
+import com.lbynet.phokus.camera.FocusAction.FocusActionRequest;
 import com.lbynet.phokus.databinding.ActivityCameraBinding;
 import com.lbynet.phokus.global.Config;
 import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.hardware.BatterySensor;
 import com.lbynet.phokus.hardware.RotationSensor;
-import com.lbynet.phokus.template.BatteryListener;
 import com.lbynet.phokus.template.EventListener;
+import com.lbynet.phokus.template.FocusActionListener;
 import com.lbynet.phokus.template.RotationListener;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
@@ -51,8 +50,8 @@ import java.util.concurrent.Executor;
 public class CameraActivity extends AppCompatActivity {
 
     final public static String TAG = CameraActivity.class.getCanonicalName();
-    final public static int DURATION_PREVIEW_RESIZE_ANIM = 400,
-                            DURATION_SHUTTER_ANIM = 300;
+    final public static int DUR_ANIM_PREVIEW_RESIZE = 400,
+                            DUR_ANIM_SHUTTER = 300;
 
     private ActivityCameraBinding binding;
     private Timer videoTimer = new Timer("Video Timer");
@@ -120,46 +119,66 @@ public class CameraActivity extends AppCompatActivity {
 
     private Handler animationHandler = new Handler(),
             fullscreenHandler = new Handler();
-    private EventListener focusListener = new EventListener() {
+
+    final private FocusActionListener listener_focus_ = new FocusActionListener() {
         @Override
-        public boolean onEventUpdated(DataType dataType, Object data) {
+        public void onFocusEnd(FocusAction.FocusActionResult res) {
 
-            switch ((String) data) {
+            runOnUiThread( ()-> {
+                //Routine for FOCUS_AUTO
+                if (res.type == FocusAction.FOCUS_AUTO) {
+                    binding.btnCancelFocus.setClickable(false);
 
-                case FocusAction.MSG_BUSY:
+                    binding.btnCancelFocus.animate()
+                            .alpha(0)
+                            .setDuration(50)
+                            .start();
 
-                    if (isFocused) break;
+                    showAfOverlay();
 
-                    UIHelper.setViewAlpha(50, 0.5f, binding.vFocusRect);
-
-                    ImageView btn = binding.btnCancelFocus;
-
-                    btn.post(() -> {
-                        btn.setClickable(true);
-                        btn.animate()
-                                .alpha(1)
-                                .setDuration(200)
-                                .start();
-                    });
-
-                    /**
-                     * Make focus rectangle grey when AF is busy
-                     */
-                    binding.vFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
-                    break;
-
-                case FocusAction.MSG_SUCCESS:
-                    /**
-                     * Make focus rectangle green/blue(depending on the AF mode) when AF succeeds.
-                     */
+                    UIHelper.setViewAlpha(50, 0, binding.vFocusRect);
+                }
+                //Otherwise, make focus rectangle green/blue(depending on the AF mode) when AF Single/Servo succeeds
+                else {
                     UIHelper.setViewAlpha(50, 1, binding.vFocusRect);
-                    binding.vFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), (isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)));
-                    isFocused = true;
-            }
 
-            return super.onEventUpdated(dataType, data);
+                    binding.vFocusRect.setForegroundTintList(
+                            UIHelper.makeCSLwithID(requireContext(),
+                                    (isContinuousFocus ? R.color.colorFocusContinuous : R.color.colorFocusOneShot)
+                            )
+                    );
+                    isFocused = true;
+                }
+            });
+        }
+
+        @Override
+        public void onFocusBusy(FocusActionRequest req) {
+
+            runOnUiThread( ()-> {
+                if (isFocused || req.type == FocusAction.FOCUS_AUTO) return;
+
+                UIHelper.setViewAlpha(50, 0.5f, binding.vFocusRect);
+
+                ImageView btn = binding.btnCancelFocus;
+
+                btn.post(() -> {
+                    btn.setClickable(true);
+                    btn.animate()
+                            .alpha(1)
+                            .setDuration(200)
+                            .start();
+                });
+
+                /**
+                 * Make focus rectangle grey when AF is busy
+                 */
+                binding.vFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
+            });
+
         }
     };
+
     private float currZoomRatio = 1;
 
     final private ScaleGestureDetector.SimpleOnScaleGestureListener pToZListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
@@ -186,7 +205,7 @@ public class CameraActivity extends AppCompatActivity {
             if (currZoomRatio < 1) currZoomRatio = 1;
             else if (currZoomRatio > 5) currZoomRatio = 5;
 
-            wakeTopInfo();
+            wakeTopPanel();
 
             CameraCore.zoomByRatio(currZoomRatio, new EventListener() {
                 @SuppressLint("DefaultLocale")
@@ -198,7 +217,7 @@ public class CameraActivity extends AppCompatActivity {
                     UIHelper.runLater(requireContext(), () -> {
 
                         binding.tvFocalLength.setText(String.format("%.2fmm", (Float) data));
-                        updateBottomInfo(String.format("Scale factor: %.2fx", currZoomRatio));
+                        updateInfo(String.format("Scale factor: %.2fx", currZoomRatio));
 
                         int[] colors = UIHelper.getColors(requireContext(), R.color.colorText, R.color.colorPrimary);
                         binding.tvFocalLength.setTextColor(currZoomRatio == 1 ? colors[0] : colors[1]);
@@ -315,6 +334,7 @@ public class CameraActivity extends AppCompatActivity {
         });
 
         CameraCore.start(binding.preview);
+        FocusAction.setListener(listener_focus_);
         resetLensInfo();
 
         /**
@@ -351,7 +371,7 @@ public class CameraActivity extends AppCompatActivity {
 
             });
 
-            SAL.print("Angle: " + MathTools.radianToDegrees(pitch,false));
+            //SAL.print("Angle: " + MathTools.radianToDegrees(pitch,false));
 
         });
 
@@ -377,7 +397,12 @@ public class CameraActivity extends AppCompatActivity {
 
             isFocused = false;
 
-            CameraCore.focusToPoint(x, y, isContinuousFocus, focusListener);
+            CameraCore.focus(
+                    new FocusActionRequest(
+                            isContinuousFocus ? FocusAction.FOCUS_SERVO : FocusAction.FOCUS_SINGLE,
+                            new float [] {x,y}
+                            )
+            );
         }
 
         return true;
@@ -400,7 +425,7 @@ public class CameraActivity extends AppCompatActivity {
 
         binding.tvFocalLength.setTextColor(UIHelper.getColors(requireContext(), R.color.colorText)[0]);
 
-        wakeTopInfo();
+        wakeTopPanel();
     }
 
     public boolean onShutterTouched(View v, MotionEvent event) {
@@ -434,17 +459,17 @@ public class CameraActivity extends AppCompatActivity {
             isRecording = false;
         } else {
 
-            CameraCore.pauseFocus();
+            //CameraCore.pauseFocus();
 
             animationHandler.postDelayed(rOnShutterReleased, 100);
             CameraCore.takePicture(new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
 
-                    CameraCore.resumeFocus();
+                    //CameraCore.resumeFocus();
 
                     if (dataType != DataType.URI_PICTURE_SAVED) return false;
-                    runOnUiThread(() -> updateBottomInfo("Picture saved!"));
+                    runOnUiThread(() -> updateInfo("Picture saved!"));
 
                     return super.onEventUpdated(dataType, data);
                 }
@@ -461,13 +486,12 @@ public class CameraActivity extends AppCompatActivity {
         new Thread(() -> {
             while(previewDimensions == null) SAL.sleepFor(10);
 
-
             final int targetWidth = isVideoMode ? (previewDimensions[0] * 4 / 3) : (previewDimensions[0] * 3 / 4);
 
             UIHelper.resizeView(binding.cvPreviewWrapper,
                     previewDimensions,
                     new int[]{targetWidth, previewDimensions[1]},
-                    DURATION_PREVIEW_RESIZE_ANIM,
+                    DUR_ANIM_PREVIEW_RESIZE,
                     UIHelper.INTRPL_DECEL);
 
             previewDimensions[0] = targetWidth;
@@ -548,7 +572,7 @@ public class CameraActivity extends AppCompatActivity {
 
             UIHelper.setViewAlpha(100,isVideoMode ? 1 : 0,binding.vVideoCropMark);
 
-        }, DURATION_PREVIEW_RESIZE_ANIM);
+        }, DUR_ANIM_PREVIEW_RESIZE);
 
 
         return true;
@@ -600,19 +624,19 @@ public class CameraActivity extends AppCompatActivity {
                         .scaleX(1)
                         .scaleY(1)
                         .setInterpolator(new DecelerateInterpolator())
-                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setDuration(DUR_ANIM_SHUTTER)
                         .start();
 
                 binding.ivShutterWhiteCenter.animate()
                         .scaleX(0.85f)
                         .scaleY(0.85f)
                         .setInterpolator(new AccelerateInterpolator())
-                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setDuration(DUR_ANIM_SHUTTER)
                         .start();
 
                 binding.ivShutterVideoIdle.animate()
                     .alpha(0)
-                    .setDuration(DURATION_SHUTTER_ANIM)
+                    .setDuration(DUR_ANIM_SHUTTER)
                     .start();
 
                 break;
@@ -622,7 +646,7 @@ public class CameraActivity extends AppCompatActivity {
                 binding.ivShutterPhotoBase.animate()
                         .scaleX(0.5f)
                         .scaleY(0.5f)
-                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setDuration(DUR_ANIM_SHUTTER)
                         .setInterpolator(new AccelerateInterpolator())
                         .start();
 
@@ -630,17 +654,17 @@ public class CameraActivity extends AppCompatActivity {
                         .scaleX(1f)
                         .scaleY(1f)
                         .setInterpolator(new DecelerateInterpolator())
-                        .setDuration(DURATION_SHUTTER_ANIM * 2)
+                        .setDuration(DUR_ANIM_SHUTTER * 2)
                         .start();
 
                 binding.ivShutterVideoIdle.animate()
                         .alpha(1)
-                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setDuration(DUR_ANIM_SHUTTER)
                         .start();
 
                 binding.ivShutterVideoBusy.animate()
                         .alpha(0)
-                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setDuration(DUR_ANIM_SHUTTER)
                         .start();
 
                 break;
@@ -671,7 +695,7 @@ public class CameraActivity extends AppCompatActivity {
 
                 binding.ivShutterVideoBusy.animate()
                         .alpha(0)
-                        .setDuration(DURATION_SHUTTER_ANIM)
+                        .setDuration(DUR_ANIM_SHUTTER)
                         .start();
 
                 break;
@@ -714,18 +738,18 @@ public class CameraActivity extends AppCompatActivity {
 
             String[] time = new String[4];
 
-            wakeBottomInfo();
+            wakeInfoPanel();
 
             while (videoTimer.isBusy()) {
 
                 /*Limit timer refresh rate to be roughly 10fps*/
                 while (videoTimer.isBusy() && videoTimer.getElaspedTimeInMs() % 8 != 0) { SAL.sleepFor(1); }
 
-                updateBottomInfo(MathTools.parseTimeToString(videoTimer.getElaspedTimeInMs()));
+                updateInfo(MathTools.parseTimeToString(videoTimer.getElaspedTimeInMs()));
             }
 
             /*Extra run after loop*/
-            updateBottomInfo(MathTools.parseTimeToString(videoTimer.getElaspedTimeInMs()));
+            updateInfo(MathTools.parseTimeToString(videoTimer.getElaspedTimeInMs()));
 
         }).start();
     }
@@ -736,23 +760,23 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
-    private void wakeTopInfo() {
+    private void wakeTopPanel() {
 
         animationHandler.removeCallbacks(rFadeTopInfo);
         ContextCompat.getMainExecutor(this).execute(rShowTopInfo);
         animationHandler.postDelayed(rFadeTopInfo, 2000);
     }
 
-    private void updateBottomInfo(String newInfo) {
+    private void updateInfo(String newInfo) {
 
         bottomInfo = newInfo;
 
         ContextCompat.getMainExecutor(this).execute(() -> binding.tvBottomInfo.setText(newInfo));
-        wakeBottomInfo();
+        wakeInfoPanel();
 
     }
 
-    private void wakeBottomInfo() {
+    private void wakeInfoPanel() {
         animationHandler.removeCallbacks(rHideBottomInfo);
         ContextCompat.getMainExecutor(this).execute(rShowBottomInfo);
         animationHandler.postDelayed(rHideBottomInfo, 4000);
@@ -761,18 +785,10 @@ public class CameraActivity extends AppCompatActivity {
 
     private boolean cancelFocus(View view) {
 
-        CameraCore.interruptFocus();
 
-        binding.btnCancelFocus.setClickable(false);
 
-        binding.btnCancelFocus.animate()
-                .alpha(0)
-                .setDuration(50)
-                .start();
-
-        showAfOverlay();
-
-        UIHelper.setViewAlpha(50, 0, binding.vFocusRect);
+        CameraCore.cancelFocus();
+        //CameraCore.interruptFocus();
 
         return true;
 
@@ -807,23 +823,25 @@ public class CameraActivity extends AppCompatActivity {
 
         isContinuousFocus = !isContinuousFocus;
 
-
         /**
          * If the current focus point is active (i.e. picked and not cancelled by the user),
          * Restart focus with new focus mode.
          */
         if(binding.vFocusRect.getAlpha() != 0) {
-            CameraCore.interruptFocus();
-            float [] prev = CameraCore.getLastFocusCoordinate();
-            CameraCore.focusToPoint(prev[0],prev[1],isContinuousFocus,focusListener);
-        }
 
+            FocusActionRequest req = CameraCore.getLastRequest();
+
+            req.type = isContinuousFocus ? FocusAction.FOCUS_SERVO : FocusAction.FOCUS_SINGLE;
+
+            isFocused = false;
+
+            CameraCore.focus(req);
+        }
 
         /* Toggle */
         binding.toggleFocusFreq.setToggleState(isContinuousFocus);
 
-
-        updateBottomInfo(
+        updateInfo(
                 /* Base format string ("Current focus mode: %s") */
                 String.format(getString(R.string.fmt_focus_mode),
 

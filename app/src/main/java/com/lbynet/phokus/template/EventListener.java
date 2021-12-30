@@ -2,6 +2,7 @@ package com.lbynet.phokus.template;
 
 import com.lbynet.phokus.utils.SAL;
 
+@Deprecated
 public abstract class EventListener {
 
     public enum DataType {

@@ -781,10 +781,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private boolean cancelFocus(View view) {
 
-
-
         CameraCore.cancelFocus();
-        //CameraCore.interruptFocus();
 
         return true;
 

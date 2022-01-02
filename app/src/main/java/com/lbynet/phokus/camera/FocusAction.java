@@ -95,7 +95,7 @@ public class FocusAction {
     private static FocusActionListener listener_ = null;
     private static Thread t_looper_ = null;
 
-    final private static Executor exec_listener_ = Executors.newSingleThreadExecutor();
+    final private static Executor exec_listener_ = Executors.newFixedThreadPool(50);
 
 
     //AtomicBoolean is thread-safe so no need to worry about concurrency for them
@@ -218,6 +218,8 @@ public class FocusAction {
 
         int r = 0;
         m_focus.lock();
+
+        //TODO: Since focus() is a blocking function call now, some of the flags here are probably redundant
         while (r == 0 && (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_)) r = condWait();
 
         if(r < 0) return r;

@@ -79,7 +79,7 @@ public class CameraCore {
     static float zoom_default_ = -1,
             zoom_prev_ = -1;
     static Executor ui_executor_,
-                    exec_cam_core_ = Executors.newSingleThreadExecutor();
+                    exec_cam_core_ = Executors.newFixedThreadPool(50);
     static int rot_minor_ = 0,
                rot_major_ = 0;
     static EventListener listener_stat_ = new EventListener() {};
@@ -521,22 +521,6 @@ public class CameraCore {
                         type,
                         new float[]{x,y})
         );
-        /*
-        if(focusAction_ != null && focusAction_.isContinuous() && !focusAction_.isInterrupted()) {
-            focusAction_.updateFocusCoordinate(new float[]{x,y});
-            return;
-        }
-        else if(focusAction_ != null) {
-            focusAction_.interrupt();
-        }
-
-        focusAction_ = new FocusAction(is_continuous,
-                new float[]{x,y},
-                camera_.getCameraControl(),
-                previewView_,
-                ui_executor_,
-                listener);
-         */
     }
 
     public static void cancelFocus() {

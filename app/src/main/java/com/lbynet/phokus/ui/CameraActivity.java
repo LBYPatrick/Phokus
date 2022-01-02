@@ -124,6 +124,8 @@ public class CameraActivity extends AppCompatActivity {
         @Override
         public void onFocusEnd(FocusAction.FocusActionResult res) {
 
+            SAL.print(String.format("Focus succeeded!\n type: %d",res.type));
+
             runOnUiThread( ()-> {
                 //Routine for FOCUS_AUTO
                 if (res.type == FocusAction.FOCUS_AUTO) {
@@ -155,8 +157,11 @@ public class CameraActivity extends AppCompatActivity {
         @Override
         public void onFocusBusy(FocusActionRequest req) {
 
+            SAL.print(String.format("Focus is busy...\n type: %d",req.type));
+
+            if (isFocused || req.type == FocusAction.FOCUS_AUTO) return;
+
             runOnUiThread( ()-> {
-                if (isFocused || req.type == FocusAction.FOCUS_AUTO) return;
 
                 UIHelper.setViewAlpha(50, 0.5f, binding.vFocusRect);
 

@@ -127,7 +127,7 @@ public class FocusAction {
             while(r >= 0) {
                 r = exec();
                 //TODO: Remove this
-                SAL.sleepFor(1);
+                //SAL.sleepFor(1);
             }
         });
 
@@ -149,15 +149,30 @@ public class FocusAction {
 
         m_focus.lock();
 
+        //One of the corner cases -- what
+        while(is_busy_) condWait();
+
         currReq = new FocusActionRequest(request);
         is_point_valid_ = true;
         is_flying_change_ = false;
 
-        //This wakes up the looper thread
+        //This wakes up the looper thread(s)
         cond.signalAll();
         m_focus.unlock();
 
         m_request.unlock();
+    }
+
+    public static int condWait() {
+
+        try {
+            cond.await();
+        } catch (InterruptedException e) {
+            SAL.print(e);
+            return -1;
+        }
+
+        return 0;
     }
 
     public static FocusActionRequest getLastRequest() {
@@ -199,53 +214,44 @@ public class FocusAction {
 
     private static int exec() {
 
-        boolean is_error = false;
+        int r = 0;
+        m_focus.lock();
+        while (r == 0 && (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_)) r = condWait();
 
-        try {
-            m_focus.lock();
-            while (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_) cond.await();
+        if(r < 0) return r;
+        else {
             focus();
+            return 0;
         }
-        //Condition Interrupt Exception: idk how and when it would happen but fine I would treat it as an error
-        //TODO: Determine whether this exception matters or is simply annoying
-        catch (InterruptedException e) {
-            SAL.print(e);
-            exception_ = e;
-            is_error = true;
-        }
-        finally {
-            m_focus.unlock();
-        }
-
-        return is_error ? -1 : 0;
     }
 
     //TODO: This method is unlocking prematurely, waiting for a fix
     private static void focus() {
 
-        //UI Thread is different from the thread focus() will run on
-        ui_executor_.execute(() -> {
+        //Since currReq is used, we are technically in a critical section
+        m_focus.lock();
 
-            //Since currReq is used, we are technically in a critical section
-            m_focus.lock();
+        is_busy_ = true;
 
-            if(currReq.type == FOCUS_AUTO) {
+        if(listener_ != null)
+            listener_.onFocusBusy(new FocusActionRequest(currReq));
 
-                if(listener_ != null)
-                    listener_.onFocusBusy(new FocusActionRequest(currReq));
+        if(currReq.type == FOCUS_AUTO) {
 
-                cc_.cancelFocusAndMetering();
-                is_busy_ = false;
-                is_point_valid_ = false;
+            ui_executor_.execute(cc_::cancelFocusAndMetering);
+            is_busy_ = false;
+            is_point_valid_ = false;
 
-                if(listener_ != null)
-                    listener_.onFocusEnd(new FocusActionResult(currReq,true));
+            if(listener_ != null)
+                listener_.onFocusEnd(new FocusActionResult(currReq,true));
 
-                cond.signalAll();
-                m_focus.unlock();
+            cond.signalAll();
+            m_focus.unlock();
 
-                return;
-            }
+            return;
+        }
+
+        ui_executor_.execute( ()-> {
 
             FocusMeteringAction action = new FocusMeteringAction.Builder
                     (pv_
@@ -254,14 +260,7 @@ public class FocusAction {
                     .disableAutoCancel()
                     .build();
 
-            //Interact with CameraX
             ListenableFuture<FocusMeteringResult> future = cc_.startFocusAndMetering(action);
-
-            //Set is_busy_ to true
-            is_busy_ = true;
-
-            //Notify via listener (if applicable)
-            if(listener_ != null) listener_.onFocusBusy(new FocusActionRequest(currReq));
 
             future.addListener(() -> {
 
@@ -281,21 +280,25 @@ public class FocusAction {
                 //Deal with the variables in FocusAction (in a thread-safe way of course)
                 finally {
 
+                    m_focus.lock();
+
                     if(currReq.type != FOCUS_SERVO) is_point_valid_ = false;
                     is_busy_ = false;
 
                     if(listener_ != null && res != null) listener_.onFocusEnd(new FocusActionResult(currReq,res.isFocusSuccessful()));
-                    //Equivalent of cond.broadcast(mutex) in Java
 
-                    SAL.print("Unlock!");
+                    //Equivalent of cond.broadcast(mutex) in Java
                     cond.signalAll();
                     m_focus.unlock();
                 }
 
-            },ui_executor_);
+            },exec_listener_);
 
-            //m_focus.unlock();
         });
+
+        while(is_busy_) condWait();
+
+        m_focus.unlock();
 
     }
 

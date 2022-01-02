@@ -27,14 +27,6 @@
             android:id="@+id/preview"
             android:elevation="1dp"/>
 
-        <ImageView
-            android:id="@+id/v_video_crop_mark"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:src="@drawable/vector_video_crop_mark"
-            android:elevation="1dp"
-            android:alpha="0"/>
-
     </androidx.cardview.widget.CardView>
 
     <View

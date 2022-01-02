@@ -124,7 +124,7 @@ public class CameraActivity extends AppCompatActivity {
         @Override
         public void onFocusEnd(FocusAction.FocusActionResult res) {
 
-            SAL.print(String.format("Focus succeeded!\n type: %d",res.type));
+            //SAL.print(String.format("Focus succeeded!\n type: %d",res.type));
 
             runOnUiThread( ()-> {
                 //Routine for FOCUS_AUTO
@@ -157,7 +157,7 @@ public class CameraActivity extends AppCompatActivity {
         @Override
         public void onFocusBusy(FocusActionRequest req) {
 
-            SAL.print(String.format("Focus is busy...\n type: %d",req.type));
+            //SAL.print(String.format("Focus is busy...\n type: %d, isFocused: %s",req.type,isFocused ? "True" : "False"));
 
             if (isFocused || req.type == FocusAction.FOCUS_AUTO) return;
 
@@ -575,8 +575,6 @@ public class CameraActivity extends AppCompatActivity {
 
             if(isAfOverlayVisible) showAfOverlay();
 
-            UIHelper.setViewAlpha(100,isVideoMode ? 1 : 0,binding.vVideoCropMark);
-
         }, DUR_ANIM_PREVIEW_RESIZE);
 
 
@@ -587,13 +585,11 @@ public class CameraActivity extends AppCompatActivity {
 
         if(binding.ivAfOverlay.getAlpha() != 0) return;
 
-        final float targetScaleY = isVideoMode ? 0.8f : 1f;
-
         binding.ivAfOverlay.setScaleX(1.1f);
-        binding.ivAfOverlay.setScaleY(targetScaleY * 1.1f);
+        binding.ivAfOverlay.setScaleY(1.1f);
 
         binding.ivAfOverlay.animate()
-                .scaleY(targetScaleY)
+                .scaleY(1f)
                 .scaleX(1f)
                 .setDuration(300)
                 .alpha(1)
@@ -605,13 +601,8 @@ public class CameraActivity extends AppCompatActivity {
 
         if(binding.ivAfOverlay.getAlpha() != 1) return;
 
-        //binding.ivAfOverlay.setScaleX(1f);
-        //binding.ivAfOverlay.setScaleY(1f);
-
-        final float targetScaleY = isVideoMode ? 0.8f : 1f;
-
         binding.ivAfOverlay.animate()
-                .scaleY(targetScaleY * 1.1f)
+                .scaleY(1.1f)
                 .scaleX(1.1f)
                 .setDuration(300)
                 .alpha(0)

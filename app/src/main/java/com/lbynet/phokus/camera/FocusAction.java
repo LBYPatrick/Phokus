@@ -185,8 +185,10 @@ public class FocusAction {
 
         boolean wasBusy = is_busy_;
 
-        //cc_.cancelFocusAndMetering(); //This would make focus() release its lock ASAP
+        cc_.cancelFocusAndMetering(); //This would make focus() release its lock ASAP
         m_focus.lock();
+
+        while(is_busy_) condWait();
 
         is_paused_ = true;
         if(wasBusy) is_point_valid_ = true; //So that as soon as we run resume(), focus() would pick up where it left off

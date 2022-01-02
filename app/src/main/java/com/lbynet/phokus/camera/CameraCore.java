@@ -31,6 +31,7 @@ import androidx.lifecycle.LiveData;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.phokus.global.Config;
+import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.utils.SAL;
 
@@ -78,8 +79,7 @@ public class CameraCore {
     static ProcessCameraProvider pcp;
     static float zoom_default_ = -1,
             zoom_prev_ = -1;
-    static Executor ui_executor_,
-                    exec_cam_core_ = Executors.newFixedThreadPool(50);
+    static Executor ui_executor_;
     static int rot_minor_ = 0,
                rot_major_ = 0;
     static EventListener listener_stat_ = new EventListener() {};
@@ -127,7 +127,7 @@ public class CameraCore {
                         SAL.print(e);
                     }
                 }
-                , exec_cam_core_
+                , Consts.EXE_THREAD_POOL
         );
     }
 
@@ -279,7 +279,7 @@ public class CameraCore {
                         .build();
 
                 //TODO: Do Analyzer stuff here
-                ia.setAnalyzer(exec_cam_core_, image -> {
+                ia.setAnalyzer(Consts.EXE_THREAD_POOL, image -> {
                     SAL.print("New frame came in.");
                     //AnalysisResult.put(image);
                     image.close();
@@ -407,7 +407,7 @@ public class CameraCore {
                 SAL.print(e,false);
             }
 
-        }, exec_cam_core_);
+        }, Consts.EXE_THREAD_POOL);
     }
 
     public static void takePicture(EventListener listener) {

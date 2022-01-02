@@ -9,7 +9,7 @@ env:
   - ABI=armeabi-v7a
 
 jdk:
-  - openjdk11
+  - openjdk17
 
 android:
   components:

@@ -9,6 +9,7 @@ import androidx.camera.core.FocusMeteringResult;
 import androidx.camera.view.PreviewView;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.template.FocusActionListener;
 import com.lbynet.phokus.utils.SAL;
 
@@ -94,9 +95,6 @@ public class FocusAction {
     private static Exception exception_ = null;
     private static FocusActionListener listener_ = null;
     private static Thread t_looper_ = null;
-
-    final private static Executor exec_listener_ = Executors.newFixedThreadPool(50);
-
 
     //AtomicBoolean is thread-safe so no need to worry about concurrency for them
     private static boolean is_point_valid_ = false,
@@ -296,7 +294,7 @@ public class FocusAction {
                     m_focus.unlock();
                 }
 
-            },exec_listener_);
+            }, Consts.EXE_THREAD_POOL);
 
         });
 

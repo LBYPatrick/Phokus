@@ -35,6 +35,7 @@ import com.lbynet.phokus.hardware.BatterySensor;
 import com.lbynet.phokus.hardware.RotationSensor;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.FocusActionListener;
+import com.lbynet.phokus.template.OnDimensionInfoReadyCallback;
 import com.lbynet.phokus.template.RotationListener;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
@@ -51,7 +52,8 @@ public class CameraActivity extends AppCompatActivity {
 
     final public static String TAG = CameraActivity.class.getCanonicalName();
     final public static int DUR_ANIM_PREVIEW_RESIZE = 400,
-                            DUR_ANIM_SHUTTER = 300;
+                            DUR_ANIM_SHUTTER = 300,
+                            LENGTH_FOCUS_RECT = 80;
 
     private ActivityCameraBinding binding;
     private Timer videoTimer = new Timer("Video Timer");
@@ -391,13 +393,13 @@ public class CameraActivity extends AppCompatActivity {
                 y = event.getY();
 
         if(event.getPointerCount() > 1) pToZDetector.onTouchEvent(event);
-        //Tap-to-focus
+            //Tap-to-focus
         else if (event.getAction() == MotionEvent.ACTION_DOWN && !isZooming) {
 
             if(binding.btnCancelFocus.getAlpha() == 0) hideAfOverlay();
 
             ViewGroup.MarginLayoutParams params = (ViewGroup.MarginLayoutParams) binding.vFocusRect.getLayoutParams();
-            params.setMargins((int) x - 80, (int) y - 80, 0, 0);
+            params.setMargins((int) x - LENGTH_FOCUS_RECT, (int) y - LENGTH_FOCUS_RECT, 0, 0);
             binding.vFocusRect.setLayoutParams(params);
 
             isFocused = false;
@@ -406,10 +408,9 @@ public class CameraActivity extends AppCompatActivity {
                     new FocusActionRequest(
                             isContinuousFocus ? FocusAction.FOCUS_SERVO : FocusAction.FOCUS_SINGLE,
                             new float [] {x,y}
-                            )
+                    )
             );
         }
-
         return true;
     }
 

@@ -355,7 +355,9 @@
         app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_169"
         app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
-        android:elevation="4dp"/>
+        android:elevation="4dp"
+        android:alpha="0"
+        />
 
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

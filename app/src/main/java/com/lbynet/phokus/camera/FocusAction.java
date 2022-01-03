@@ -15,7 +15,6 @@ import com.lbynet.phokus.utils.SAL;
 
 import java.lang.annotation.Retention;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -91,7 +90,8 @@ public class FocusAction {
 
     private static CameraControl cc_;
     private static PreviewView pv_;
-    private static Executor ui_executor_;
+    private static Executor exe_ui_,
+                            exe_listener_;
     private static Exception exception_ = null;
     private static FocusActionListener listener_ = null;
     private static Thread t_looper_ = null;
@@ -116,7 +116,7 @@ public class FocusAction {
                                  Executor uiExecutor) {
         cc_ = cameraControl;
         pv_ = previewView;
-        ui_executor_ = uiExecutor;
+        exe_ui_ = uiExecutor;
 
         //Gotta Appreciate the simplicity of this
         t_looper_ = new Thread(() -> {
@@ -134,8 +134,9 @@ public class FocusAction {
         return 0;
     }
 
-    public static void setListener(FocusActionListener listener) {
+    public static void setListener(FocusActionListener listener,Executor executor) {
         listener_ = listener;
+        exe_listener_ = executor;
     }
 
     public static void issueRequest(FocusActionRequest request) {
@@ -235,17 +236,22 @@ public class FocusAction {
 
         is_busy_ = true;
 
-        if(listener_ != null)
-            listener_.onFocusBusy(new FocusActionRequest(currReq));
+        if(listener_ != null) {
+            exe_listener_.execute(
+                    () -> listener_.onFocusBusy(new FocusActionRequest(currReq)));
+        }
 
         if(currReq.type == FOCUS_AUTO) {
 
-            ui_executor_.execute(cc_::cancelFocusAndMetering);
+            exe_ui_.execute(cc_::cancelFocusAndMetering);
             is_busy_ = false;
             is_point_valid_ = false;
 
-            if(listener_ != null)
-                listener_.onFocusEnd(new FocusActionResult(currReq,true));
+            if (listener_ != null) {
+                exe_listener_.execute(
+                        () -> listener_.onFocusEnd(new FocusActionResult(currReq, true))
+                );
+            }
 
             cond.signalAll();
             m_focus.unlock();
@@ -253,7 +259,7 @@ public class FocusAction {
             return;
         }
 
-        ui_executor_.execute( ()-> {
+        exe_ui_.execute( ()-> {
 
             FocusMeteringAction action = new FocusMeteringAction.Builder
                     (pv_
@@ -275,7 +281,11 @@ public class FocusAction {
                 }
                 //Focus Cancelled
                 catch (Exception e) {
-                    if(listener_ != null) listener_.onFocusEnd(new FocusActionResult(currReq,false));
+                    if(listener_ != null) {
+                        exe_listener_.execute(
+                                () -> listener_.onFocusEnd(new FocusActionResult(currReq, false))
+                        );
+                    }
                     //SAL.print(e);
                     exception_ = e;
                 }
@@ -287,7 +297,13 @@ public class FocusAction {
                     if(currReq.type != FOCUS_SERVO) is_point_valid_ = false;
                     is_busy_ = false;
 
-                    if(listener_ != null && res != null) listener_.onFocusEnd(new FocusActionResult(currReq,res.isFocusSuccessful()));
+                    if(listener_ != null && res != null) {
+                        final boolean is_good = res.isFocusSuccessful();
+
+                        exe_listener_.execute(
+                                () -> listener_.onFocusEnd(new FocusActionResult(currReq,is_good))
+                        );
+                    }
 
                     //Equivalent of cond.broadcast(mutex) in Java
                     cond.signalAll();

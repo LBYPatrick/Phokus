@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.StreamConfigurationMap;
 import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
@@ -91,7 +92,6 @@ public class CameraCore {
     final private static Condition cond_camera = m_camera.newCondition();
 
 
-
     public static void initialize() {
         Config.loadConfig();
     }
@@ -116,9 +116,6 @@ public class CameraCore {
                         m_camera.lock();
 
                         while(!is_camera_bound_) cond_camera.await();
-
-                        SAL.print("is camera null? " + (camera_ == null? "yes" : "no"));
-
                         FocusAction.initialize(camera_.getCameraControl(), preview_view_, ui_executor_);
 
                         m_camera.unlock();
@@ -136,13 +133,10 @@ public class CameraCore {
         m_camera.lock();
 
         is_camera_bound_ = false;
-
         boolean isVideoMode = (boolean) Config.get(Config.VIDEO_MODE),
                 isChangeDetected = false;
 
-        /**
-         * See if there are usecases that needs to be un-bound
-         */
+        //See if there are use cases that needs to be un-bound
         if(isVideoMode && image_capture_ != null) {
             pcp.unbind(image_capture_);
             image_capture_ = null;
@@ -154,9 +148,8 @@ public class CameraCore {
             isChangeDetected = true;
         }
 
-        /**
-         * Bind new UseCase when necessary (and notify user via statusListener_)
-         */
+
+        //Bind new UseCase when necessary (and notify user via statusListener_)
         if(isChangeDetected) {
 
             listener_stat_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BINDING,null);
@@ -208,7 +201,6 @@ public class CameraCore {
 
     private static void detectCameraBoundState() {
 
-
         while(camera_ == null) SAL.sleepFor(1);
 
         LiveData<CameraState> state = camera_.getCameraInfo().getCameraState();
@@ -244,51 +236,48 @@ public class CameraCore {
     @SuppressLint("RestrictedApi")
     public static UseCase buildUseCase(@UseCaseType String type) {
 
+        UseCase r = null;
+
         switch (type) {
             case USECASE_PREVIEW:
-
-                Preview p = new Preview.Builder()
-                        .build();
-
+                Preview p = new Preview.Builder().build();
                 p.setSurfaceProvider(preview_view_.getSurfaceProvider());
-                return p;
+                r = p;
+                break;
 
             case USECASE_VIDEO_CAPTURE:
-
                 video_capture_ = new VideoCapture.Builder()
                         .setTargetResolution((Size) Config.get(Config.VIDEO_RESOLUTION))
                         .setVideoFrameRate((Integer) Config.get(Config.VIDEO_FPS))
                         .setBitRate((Integer) Config.get(Config.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
-
-                return video_capture_;
+                r=video_capture_;
+                break;
 
             case USECASE_IMAGE_CAPTURE:
-
                 image_capture_ = new ImageCapture.Builder()
                         .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                         .setTargetResolution(new Size(8000,6000))
                         .build();
-
-                return image_capture_;
+                r=image_capture_;
+                break;
 
             case USECASE_IMAGE_ANALYSIS_BASIC:
 
                 ImageAnalysis ia = new ImageAnalysis.Builder()
                         //.setTargetResolution((Size) Config.get(Config.VIDEO_RESOLUTION))
                         .build();
-
                 //TODO: Do Analyzer stuff here
                 ia.setAnalyzer(Consts.EXE_THREAD_POOL, image -> {
                     SAL.print("New frame came in.");
                     //AnalysisResult.put(image);
                     image.close();
                 });
-                return ia;
-
-            default:
-                return null;
+                r = ia;
+                break;
+            default:break;
         }
+        return r;
     }
 
     public static void update3A() {

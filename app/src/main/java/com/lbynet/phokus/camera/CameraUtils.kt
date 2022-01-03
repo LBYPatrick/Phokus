@@ -29,6 +29,7 @@ object CameraUtils {
     @JvmStatic
     @SuppressLint("RestrictedApi")
     fun getCameraCharacteristics(context: Context?, cameraId: Int): CameraCharacteristics? {
+
         return if (hmCameraChar.containsKey(cameraId)) hmCameraChar[cameraId] else try {
             val cc = CameraManagerCompat
                 .from(context!!)
@@ -164,9 +165,12 @@ object CameraUtils {
 
     @JvmStatic
     fun getEvInfo(context: Context?, cameraId: Int): FloatArray? {
+
         if (hmExposure.containsKey(cameraId)) return hmExposure[cameraId]
+
         val cc = getCameraCharacteristics(context, cameraId)
         val r = FloatArray(3)
+
         r[0] = cc!!.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP)!!.toFloat()
         val range = cc.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_RANGE) as Range<Int>
         r[1] = range.lower * r[0]

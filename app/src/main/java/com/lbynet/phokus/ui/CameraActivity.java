@@ -80,7 +80,12 @@ public class CameraActivity extends AppCompatActivity {
     })
     private @interface ShutterState { }
 
-    final private static int STATE_PHOTO_IDLE = 0, STATE_PHOTO_PRESS = 1, STATE_PHOTO_RELEASE = 2, STATE_VIDEO_IDLE = 3, STATE_VIDEO_BUSY = 4,STATE_VIDEO_STOP = 5;
+    final private static int STATE_PHOTO_IDLE = 0,
+            STATE_PHOTO_PRESS = 1,
+            STATE_PHOTO_RELEASE = 2,
+            STATE_VIDEO_IDLE = 3,
+            STATE_VIDEO_BUSY = 4,
+            STATE_VIDEO_STOP = 5;
 
 
     final private Runnable
@@ -125,8 +130,6 @@ public class CameraActivity extends AppCompatActivity {
     final private FocusActionListener listener_focus_ = new FocusActionListener() {
         @Override
         public void onFocusEnd(FocusAction.FocusActionResult res) {
-
-            //SAL.print(String.format("Focus succeeded!\n type: %d",res.type));
 
             runOnUiThread( ()-> {
                 //Routine for FOCUS_AUTO
@@ -341,7 +344,7 @@ public class CameraActivity extends AppCompatActivity {
         });
 
         CameraCore.start(binding.preview);
-        FocusAction.setListener(listener_focus_);
+        FocusAction.setListener(listener_focus_,ContextCompat.getMainExecutor(requireContext()));
         resetLensInfo();
 
         /**
@@ -377,7 +380,6 @@ public class CameraActivity extends AppCompatActivity {
 
 
             });
-
             //SAL.print("Angle: " + MathTools.radianToDegrees(pitch,false));
 
         });

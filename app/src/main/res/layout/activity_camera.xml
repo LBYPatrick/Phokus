@@ -359,7 +359,6 @@
         android:alpha="0"
         />
 
-
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_switch_side"
         android:src="@drawable/ic_flip_camera_48dp"

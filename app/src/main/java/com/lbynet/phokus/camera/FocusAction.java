@@ -90,8 +90,7 @@ public class FocusAction {
 
     private static CameraControl cc_;
     private static PreviewView pv_;
-    private static Executor exe_ui_,
-                            exe_listener_;
+    private static Executor exe_ui_;
     private static Exception exception_ = null;
     private static FocusActionListener listener_ = null;
     private static Thread t_looper_ = null;
@@ -134,9 +133,8 @@ public class FocusAction {
         return 0;
     }
 
-    public static void setListener(FocusActionListener listener,Executor executor) {
+    public static void setListener(FocusActionListener listener) {
         listener_ = listener;
-        exe_listener_ = executor;
     }
 
     public static void issueRequest(FocusActionRequest request) {
@@ -236,10 +234,8 @@ public class FocusAction {
 
         is_busy_ = true;
 
-        if(listener_ != null) {
-            exe_listener_.execute(
-                    () -> listener_.onFocusBusy(new FocusActionRequest(currReq)));
-        }
+        if(listener_ != null)
+            listener_.onFocusBusy(new FocusActionRequest(currReq));
 
         if(currReq.type == FOCUS_AUTO) {
 
@@ -247,11 +243,8 @@ public class FocusAction {
             is_busy_ = false;
             is_point_valid_ = false;
 
-            if (listener_ != null) {
-                exe_listener_.execute(
-                        () -> listener_.onFocusEnd(new FocusActionResult(currReq, true))
-                );
-            }
+            if (listener_ != null)
+                listener_.onFocusEnd(new FocusActionResult(currReq, true));
 
             cond.signalAll();
             m_focus.unlock();
@@ -275,17 +268,22 @@ public class FocusAction {
                 //m_focus.lock();
                 FocusMeteringResult res = null;
 
+                boolean is_fail = false;
+
                 //Obtain focus result
                 try {
                     res = future.get();
+
+
                 }
                 //Focus Cancelled
                 catch (Exception e) {
-                    if(listener_ != null) {
-                        exe_listener_.execute(
-                                () -> listener_.onFocusEnd(new FocusActionResult(currReq, false))
-                        );
-                    }
+
+                    //Notify on focus failure
+                    if(listener_ != null)
+                        listener_.onFocusEnd(new FocusActionResult(currReq, false));
+
+                    is_fail = true;
                     //SAL.print(e);
                     exception_ = e;
                 }
@@ -297,12 +295,9 @@ public class FocusAction {
                     if(currReq.type != FOCUS_SERVO) is_point_valid_ = false;
                     is_busy_ = false;
 
-                    if(listener_ != null && res != null) {
-                        final boolean is_good = res.isFocusSuccessful();
-
-                        exe_listener_.execute(
-                                () -> listener_.onFocusEnd(new FocusActionResult(currReq,is_good))
-                        );
+                    //Notify on focus complete
+                    if(listener_ != null && !is_fail) {
+                        listener_.onFocusEnd(new FocusActionResult(currReq,res.isFocusSuccessful()));
                     }
 
                     //Equivalent of cond.broadcast(mutex) in Java

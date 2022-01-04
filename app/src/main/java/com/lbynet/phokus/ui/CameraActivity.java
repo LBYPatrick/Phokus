@@ -35,7 +35,6 @@ import com.lbynet.phokus.hardware.BatterySensor;
 import com.lbynet.phokus.hardware.RotationSensor;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.FocusActionListener;
-import com.lbynet.phokus.template.OnDimensionInfoReadyCallback;
 import com.lbynet.phokus.template.RotationListener;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
@@ -47,6 +46,7 @@ import org.jetbrains.annotations.NotNull;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.concurrent.Executor;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class CameraActivity extends AppCompatActivity {
 
@@ -62,12 +62,14 @@ public class CameraActivity extends AppCompatActivity {
             isRecording = false,
             isContinuousFocus = false,
             isFocused = false,
-            isZooming = false;
+            isZooming = false,
+            isCameraStarted = false;
 
-    static int[] previewDimensions = null;
-    static String bottomInfo;
-    static BatterySensor batterySensor;
-    static RotationSensor rotationSensor;
+    private static int[] previewDimensions = null;
+    private static String bottomInfo;
+    private static BatterySensor sensorBattery;
+    private static RotationSensor sensorRotation;
+    private static ReentrantLock mFocus = new ReentrantLock();
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef ( {
@@ -132,6 +134,7 @@ public class CameraActivity extends AppCompatActivity {
         public void onFocusEnd(FocusAction.FocusActionResult res) {
 
             runOnUiThread( ()-> {
+                mFocus.lock();
                 //Routine for FOCUS_AUTO
                 if (res.type == FocusAction.FOCUS_AUTO) {
                     binding.btnCancelFocus.setClickable(false);
@@ -156,6 +159,8 @@ public class CameraActivity extends AppCompatActivity {
                     );
                     isFocused = true;
                 }
+
+                mFocus.unlock();
             });
         }
 
@@ -168,22 +173,23 @@ public class CameraActivity extends AppCompatActivity {
 
             runOnUiThread( ()-> {
 
+                mFocus.lock();
+
                 UIHelper.setViewAlpha(50, 0.5f, binding.vFocusRect);
+                //ImageView btn = binding.btnCancelFocus;
 
-                ImageView btn = binding.btnCancelFocus;
-
-                btn.post(() -> {
-                    btn.setClickable(true);
-                    btn.animate()
-                            .alpha(1)
-                            .setDuration(200)
-                            .start();
-                });
-
+                binding.btnCancelFocus.setClickable(true);
+                binding.btnCancelFocus.animate()
+                        .alpha(1)
+                        .setDuration(200)
+                        .start();
                 /**
                  * Make focus rectangle grey when AF is busy
                  */
                 binding.vFocusRect.setForegroundTintList(UIHelper.makeCSLwithID(requireContext(), R.color.colorPrimaryDark));
+
+                mFocus.unlock();
+
             });
 
         }
@@ -320,6 +326,9 @@ public class CameraActivity extends AppCompatActivity {
     @SuppressLint("DefaultLocale")
     public void startCamera() {
 
+        if(isCameraStarted) return;
+        isCameraStarted = true;
+
         SAL.print("Starting camera");
         CameraCore.initialize();
 
@@ -344,7 +353,7 @@ public class CameraActivity extends AppCompatActivity {
         });
 
         CameraCore.start(binding.preview);
-        FocusAction.setListener(listener_focus_,ContextCompat.getMainExecutor(requireContext()));
+        FocusAction.setListener(listener_focus_);
         resetLensInfo();
 
         /**
@@ -364,14 +373,11 @@ public class CameraActivity extends AppCompatActivity {
 
         showAfOverlay();
 
-
-
-        batterySensor = new BatterySensor(this, batteryIntent -> {
+        sensorBattery = new BatterySensor(this, batteryIntent -> {
             SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
         });
 
-
-        rotationSensor = new RotationSensor(this,
+        sensorRotation = new RotationSensor(this,
                 (RotationListener) (azimuth, pitch, roll) -> {
             runOnUiThread( () -> {
                 binding.drvRotation
@@ -389,6 +395,8 @@ public class CameraActivity extends AppCompatActivity {
     // Credits to Saurabh Thorat:
     // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
     public boolean onPreviewTouched(View v, MotionEvent event) {
+
+        mFocus.lock();
 
         //Pinch-to-zoom
         float x = event.getX(),
@@ -413,6 +421,9 @@ public class CameraActivity extends AppCompatActivity {
                     )
             );
         }
+
+        mFocus.unlock();
+
         return true;
     }
 
@@ -445,7 +456,6 @@ public class CameraActivity extends AppCompatActivity {
         if (isVideoMode && !isRecording) {
 
             isRecording = true;
-
             CameraCore.startRecording(new EventListener() {
                 @Override
                 public boolean onEventUpdated(DataType dataType, Object data) {
@@ -817,6 +827,8 @@ public class CameraActivity extends AppCompatActivity {
 
     private boolean toggleFocusFreqMode(View view) {
 
+        mFocus.lock();
+
         isContinuousFocus = !isContinuousFocus;
 
         /**
@@ -826,9 +838,7 @@ public class CameraActivity extends AppCompatActivity {
         if(binding.vFocusRect.getAlpha() != 0) {
 
             FocusActionRequest req = CameraCore.getLastRequest();
-
             req.type = isContinuousFocus ? FocusAction.FOCUS_SERVO : FocusAction.FOCUS_SINGLE;
-
             isFocused = false;
 
             CameraCore.focus(req);
@@ -847,6 +857,8 @@ public class CameraActivity extends AppCompatActivity {
                 : R.string.activity_camera_focus_one_shot))
 
         );
+
+        mFocus.unlock();
 
         return true;
     }
@@ -879,13 +891,18 @@ public class CameraActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        
+
         fullscreenHandler.removeCallbacks(rHideNav);
         fullscreenHandler.postDelayed(rHideNav, 100);
+
         orientationListener.enable();
 
-        batterySensor.resume();
-        rotationSensor.resume();
+        sensorBattery.resume();
+        sensorRotation.resume();
+
+        if (!allPermissionsGood())
+            ActivityCompat.requestPermissions(this, Consts.PERMISSIONS, Consts.PERM_REQUEST_CODE);
+
     }
 
     @Override
@@ -894,7 +911,7 @@ public class CameraActivity extends AppCompatActivity {
 
         orientationListener.disable();
 
-        batterySensor.hibernate();
-        rotationSensor.hibernate();
+        sensorBattery.hibernate();
+        sensorRotation.hibernate();
     }
 }

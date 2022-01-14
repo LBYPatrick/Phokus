@@ -21,7 +21,6 @@ import android.view.ViewGroup;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
-import android.widget.ImageView;
 
 import com.lbynet.phokus.R;
 import com.lbynet.phokus.camera.CameraCore;
@@ -35,6 +34,7 @@ import com.lbynet.phokus.hardware.BatterySensor;
 import com.lbynet.phokus.hardware.RotationSensor;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.FocusActionListener;
+import com.lbynet.phokus.template.OnEventCompleteCallback;
 import com.lbynet.phokus.template.RotationListener;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
@@ -67,9 +67,16 @@ public class CameraActivity extends AppCompatActivity {
 
     private static int[] previewDimensions = null;
     private static String bottomInfo;
+    private OnEventCompleteCallback onCameraBoundCallback,
+                                    onCameraBindingCallback;
     private static BatterySensor sensorBattery;
     private static RotationSensor sensorRotation;
+
+    private View [] controlViews;
+
     private static ReentrantLock mFocus = new ReentrantLock();
+    private Handler animationHandler = new Handler(),
+            fullscreenHandler = new Handler();
 
     @Retention(RetentionPolicy.SOURCE)
     @IntDef ( {
@@ -81,7 +88,6 @@ public class CameraActivity extends AppCompatActivity {
             STATE_VIDEO_STOP,
     })
     private @interface ShutterState { }
-
     final private static int STATE_PHOTO_IDLE = 0,
             STATE_PHOTO_PRESS = 1,
             STATE_PHOTO_RELEASE = 2,
@@ -124,10 +130,6 @@ public class CameraActivity extends AppCompatActivity {
                         | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                         );
             };
-
-
-    private Handler animationHandler = new Handler(),
-            fullscreenHandler = new Handler();
 
     final private FocusActionListener listener_focus_ = new FocusActionListener() {
         @Override
@@ -265,7 +267,7 @@ public class CameraActivity extends AppCompatActivity {
         binding = ActivityCameraBinding.inflate(getLayoutInflater());
 
         setContentView(binding.getRoot());
-        bindViews();
+        initUiListeners();
         SAL.setActivity(this);
 
         /**
@@ -281,20 +283,19 @@ public class CameraActivity extends AppCompatActivity {
         /**
          * Grant permission
          */
-        if (allPermissionsGood())
+        if (isAllPermissonGood())
             startCamera();
         else
             ActivityCompat.requestPermissions(this, Consts.PERMISSIONS, Consts.PERM_REQUEST_CODE);
 
     }
 
-    public void bindViews() {
+    public void initUiListeners() {
 
         pToZDetector = new ScaleGestureDetector(requireContext(), pToZListener);
 
         binding.ivShutterPhotoBase.setOnTouchListener(this::onShutterTouched);
         binding.btnCaptureMode.setOnClickListener(this::toggleVideoMode);
-
         binding.btnCancelFocus.setOnClickListener(this::cancelFocus);
         //binding.btnFocusCancel.setOnClickListener(this::cancelFocus);
         binding.toggleFocusFreq.setOnClickListener(this::toggleFocusFreqMode);
@@ -306,7 +307,7 @@ public class CameraActivity extends AppCompatActivity {
                                            @NonNull @NotNull String[] permissions,
                                            @NonNull @NotNull int[] grantResults) {
 
-        if (requestCode == Consts.PERM_REQUEST_CODE && allPermissionsGood()) startCamera();
+        if (requestCode == Consts.PERM_REQUEST_CODE && isAllPermissonGood()) startCamera();
         else {
             UIHelper.printSystemToast(this, "Not all permissions were granted.", false);
             finish();
@@ -315,7 +316,7 @@ public class CameraActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
     }
 
-    public boolean allPermissionsGood() {
+    public boolean isAllPermissonGood() {
         for (String p : Consts.PERMISSIONS) {
             if (ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_DENIED)
                 return false;
@@ -332,17 +333,37 @@ public class CameraActivity extends AppCompatActivity {
         SAL.print("Starting camera");
         CameraCore.initialize();
 
-        View [] viewArray = {binding.btnCaptureMode,binding.fabSwitchSide};
+        //TODO: Add more to this when we have more camera control buttons
+        controlViews = new View[]{binding.btnCaptureMode,binding.fabSwitchSide};
 
+
+        onCameraBoundCallback = (int res, String extra) -> {
+            if(res < 0) SAL.print(SAL.MsgType.ERROR,TAG,"Camera usecase failed to bind BEFORE a " + extra + " call!");
+            else {
+                CameraCore.resumeFocus();
+                runOnUiThread(() -> unlockViews(controlViews));
+            }
+        };
+
+        onCameraBindingCallback = (int res, String extra) -> {
+            if(res < 0) SAL.print(SAL.MsgType.ERROR,TAG,"Camera usecase failed to bind AFTER a " + extra + " call!");
+            else {
+                CameraCore.pauseFocus();
+                runOnUiThread(() -> lockViews(controlViews));
+            }
+        };
+
+        //TODO: Identify all functions that relied on this routine and modify them
+        /*
         CameraCore.setStatusListener_(new EventListener() {
             @Override
             public boolean onEventUpdated(DataType dataType, Object extra) {
                 switch (dataType) {
                     case VOID_CAMERA_BINDING:
-                        runOnUiThread(() -> lockViews(viewArray));
+                        runOnUiThread(() -> lockViews(controlViews));
                         break;
                     case VOID_CAMERA_BOUND:
-                        runOnUiThread(() -> unlockViews(viewArray));
+                        runOnUiThread(() -> unlockViews(controlViews));
                         break;
                     default:
                         break;
@@ -351,6 +372,7 @@ public class CameraActivity extends AppCompatActivity {
                 return super.onEventUpdated(dataType, extra);
             }
         });
+        */
 
         CameraCore.start(binding.preview);
         FocusAction.setListener(listener_focus_);
@@ -537,10 +559,7 @@ public class CameraActivity extends AppCompatActivity {
 
         cancelFocus(null);
 
-        Config.set(Config.VIDEO_MODE, isVideoMode);
-
-        /* Communicate with the backend */
-        animationHandler.postDelayed(CameraCore::updateVideoMode,  0);
+        CameraCore.setVideoMode(isVideoMode, onCameraBindingCallback,onCameraBoundCallback);
 
         /* Visual stuff */
         updatePreviewSize();
@@ -559,7 +578,6 @@ public class CameraActivity extends AppCompatActivity {
                 binding.vPreviewMask};
 
         final View [] hideGroup = {
-
                 binding.toggleExposureMenu,
                 binding.toggleFocusFreq,
                 binding.btnCaptureMode,
@@ -763,11 +781,7 @@ public class CameraActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void stopVideoTimer() {
-
-        videoTimer.stop();
-
-    }
+    private void stopVideoTimer() { videoTimer.stop(); }
 
     private void wakeTopPanel() {
 
@@ -900,7 +914,7 @@ public class CameraActivity extends AppCompatActivity {
         sensorBattery.resume();
         sensorRotation.resume();
 
-        if (!allPermissionsGood())
+        if (!isAllPermissonGood())
             ActivityCompat.requestPermissions(this, Consts.PERMISSIONS, Consts.PERM_REQUEST_CODE);
 
     }

@@ -14,11 +14,14 @@ object CameraIO {
     private var lastImageTime: Long = -1
 
     fun getVideoOFO(context: Context, filename: String): VideoCapture.OutputFileOptions {
+
         val values = ContentValues()
         val extension = filename.substring(filename.lastIndexOf('.') + 1, filename.length)
+
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
         values.put(MediaStore.MediaColumns.TITLE, filename)
         values.put(MediaStore.MediaColumns.MIME_TYPE, "video/$extension")
+
         return VideoCapture.OutputFileOptions.Builder(
             context.contentResolver,
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,

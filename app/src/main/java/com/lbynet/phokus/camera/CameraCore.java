@@ -5,6 +5,8 @@ import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.params.StreamConfigurationMap;
+import android.media.Image;
+import android.provider.SyncStateContract;
 import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
@@ -34,6 +36,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.phokus.global.Config;
 import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.template.EventListener;
+import com.lbynet.phokus.template.OnEventCompleteCallback;
 import com.lbynet.phokus.utils.SAL;
 
 import org.jetbrains.annotations.NotNull;
@@ -128,6 +131,51 @@ public class CameraCore {
         );
     }
 
+    public static void setVideoMode(boolean isVideoMode,
+                                    OnEventCompleteCallback startCallback,
+                                    OnEventCompleteCallback endCallback) {
+
+        Consts.EXE_THREAD_POOL.execute(() -> {
+
+            if(startCallback != null) startCallback.onComplete(0, "setVideoMode(boolean,OnEventCompleteCallback)");
+
+            setVideoMode(isVideoMode);
+
+            //Notify on complete
+            if(endCallback != null) endCallback.onComplete(is_camera_bound_? 0 : -1, "setVideoMode(boolean,OnEventCompleteCallback)");
+
+        });
+
+    }
+
+    private static void setVideoMode(boolean isVideoMode) {
+
+        boolean prev = (boolean) Config.get(Config.VIDEO_MODE);
+        if(prev == isVideoMode) return;
+
+        m_camera.lock();
+
+        is_camera_bound_ = false;
+
+        Config.set(Config.VIDEO_MODE,isVideoMode);
+        UseCase useCase = buildUseCase(isVideoMode ? USECASE_VIDEO_CAPTURE : USECASE_IMAGE_CAPTURE);
+
+        if(isVideoMode) video_capture_ = (VideoCapture) useCase;
+        else image_capture_  = (ImageCapture) useCase;
+
+        //Bind new usecase(s) and unbind old usecase(s)
+        ui_executor_.execute(() -> {
+            pcp.unbind(isVideoMode ? image_capture_ : video_capture_);
+            camera_ = pcp.bindToLifecycle((LifecycleOwner) context_,cs_,useCase);
+        });
+
+        detectBoundState();
+        while(!is_camera_bound_) condWait();
+
+        m_camera.unlock();
+    }
+
+    @Deprecated
     public static void updateVideoMode() {
 
         m_camera.lock();
@@ -148,7 +196,6 @@ public class CameraCore {
             isChangeDetected = true;
         }
 
-
         //Bind new UseCase when necessary (and notify user via statusListener_)
         if(isChangeDetected) {
 
@@ -158,7 +205,11 @@ public class CameraCore {
             updateCameraConfig();
         }
 
-        detectCameraBoundState();
+        detectBoundState();
+
+        while(!is_camera_bound_) condWait();
+
+        m_camera.unlock();
     }
 
     @SuppressLint("RestrictedApi")
@@ -195,11 +246,29 @@ public class CameraCore {
 
         });
 
-        detectCameraBoundState();
+        detectBoundState();
+
+        while(!is_camera_bound_) condWait();
+
+        m_camera.unlock();
 
     }
 
-    private static void detectCameraBoundState() {
+    private static void detectBoundState() {
+        Consts.EXE_THREAD_POOL.execute(CameraCore::detectBoundStateBlocking);
+    }
+
+    private static void condWait() {
+
+        try {
+            cond_camera.await();
+        } catch (InterruptedException e) {
+            SAL.print(e);
+        }
+
+    }
+
+    private static void detectBoundStateBlocking() {
 
         while(camera_ == null) SAL.sleepFor(1);
 
@@ -209,15 +278,14 @@ public class CameraCore {
             //SAL.print("Camera is opening");
             SAL.sleepFor(1);
         }
-
+        m_camera.lock();
         is_camera_bound_ = true;
 
-        if (m_camera.isLocked()) {
-            cond_camera.signalAll();
-            m_camera.unlock();
-        }
+        cond_camera.signalAll();
 
         listener_stat_.onEventUpdated(EventListener.DataType.VOID_CAMERA_BOUND,null);
+
+        m_camera.unlock();
 
     }
 
@@ -298,7 +366,7 @@ public class CameraCore {
     @SuppressLint("UnsafeOptInUsageError")
     public static void updateCameraConfig() {
 
-        boolean is_video_mode = (Boolean) Config.get(Config.VIDEO_MODE),
+        boolean isVideoMode = (Boolean) Config.get(Config.VIDEO_MODE),
                 isFrontFacing = (Boolean) Config.get(Config.FRONT_FACING);
 
         int videoFps = (int) Config.get(Config.VIDEO_FPS);
@@ -318,30 +386,34 @@ public class CameraCore {
                         (Boolean) Config.get(Config.AE_LOCK) || isRecording_);
 
         //Video-specfic settings
-        if (is_video_mode) {
+        if (isVideoMode) {
 
-            boolean is_log_enabled_ = !((String) Config.get(Config.VIDEO_LOG_PROFILE)).equals("OFF");
+            boolean isLogCurveEnabled = !((String) Config.get(Config.VIDEO_LOG_PROFILE)).equals("OFF");
 
             crob_
+                    //Recording FPS
                     .setCaptureRequestOption(
                             CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE,
                             new Range(videoFps, videoFps))
 
+                    //NTSC/PAL but for AE
                     .setCaptureRequestOption(
                             CaptureRequest.CONTROL_AE_ANTIBANDING_MODE,
                             videoFps % 25 == 0 ?
                                     CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_50HZ :
                                     CaptureRequest.CONTROL_AE_ANTIBANDING_MODE_60HZ)
 
+                    //Tonemap Mode (i.e. whether to enable custom contrast curve, which can be set to a log curve for HDR video recording)
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_MODE,
-                            is_log_enabled_ ?
+                            isLogCurveEnabled ?
                                     CaptureRequest.TONEMAP_MODE_CONTRAST_CURVE :
                                     CaptureRequest.TONEMAP_MODE_HIGH_QUALITY)
 
+                    //Post-effect sharpening (Good for high-res still image but nothing else)
                     .setCaptureRequestOption(
                             CaptureRequest.EDGE_MODE,
-                            is_log_enabled_ || is_video_mode ?
+                            isLogCurveEnabled || isVideoMode ?
                                     CaptureRequest.EDGE_MODE_OFF :
                                     CaptureRequest.EDGE_MODE_HIGH_QUALITY)
 
@@ -353,6 +425,7 @@ public class CameraCore {
                     )
                      */
 
+                    //Contrast Curve (CLOG or SLOG)
                     .setCaptureRequestOption(
                             CaptureRequest.TONEMAP_CURVE,
                             ((String) (Config.get(Config.VIDEO_LOG_PROFILE))).equals("CLOG") ?

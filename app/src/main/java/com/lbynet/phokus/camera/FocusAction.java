@@ -146,7 +146,7 @@ public class FocusAction {
 
         m_focus.lock();
 
-        //One of the corner cases -- what
+        //One of the corner cases -- wait
         while(is_busy_) condWait();
 
         currReq = new FocusActionRequest(request);
@@ -273,8 +273,6 @@ public class FocusAction {
                 //Obtain focus result
                 try {
                     res = future.get();
-
-
                 }
                 //Focus Cancelled
                 catch (Exception e) {

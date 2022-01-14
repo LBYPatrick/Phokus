@@ -45,7 +45,6 @@ public class Config {
             VIDEO_LOG_PROFILE = "camera_video_log_profile";
 
     static {
-
         putDefault(FRONT_FACING, false);
         putDefault(VIDEO_MODE, false);
         putDefault(VIDEO_RESOLUTION, new Size(3840, 2160));

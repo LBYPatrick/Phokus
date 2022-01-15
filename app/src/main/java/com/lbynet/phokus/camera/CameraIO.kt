@@ -6,6 +6,7 @@ import android.content.Context
 import android.provider.MediaStore
 import com.lbynet.phokus.camera.CameraIO
 import androidx.camera.core.ImageCapture
+import androidx.camera.video.MediaStoreOutputOptions
 import java.lang.StringBuilder
 import java.text.SimpleDateFormat
 
@@ -13,20 +14,39 @@ object CameraIO {
     private var num_simultaneous_images_ = 0
     private var lastImageTime: Long = -1
 
+    @Deprecated("This was required by the legacy VideoCapture and hence is no longer needed")
     fun getVideoOFO(context: Context, filename: String): VideoCapture.OutputFileOptions {
 
-        val values = ContentValues()
         val extension = filename.substring(filename.lastIndexOf('.') + 1, filename.length)
-
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
-        values.put(MediaStore.MediaColumns.TITLE, filename)
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "video/$extension")
+        val values = ContentValues().apply {
+            put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+            put(MediaStore.MediaColumns.TITLE, filename)
+            put(MediaStore.MediaColumns.MIME_TYPE, "video/$extension")
+        }
 
         return VideoCapture.OutputFileOptions.Builder(
             context.contentResolver,
             MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
             values
         ).build()
+    }
+
+    @JvmStatic
+    fun getVideoMso(context : Context, filename: String): MediaStoreOutputOptions {
+
+        val values = ContentValues().apply {
+            put(MediaStore.Video.Media.DISPLAY_NAME,filename)
+        }
+
+        return MediaStoreOutputOptions.Builder(context.contentResolver,
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+            .setContentValues(values)
+            .build()
+    }
+
+    @JvmStatic
+    fun getVideoMso(context : Context): MediaStoreOutputOptions {
+        return getVideoMso(context, videoFilename)
     }
 
     @JvmStatic

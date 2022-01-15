@@ -3,6 +3,7 @@ package com.lbynet.phokus.ui;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.camera.video.VideoRecordEvent;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
@@ -36,6 +37,7 @@ import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.FocusActionListener;
 import com.lbynet.phokus.template.OnEventCompleteCallback;
 import com.lbynet.phokus.template.RotationListener;
+import com.lbynet.phokus.template.VideoEventListener;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
 import com.lbynet.phokus.utils.Timer;
@@ -478,23 +480,22 @@ public class CameraActivity extends AppCompatActivity {
         if (isVideoMode && !isRecording) {
 
             isRecording = true;
-            CameraCore.startRecording(new EventListener() {
+
+            CameraCore.startRecording(new VideoEventListener() {
                 @Override
-                public boolean onEventUpdated(DataType dataType, Object data) {
-
-                    /**
-                     * This event would only be called when the video is saved.
-                     */
-                    if (dataType != DataType.URI_VIDEO_SAVED) return false;
+                public void onStart(VideoRecordEvent event) {
+                    startVideoTimer();
+                }
+                @Override
+                public void onFinalize(VideoRecordEvent event) {
                     requireExecutor().execute(rOnShutterReleased);
-
-                    return super.onEventUpdated(dataType, data);
                 }
             });
-            startVideoTimer();
 
         } else if (isVideoMode) {
-            CameraCore.stopRecording();
+            // Callback may be set to null since we have filled out onFinalize(VideoRecordEvent),
+            // which is called at exactly the same time for the same reason
+            CameraCore.stopRecording(null);
             stopVideoTimer();
             isRecording = false;
         } else {
@@ -544,7 +545,7 @@ public class CameraActivity extends AppCompatActivity {
 
         //Terminate current video recording session if there is one
         if (isVideoMode && isRecording) {
-            CameraCore.stopRecording();
+            CameraCore.stopRecording(null);
             stopVideoTimer();
             isRecording = false;
         }

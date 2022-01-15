@@ -25,10 +25,16 @@ import androidx.camera.core.ImageCapture;
 import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.core.UseCase;
-import androidx.camera.core.VideoCapture;
 import androidx.camera.lifecycle.ProcessCameraProvider;
+import androidx.camera.video.Quality;
+import androidx.camera.video.QualitySelector;
+import androidx.camera.video.Recorder;
+import androidx.camera.video.Recording;
+import androidx.camera.video.VideoCapture;
+import androidx.camera.video.VideoRecordEvent;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
+import androidx.core.util.Consumer;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 
@@ -37,6 +43,7 @@ import com.lbynet.phokus.global.Config;
 import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.OnEventCompleteCallback;
+import com.lbynet.phokus.template.VideoEventListener;
 import com.lbynet.phokus.utils.SAL;
 
 import org.jetbrains.annotations.NotNull;
@@ -81,6 +88,7 @@ public class CameraCore {
     static ImageCapture image_capture_;
     static VideoCapture video_capture_;
     static ProcessCameraProvider pcp;
+    static Recording recording_active_;
     static float zoom_default_ = -1,
             zoom_prev_ = -1;
     static Executor ui_executor_;
@@ -93,7 +101,6 @@ public class CameraCore {
                            is_camera_bound_ = false;
     final private static ReentrantLock m_camera = new ReentrantLock();
     final private static Condition cond_camera = m_camera.newCondition();
-
 
     public static void initialize() {
         Config.loadConfig();
@@ -237,7 +244,6 @@ public class CameraCore {
                     USECASE_PREVIEW,
                     (is_video_mode ? USECASE_VIDEO_CAPTURE : USECASE_IMAGE_CAPTURE));
 
-
             camera_ = pcp.bindToLifecycle((LifecycleOwner) context_, cs_, useCaseArray);
             zoom_default_ = CameraUtils.get35FocalLength(context_, isFrontFacing ? 1 : 0);
             zoom_prev_ = zoom_default_;
@@ -314,11 +320,25 @@ public class CameraCore {
                 break;
 
             case USECASE_VIDEO_CAPTURE:
-                video_capture_ = new VideoCapture.Builder()
+
+                //TODO: Update this after testing
+                QualitySelector qs = QualitySelector.from(Quality.UHD);
+
+                Recorder recorder = new Recorder.Builder()
+                        .setExecutor(Consts.EXE_THREAD_POOL)
+                        .setQualitySelector(qs)
+                        .build();
+
+                video_capture_ =
+                        /*
+                        new VideoCapture.Builder()
                         .setTargetResolution((Size) Config.get(Config.VIDEO_RESOLUTION))
                         .setVideoFrameRate((Integer) Config.get(Config.VIDEO_FPS))
                         .setBitRate((Integer) Config.get(Config.VIDEO_BITRATE_MBPS) * 1048576)
                         .build();
+                         */
+                        VideoCapture.withOutput(recorder);
+
                 r=video_capture_;
                 break;
 
@@ -491,38 +511,71 @@ public class CameraCore {
     }
 
     @SuppressLint("RestrictedApi")
-    public static void stopRecording() {
+    public static void stopRecording(OnEventCompleteCallback callback) {
 
-        isRecording_ = false;
+        Consts.EXE_THREAD_POOL.execute(()-> {
+            m_camera.lock();
 
-        video_capture_.stopRecording();
+            recording_active_.stop();
 
-        update3A();
+            while(isRecording_) condWait();
+
+            if(callback != null) callback.onComplete(isRecording_ ? -1 : 0,"stopRecording(OnEventCompleteCallback)");
+
+            update3A();
+
+            m_camera.unlock();
+        });
     }
 
     @SuppressLint({"MissingPermission","RestrictedApi"})
-    public static void startRecording(EventListener listener) {
+    public static void startRecording(VideoEventListener listener) {
 
-        isRecording_ = true;
+        Consts.EXE_THREAD_POOL.execute( () -> {
 
-        video_capture_.setTargetRotation(rot_major_);
+            m_camera.lock();
 
-        update3A();
+            video_capture_.setTargetRotation(rot_major_);
 
-        video_capture_.startRecording(CameraIO.getVideoOFO(context_), Executors.newSingleThreadExecutor(), new VideoCapture.OnVideoSavedCallback() {
-            @Override
-            public void onVideoSaved(@NonNull @NotNull VideoCapture.OutputFileResults outputFileResults) {
+            update3A();
 
-                listener.onEventUpdated(EventListener.DataType.URI_VIDEO_SAVED,outputFileResults.getSavedUri());
-                SAL.runFileScan(context_,outputFileResults.getSavedUri());
-            }
+            recording_active_ =
+                    ((Recorder) video_capture_.getOutput())
+                            .prepareRecording(context_, CameraIO.getVideoMso(context_)) //PendingRecording is built here
+                            .withAudioEnabled()
+                            .start(Consts.EXE_THREAD_POOL, videoRecordEvent -> { //PendingRecording is configured here and returns a Recording
 
-            @Override
-            public void onError(int videoCaptureError, @NonNull @NotNull String message, @Nullable @org.jetbrains.annotations.Nullable Throwable cause) {
-                //TODO: Finish this
-            }
+                                m_camera.lock();
+                                //This is REALLY UGLY
+                                if (videoRecordEvent instanceof VideoRecordEvent.Start) {
+                                    isRecording_ = true;
+                                    listener.onStart(videoRecordEvent);
+                                }
+
+                                else if (videoRecordEvent instanceof VideoRecordEvent.Pause) {
+                                    isRecording_ = false;
+                                    listener.onPause(videoRecordEvent);
+                                }
+                                else if (videoRecordEvent instanceof VideoRecordEvent.Resume) {
+                                    isRecording_ = true;
+                                    listener.onResume(videoRecordEvent);
+                                }
+                                else if (videoRecordEvent instanceof VideoRecordEvent.Finalize) {
+                                    isRecording_ = false;
+                                    listener.onFinalize(videoRecordEvent);
+                                }
+                                //TODO: Figure out what this event is for
+                                else if (videoRecordEvent instanceof VideoRecordEvent.Status) {
+                                    listener.onStatus(videoRecordEvent);
+                                }
+                                cond_camera.signalAll();
+
+                                m_camera.unlock();
+
+                            });
+
+            m_camera.unlock();
         });
-
     }
 
 

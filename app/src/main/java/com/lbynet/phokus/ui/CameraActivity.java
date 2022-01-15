@@ -343,7 +343,7 @@ public class CameraActivity extends AppCompatActivity {
             if(res < 0) SAL.print(SAL.MsgType.ERROR,TAG,"Camera usecase failed to bind BEFORE a " + extra + " call!");
             else {
                 CameraCore.resumeFocus();
-                runOnUiThread(() -> unlockViews(controlViews));
+                unlockViews(controlViews);
             }
         };
 
@@ -351,7 +351,7 @@ public class CameraActivity extends AppCompatActivity {
             if(res < 0) SAL.print(SAL.MsgType.ERROR,TAG,"Camera usecase failed to bind AFTER a " + extra + " call!");
             else {
                 CameraCore.pauseFocus();
-                runOnUiThread(() -> lockViews(controlViews));
+                lockViews(controlViews);
             }
         };
 
@@ -484,10 +484,14 @@ public class CameraActivity extends AppCompatActivity {
             CameraCore.startRecording(new VideoEventListener() {
                 @Override
                 public void onStart(VideoRecordEvent event) {
+                    lockViews(binding.btnCaptureMode);
+                    UIHelper.setViewAlpha(100,0,binding.btnCaptureMode);
                     startVideoTimer();
                 }
                 @Override
                 public void onFinalize(VideoRecordEvent event) {
+                    unlockViews(binding.btnCaptureMode);
+                    UIHelper.setViewAlpha(100,1,binding.btnCaptureMode);
                     requireExecutor().execute(rOnShutterReleased);
                 }
             });
@@ -544,11 +548,14 @@ public class CameraActivity extends AppCompatActivity {
     public boolean toggleVideoMode(View view) {
 
         //Terminate current video recording session if there is one
+        //There shall not be!
+        /*
         if (isVideoMode && isRecording) {
             CameraCore.stopRecording(null);
             stopVideoTimer();
             isRecording = false;
         }
+         */
 
         isVideoMode = !isVideoMode;
 
@@ -881,12 +888,15 @@ public class CameraActivity extends AppCompatActivity {
 
     private void lockViews(View... views) {
 
-        for (View v : views) v.setClickable(false);
+        for (View v : views)
+            runOnUiThread(() -> v.setClickable(false));
+
     }
 
     private void unlockViews(View... views) {
 
-        for (View v : views) v.setClickable(true);
+        for (View v : views)
+            runOnUiThread(() -> v.setClickable(true));
     }
 
     private void updateButtonColors() {

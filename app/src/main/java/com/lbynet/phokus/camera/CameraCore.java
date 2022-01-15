@@ -537,7 +537,7 @@ public class CameraCore {
 
             video_capture_.setTargetRotation(rot_major_);
 
-            update3A();
+
 
             recording_active_ =
                     ((Recorder) video_capture_.getOutput())
@@ -549,6 +549,7 @@ public class CameraCore {
                                 //This is REALLY UGLY
                                 if (videoRecordEvent instanceof VideoRecordEvent.Start) {
                                     isRecording_ = true;
+                                    update3A();
                                     listener.onStart(videoRecordEvent);
                                 }
 

@@ -538,7 +538,6 @@ public class CameraCore {
             video_capture_.setTargetRotation(rot_major_);
 
 
-
             recording_active_ =
                     ((Recorder) video_capture_.getOutput())
                             .prepareRecording(context_, CameraIO.getVideoMso(context_)) //PendingRecording is built here

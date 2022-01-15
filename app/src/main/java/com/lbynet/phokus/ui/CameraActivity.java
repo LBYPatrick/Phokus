@@ -1,5 +1,6 @@
 package com.lbynet.phokus.ui;
 
+import androidx.annotation.AnyThread;
 import androidx.annotation.IntDef;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -885,7 +886,7 @@ public class CameraActivity extends AppCompatActivity {
         return true;
     }
 
-
+    @AnyThread
     private void lockViews(View... views) {
 
         for (View v : views)
@@ -893,6 +894,7 @@ public class CameraActivity extends AppCompatActivity {
 
     }
 
+    @AnyThread
     private void unlockViews(View... views) {
 
         for (View v : views)

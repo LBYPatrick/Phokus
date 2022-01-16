@@ -9,13 +9,15 @@ import org.jetbrains.annotations.NotNull;
 
 import java.lang.annotation.Retention;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.annotation.RetentionPolicy.SOURCE;
 
 public class Config {
 
-    private static HashMap<String, Object> default_ = new HashMap<>();
-    private static HashMap<String, Object> modified_ = new HashMap<>();
+    private static ConcurrentHashMap<String, String> default_ = new ConcurrentHashMap<>();
+    private static ConcurrentHashMap<String, String> modified_ = new ConcurrentHashMap<>();
 
     @Retention(SOURCE)
     @StringDef(
@@ -45,34 +47,39 @@ public class Config {
             VIDEO_LOG_PROFILE = "camera_video_log_profile";
 
     static {
-        putDefault(FRONT_FACING, false);
-        putDefault(VIDEO_MODE, false);
-        putDefault(VIDEO_RESOLUTION, new Size(3840, 2160));
-        putDefault(VIDEO_BITRATE_MBPS, 100);
-        putDefault(VIDEO_FPS, 30);
-        putDefault(VIDEO_STB, true);
-        putDefault(VIDEO_LOG_PROFILE, "OFF");
-        putDefault(STILL_JPEG_QUALITY, 95);
-        putDefault(NR_QUALITY, CameraCharacteristics.NOISE_REDUCTION_MODE_HIGH_QUALITY);
-        putDefault(AWB_LOCK, false);
-        putDefault(AE_LOCK, false);
+        putDefault(FRONT_FACING, "false");
+        putDefault(VIDEO_MODE, "false");
+        putDefault(VIDEO_RESOLUTION, "UHD");
+        putDefault(VIDEO_BITRATE_MBPS, "100");
+        putDefault(VIDEO_FPS, "30");
+        putDefault(VIDEO_STB, "true");
+        putDefault(VIDEO_LOG_PROFILE, "false");
+        putDefault(STILL_JPEG_QUALITY, "95");
+        putDefault(NR_QUALITY, "high_quality");
+        putDefault(AWB_LOCK, "false");
+        putDefault(AE_LOCK, "false");
     }
 
-    private static void putDefault(@Options String key, Object value) {
+    private static void putDefault(@Options String key, String value) {
         default_.put(key,value);
     }
 
-    private static void putModified(@Options String key, Object value) {
+    private static void putModified(@Options String key, String value) {
         modified_.put(key,value);
     }
 
-    public static void set(@Options String key, Object value) {
+    public static void set(@Options String key, String value) {
         putModified(key,value);
     }
 
-    public static @NotNull Object get(@Options String key) {
-        if(modified_.containsKey(key)) return modified_.get(key);
-        return default_.get(key);
+    public static String get(@Options String key) {
+
+        String r = "";
+
+        if((r = modified_.get(key)) != null
+                || (r = default_.get(key)) != null) return r;
+
+        return null;
     }
 
     //TODO: Fill this out

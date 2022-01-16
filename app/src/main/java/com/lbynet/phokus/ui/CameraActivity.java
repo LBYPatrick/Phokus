@@ -452,9 +452,9 @@ public class CameraActivity extends AppCompatActivity {
         return true;
     }
 
-    @SuppressLint("DefaultLocale")
-    public void resetLensInfo() {
-        int camera_id = (Boolean) Config.get(Config.FRONT_FACING) ? 1 : 0;
+    public void resetLensInfo(boolean isFrontFacing) {
+
+        int camera_id = isFrontFacing ? 1 : 0;
 
         binding.tvAperture.setText(String.format("F/%.2f", CameraUtils.get35Aperture(this, camera_id)));
         binding.tvAperture.setTextColor(UIHelper.getColors(this, R.color.colorSecondary)[0]);
@@ -470,6 +470,11 @@ public class CameraActivity extends AppCompatActivity {
         binding.tvFocalLength.setTextColor(UIHelper.getColors(requireContext(), R.color.colorText)[0]);
 
         wakeTopPanel();
+    }
+
+    @SuppressLint("DefaultLocale")
+    public void resetLensInfo() {
+        resetLensInfo(Config.get(Config.FRONT_FACING).equals("true"));
     }
 
     public boolean onShutterTouched(View v, MotionEvent event) {
@@ -825,25 +830,24 @@ public class CameraActivity extends AppCompatActivity {
 
     private boolean toggleCameraFacing(View view) {
 
-        /* Update global config */
-        boolean curr = (Boolean) Config.get(Config.FRONT_FACING);
-        Config.set(Config.FRONT_FACING, !curr);
+        boolean isFrontFacing = !(CameraCore.isFrontFacing());
+
+        lockViews(controlViews);
+
+        CameraCore.toggleCameraFacing((res,extra) -> {
+            unlockViews(controlViews);
+            SAL.print(TAG,"Camera facing toggled!");
+        });
 
         /* Rotate the switch side FAB */
         binding.fabSwitchSide.animate()
-                .rotationBy(curr ? -180.0f : 180.0f)
+                .rotationBy(isFrontFacing ? -180.0f : 180.0f)
                 .setInterpolator(new OvershootInterpolator())
                 .setDuration(500)
                 .start();
 
-        /* Cancel focus */
-        cancelFocus(null);
-
-        /* Restart CameraCore */
-        CameraCore.start(binding.preview);
-
         /* Reset lens info displayed in the top info card (aperture/focal length) */
-        resetLensInfo();
+        resetLensInfo(isFrontFacing);
 
         return true;
     }
@@ -927,6 +931,8 @@ public class CameraActivity extends AppCompatActivity {
         sensorBattery.resume();
         sensorRotation.resume();
 
+        CameraCore.onResume();
+
         if (!isAllPermissonGood())
             ActivityCompat.requestPermissions(this, Consts.PERMISSIONS, Consts.PERM_REQUEST_CODE);
 
@@ -940,5 +946,7 @@ public class CameraActivity extends AppCompatActivity {
 
         sensorBattery.hibernate();
         sensorRotation.hibernate();
+
+        CameraCore.onPause();
     }
 }

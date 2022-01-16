@@ -160,6 +160,30 @@ public class FocusAction {
         m_request.unlock();
     }
 
+    public static void setNewCameraControl(CameraControl cameraControl) {
+        //m_request ensures that ONE request may be processed at a time
+        m_request.lock();
+        is_flying_change_ = true;
+
+        //cc_.cancelFocusAndMetering(); //This would make focus() release its lock
+
+        m_focus.lock();
+
+        //One of the corner cases -- wait
+        while(is_busy_) condWait();
+
+        cc_ = cameraControl;
+
+        SAL.print("New CameraControl set!");
+
+        is_flying_change_ = false;
+        //This wakes up the looper thread(s)
+        cond.signalAll();
+        m_focus.unlock();
+
+        m_request.unlock();
+    }
+
     public static int condWait() {
 
         try {
@@ -219,11 +243,19 @@ public class FocusAction {
         //TODO: Since focus() is a blocking function call now, some of the flags here are probably redundant
         while (r == 0 && (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_)) r = condWait();
 
-        if(r < 0) return r;
+        if(r == 0) focus();
+
+        m_focus.unlock();
+        return r;
+        /*
+        if(r < 0) {
+            return r;
+        }
         else {
             focus();
             return 0;
         }
+         */
     }
 
     //TODO: This method is unlocking prematurely, waiting for a fix
@@ -269,7 +301,6 @@ public class FocusAction {
                 FocusMeteringResult res = null;
 
                 boolean is_fail = false;
-
                 //Obtain focus result
                 try {
                     res = future.get();
@@ -282,7 +313,7 @@ public class FocusAction {
                         listener_.onFocusEnd(new FocusActionResult(currReq, false));
 
                     is_fail = true;
-                    //SAL.print(e);
+                    SAL.print(e,false);
                     exception_ = e;
                 }
                 //Deal with the variables in FocusAction (in a thread-safe way of course)

@@ -56,6 +56,7 @@ public class CameraActivity extends AppCompatActivity {
     final public static String TAG = CameraActivity.class.getCanonicalName();
     final public static int DUR_ANIM_PREVIEW_RESIZE = 400,
                             DUR_ANIM_SHUTTER = 300,
+                            DUR_ANIM_AF_OVERLAY = 300,
                             LENGTH_FOCUS_RECT = 80;
 
     private ActivityCameraBinding binding;
@@ -151,7 +152,7 @@ public class CameraActivity extends AppCompatActivity {
 
                     showAfOverlay();
 
-                    UIHelper.setViewAlpha(50, 0, binding.vFocusRect);
+                    UIHelper.setViewAlpha(0, 0, binding.vFocusRect);
                 }
                 //Otherwise, make focus rectangle green/blue(depending on the AF mode) when AF Single/Servo succeeds
                 else {
@@ -396,7 +397,7 @@ public class CameraActivity extends AppCompatActivity {
             }).start();
         });
 
-        showAfOverlay();
+        //showAfOverlay();
 
         sensorBattery = new BatterySensor(this, batteryIntent -> {
             SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
@@ -562,18 +563,23 @@ public class CameraActivity extends AppCompatActivity {
             isRecording = false;
         }
          */
+        mFocus.lock();
 
         isVideoMode = !isVideoMode;
 
-        /**
-         * Cancel focus point(Because FocusAction will go NUTS when the camera is not active)
-         * Maybe I could figure out a way such that FocusAction runs smarter
-         * without major performance penalty.
-         */
+        //Disable the FocusAction listener since it may screw up our animations
+        FocusAction.setListener(null);
 
         cancelFocus(null);
 
-        CameraCore.setVideoMode(isVideoMode, onCameraBindingCallback,onCameraBoundCallback);
+        UIHelper.setViewAlphas(0,0,binding.vFocusRect,binding.btnCancelFocus);
+        hideAfOverlay();
+
+        //SAL.sleepFor(100);
+
+        CameraCore.setVideoMode(isVideoMode, onCameraBindingCallback,(res,extra) -> {
+            unlockViews(controlViews);
+        });
 
         /* Visual stuff */
         updatePreviewSize();
@@ -599,7 +605,7 @@ public class CameraActivity extends AppCompatActivity {
                 binding.fabSwitchSide
         };
 
-        final boolean isAfOverlayVisible = binding.ivAfOverlay.getAlpha() != 0;
+        //final boolean isAfOverlayVisible = binding.ivAfOverlay.getAlpha() != 0;
 
         UIHelper.setViewAlphas(
                 100,
@@ -607,7 +613,7 @@ public class CameraActivity extends AppCompatActivity {
                 showGroup);
 
         UIHelper.setViewAlphas(100,0,hideGroup);
-        if(isAfOverlayVisible) hideAfOverlay();
+        //hideAfOverlay();
 
         updateShutterState(isVideoMode ? STATE_VIDEO_IDLE : STATE_PHOTO_IDLE);
 
@@ -618,41 +624,51 @@ public class CameraActivity extends AppCompatActivity {
             UIHelper.setViewAlphas(200,0,showGroup);
             UIHelper.setViewAlphas(200,1,hideGroup);
 
-            if(isAfOverlayVisible) showAfOverlay();
+            showAfOverlay();
+            FocusAction.setListener(listener_focus_);
 
         }, DUR_ANIM_PREVIEW_RESIZE);
 
+
+
+        mFocus.unlock();
 
         return true;
     }
 
     private void showAfOverlay() {
 
-        if(binding.ivAfOverlay.getAlpha() != 0) return;
+        //if(binding.ivAfOverlay.getAlpha() != 0) return;
 
-        binding.ivAfOverlay.setScaleX(1.1f);
-        binding.ivAfOverlay.setScaleY(1.1f);
+        runOnUiThread( ()-> {
+            binding.ivAfOverlay.setScaleX(1.1f);
+            binding.ivAfOverlay.setScaleY(1.1f);
 
-        binding.ivAfOverlay.animate()
-                .scaleY(1f)
-                .scaleX(1f)
-                .setDuration(300)
-                .alpha(1)
-                .setInterpolator(UIHelper.getInterpolator(UIHelper.INTRPL_DECEL))
-                .start();
+            binding.ivAfOverlay.animate()
+                    .scaleY(1f)
+                    .scaleX(1f)
+                    .setDuration(DUR_ANIM_AF_OVERLAY)
+                    .alpha(1)
+                    .setInterpolator(UIHelper.getInterpolator(UIHelper.INTRPL_DECEL))
+                    .start();
+        });
     }
 
+    @AnyThread
     private void hideAfOverlay() {
 
-        if(binding.ivAfOverlay.getAlpha() != 1) return;
+        //if(binding.ivAfOverlay.getAlpha() != 1) return;
 
-        binding.ivAfOverlay.animate()
-                .scaleY(1.1f)
-                .scaleX(1.1f)
-                .setDuration(300)
-                .alpha(0)
-                .setInterpolator(UIHelper.getInterpolator(UIHelper.INTRPL_ACCEL))
-                .start();
+        runOnUiThread( ()-> {
+
+            binding.ivAfOverlay.animate()
+                    .scaleY(1.1f)
+                    .scaleX(1.1f)
+                    .setDuration(DUR_ANIM_AF_OVERLAY)
+                    .alpha(0)
+                    .setInterpolator(UIHelper.getInterpolator(UIHelper.INTRPL_ACCEL))
+                    .start();
+        });
 
     }
 
@@ -830,13 +846,24 @@ public class CameraActivity extends AppCompatActivity {
 
     private boolean toggleCameraFacing(View view) {
 
+        mFocus.lock();
+
         boolean isFrontFacing = !(CameraCore.isFrontFacing());
 
         lockViews(controlViews);
+        //Disable the FocusAction listener since it may screw up our animations
+        FocusAction.setListener(null);
+        cancelFocus(null);
 
+        UIHelper.setViewAlphas(0,0,binding.vFocusRect,binding.btnCancelFocus);
+        hideAfOverlay();
+        animationHandler.postDelayed(this::showAfOverlay,DUR_ANIM_AF_OVERLAY);
+        
         CameraCore.toggleCameraFacing((res,extra) -> {
             unlockViews(controlViews);
             SAL.print(TAG,"Camera facing toggled!");
+
+            FocusAction.setListener(listener_focus_);
         });
 
         /* Rotate the switch side FAB */
@@ -848,6 +875,8 @@ public class CameraActivity extends AppCompatActivity {
 
         /* Reset lens info displayed in the top info card (aperture/focal length) */
         resetLensInfo(isFrontFacing);
+
+        mFocus.unlock();
 
         return true;
     }

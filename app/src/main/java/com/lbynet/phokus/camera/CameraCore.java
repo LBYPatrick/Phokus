@@ -162,6 +162,11 @@ public class CameraCore {
 
         m_camera.lock();
 
+        //cancelFocus();
+        //while(FocusAction.isBusy() || FocusAction.getLastRequest().type != FocusAction.FOCUS_AUTO) SAL.sleepFor(1);
+
+        FocusAction.pause();
+
         is_camera_bound_ = false;
 
         Config.set(Config.VIDEO_MODE,isVideoMode ? "true" : "false");
@@ -179,6 +184,8 @@ public class CameraCore {
 
 
         while(!is_camera_bound_) condWait();
+
+        FocusAction.resumeFresh();
 
         m_camera.unlock();
     }

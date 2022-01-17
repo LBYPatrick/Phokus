@@ -134,7 +134,13 @@ public class FocusAction {
     }
 
     public static void setListener(FocusActionListener listener) {
+        m_request.lock();
+        m_focus.lock();
+
         listener_ = listener;
+
+        m_focus.unlock();
+        m_request.unlock();
     }
 
     public static void issueRequest(FocusActionRequest request) {
@@ -163,11 +169,11 @@ public class FocusAction {
     public static void setNewCameraControl(CameraControl cameraControl) {
         //m_request ensures that ONE request may be processed at a time
         m_request.lock();
+        m_focus.lock();
+
         is_flying_change_ = true;
 
-        //cc_.cancelFocusAndMetering(); //This would make focus() release its lock
-
-        m_focus.lock();
+        cc_.cancelFocusAndMetering(); //This would make focus() release its lock
 
         //One of the corner cases -- wait
         while(is_busy_) condWait();
@@ -179,8 +185,8 @@ public class FocusAction {
         is_flying_change_ = false;
         //This wakes up the looper thread(s)
         cond.signalAll();
-        m_focus.unlock();
 
+        m_focus.unlock();
         m_request.unlock();
     }
 
@@ -198,7 +204,13 @@ public class FocusAction {
 
     public static FocusActionRequest getLastRequest() {
 
-        return new FocusActionRequest(currReq);
+        m_request.lock();
+
+        FocusActionRequest r = new FocusActionRequest(currReq);
+
+        m_request.unlock();
+
+        return r;
 
     }
 
@@ -240,10 +252,11 @@ public class FocusAction {
         int r = 0;
         m_focus.lock();
 
-        //TODO: Since focus() is a blocking function call now, some of the flags here are probably redundant
-        while (r == 0 && (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_)) r = condWait();
+        //while(r == 0 && (is_flying_change_ || is_paused_)) r = condWait();
 
-        if(r == 0) focus();
+        focus();
+
+        while (r == 0 && (is_paused_ || is_flying_change_ || is_busy_ || !is_point_valid_)) r = condWait();
 
         m_focus.unlock();
         return r;
@@ -280,7 +293,6 @@ public class FocusAction {
 
             cond.signalAll();
             m_focus.unlock();
-
             return;
         }
 
@@ -342,6 +354,17 @@ public class FocusAction {
 
         m_focus.unlock();
 
+    }
+
+    public static boolean isBusy() {
+
+        m_focus.lock();
+
+        boolean r = is_busy_;
+
+        m_focus.unlock();
+
+        return r;
     }
 
 }

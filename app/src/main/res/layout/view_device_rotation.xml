@@ -7,6 +7,7 @@
     <ImageView
         android:id="@+id/iv_horiz_background"
         android:layout_width="match_parent"
+        android:alpha="0"
         android:layout_height="0dp"
         app:layout_constraintDimensionRatio="1:1"
         app:layout_constraintTop_toTopOf="parent"
@@ -30,6 +31,7 @@
         android:layout_height="0dp"
         android:scaleX="0.5"
         android:scaleY="0.5"
+        android:alpha="0"
         app:layout_constraintDimensionRatio="92.56:63.24"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"

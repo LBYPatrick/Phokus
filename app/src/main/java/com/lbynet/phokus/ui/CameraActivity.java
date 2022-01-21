@@ -74,7 +74,7 @@ public class CameraActivity extends AppCompatActivity {
     private OnEventCompleteCallback onCameraBoundCallback,
                                     onCameraBindingCallback;
     private static BatterySensor sensorBattery;
-    private static RotationSensor sensorRotation;
+    //private static RotationSensor sensorRotation;
 
     private View [] controlViews;
 
@@ -403,6 +403,7 @@ public class CameraActivity extends AppCompatActivity {
             SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
         });
 
+        /*
         sensorRotation = new RotationSensor(this,
                 (RotationListener) (azimuth, pitch, roll) -> {
             runOnUiThread( () -> {
@@ -413,8 +414,8 @@ public class CameraActivity extends AppCompatActivity {
 
             });
             //SAL.print("Angle: " + MathTools.radianToDegrees(pitch,false));
-
         });
+         */
 
     }
 
@@ -958,7 +959,8 @@ public class CameraActivity extends AppCompatActivity {
         orientationListener.enable();
 
         sensorBattery.resume();
-        sensorRotation.resume();
+        binding.drvRotation.onResume();
+        //sensorRotation.resume();
 
         CameraCore.onResume();
 
@@ -974,7 +976,7 @@ public class CameraActivity extends AppCompatActivity {
         orientationListener.disable();
 
         sensorBattery.hibernate();
-        sensorRotation.hibernate();
+        binding.drvRotation.onPause();
 
         CameraCore.onPause();
     }

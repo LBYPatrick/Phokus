@@ -252,8 +252,6 @@ public class CameraCore {
             updateCameraConfig();
         });
 
-
-
         while(!is_camera_bound_) condWait();
 
         m_camera.unlock();
@@ -368,7 +366,11 @@ public class CameraCore {
         return r;
     }
 
-    public static void update3A() {
+    private static void update3A() {
+
+        m_camera.lock();
+
+        while(!is_camera_bound_) condWait();
 
         crob_
                 .setCaptureRequestOption(
@@ -378,6 +380,9 @@ public class CameraCore {
                 .setCaptureRequestOption(
                         CaptureRequest.CONTROL_AE_LOCK,
                         Config.get(Config.AE_LOCK).equals("true") || isRecording_);
+
+
+        m_camera.unlock();
 
         flushCaptureRequest();
 

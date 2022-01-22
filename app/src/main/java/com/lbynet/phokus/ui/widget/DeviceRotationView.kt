@@ -5,14 +5,11 @@ import android.graphics.Color
 import android.util.AttributeSet
 import android.widget.ImageView
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.lifecycle.Lifecycle
 import com.lbynet.phokus.R
 import com.lbynet.phokus.global.Consts
 import com.lbynet.phokus.hardware.RotationSensor
-import com.lbynet.phokus.template.RotationListener
 import com.lbynet.phokus.utils.MathTools
 import com.lbynet.phokus.utils.MovingAverage
-import com.lbynet.phokus.utils.SAL
 import com.lbynet.phokus.utils.UIHelper
 import kotlin.math.abs
 

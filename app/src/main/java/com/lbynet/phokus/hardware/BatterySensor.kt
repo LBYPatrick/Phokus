@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
-import com.lbynet.phokus.template.BatteryListener
 
 class BatterySensor(private val context : Context, private val listener : BatteryListener) {
 

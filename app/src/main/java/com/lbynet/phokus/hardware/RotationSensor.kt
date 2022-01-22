@@ -6,10 +6,8 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.core.content.ContextCompat
-import com.lbynet.phokus.template.RotationListener
 
 class RotationSensor(private val context : Context, private val listener : RotationListener) {
-
 
     private var sm : SensorManager? = null
     private var magnetic : Sensor? = null

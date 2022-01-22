@@ -10,7 +10,6 @@ import androidx.camera.view.PreviewView;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.lbynet.phokus.global.Consts;
-import com.lbynet.phokus.template.FocusActionListener;
 import com.lbynet.phokus.utils.SAL;
 
 import java.lang.annotation.Retention;
@@ -92,7 +91,7 @@ public class FocusAction {
     private static PreviewView pv_;
     private static Executor exe_ui_;
     private static Exception exception_ = null;
-    private static FocusActionListener listener_ = null;
+    private static FocusEventListener listener_ = null;
     private static Thread t_looper_ = null;
 
     //AtomicBoolean is thread-safe so no need to worry about concurrency for them
@@ -133,7 +132,7 @@ public class FocusAction {
         return 0;
     }
 
-    public static void setListener(FocusActionListener listener) {
+    public static void setListener(FocusEventListener listener) {
         m_request.lock();
         m_focus.lock();
 
@@ -367,4 +366,11 @@ public class FocusAction {
         return r;
     }
 
+    public static interface FocusEventListener {
+
+        void onFocusEnd(FocusActionResult res);
+
+        void onFocusBusy(FocusActionRequest req);
+
+    }
 }

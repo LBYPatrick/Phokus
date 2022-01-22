@@ -1,4 +1,4 @@
-package com.lbynet.phokus.template;
+package com.lbynet.phokus.hardware;
 
 public interface RotationListener {
 

@@ -4,16 +4,13 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
-import android.hardware.camera2.params.StreamConfigurationMap;
-import android.media.Image;
-import android.provider.SyncStateContract;
 import android.util.Range;
 import android.util.Size;
 import android.view.Surface;
 
+import androidx.annotation.AnyThread;
 import androidx.annotation.FloatRange;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.annotation.StringDef;
 import androidx.camera.camera2.interop.Camera2CameraControl;
 import androidx.camera.camera2.interop.CaptureRequestOptions;
@@ -34,7 +31,6 @@ import androidx.camera.video.VideoCapture;
 import androidx.camera.video.VideoRecordEvent;
 import androidx.camera.view.PreviewView;
 import androidx.core.content.ContextCompat;
-import androidx.core.util.Consumer;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.LiveData;
 
@@ -43,7 +39,6 @@ import com.lbynet.phokus.global.Config;
 import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.template.EventListener;
 import com.lbynet.phokus.template.OnEventCompleteCallback;
-import com.lbynet.phokus.template.VideoEventListener;
 import com.lbynet.phokus.utils.SAL;
 
 import org.jetbrains.annotations.NotNull;
@@ -68,6 +63,15 @@ public class CameraCore {
             USECASE_IMAGE_ANALYSIS_BASIC
     })
     private @interface UseCaseType{};
+
+    public abstract static class VideoEventListener {
+        @AnyThread
+        public void onStart(VideoRecordEvent event) {}
+        @AnyThread public void onPause(VideoRecordEvent event) {}
+        @AnyThread public void onResume(VideoRecordEvent event) {}
+        @AnyThread public void onStatus(VideoRecordEvent event) {}
+        @AnyThread public void onFinalize(VideoRecordEvent event) {}
+    }
 
     final public static String USECASE_PREVIEW = "preview",
                                USECASE_IMAGE_CAPTURE = "image_capture",
@@ -659,4 +663,5 @@ public class CameraCore {
     public static boolean isFrontFacing() {
         return Config.get(Config.FRONT_FACING).equals("true");
     }
+
 }

@@ -153,7 +153,6 @@ public class UIHelper {
     public static void setViewAlpha(View v, long durationInMs, float targetAlpha, boolean isNonLinear) {
 
         v.post( () -> {
-
             //In case user set view visibility to INVISIBLE or GONE wihout setting alpha to zero
             if(v.getVisibility() != View.VISIBLE && targetAlpha != 0) v.setAlpha(0);
 
@@ -182,21 +181,6 @@ public class UIHelper {
         });
 
         imageView.post(animator::start);
-    }
-
-    @Deprecated
-    public static ValueAnimator setViewAlphaOld(View view, int durationInMs, float targetAlpha, boolean isNonLinear) {
-
-        if(mapValueAnimator_.get(view) != null) mapValueAnimator_.get(view).cancel();
-
-        ValueAnimator a = getAlphaAnimator(view,durationInMs,targetAlpha,isNonLinear);
-
-        ContextCompat.getMainExecutor(view.getContext()).execute(a::start);
-
-        mapValueAnimator_.put(view,a);
-
-        return a;
-
     }
 
     public static void resizeView(View view,

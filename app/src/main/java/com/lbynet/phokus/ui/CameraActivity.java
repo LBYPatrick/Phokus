@@ -33,12 +33,8 @@ import com.lbynet.phokus.databinding.ActivityCameraBinding;
 import com.lbynet.phokus.global.Config;
 import com.lbynet.phokus.global.Consts;
 import com.lbynet.phokus.hardware.BatterySensor;
-import com.lbynet.phokus.hardware.RotationSensor;
 import com.lbynet.phokus.template.EventListener;
-import com.lbynet.phokus.template.FocusActionListener;
 import com.lbynet.phokus.template.OnEventCompleteCallback;
-import com.lbynet.phokus.template.RotationListener;
-import com.lbynet.phokus.template.VideoEventListener;
 import com.lbynet.phokus.utils.MathTools;
 import com.lbynet.phokus.utils.SAL;
 import com.lbynet.phokus.utils.Timer;
@@ -135,7 +131,7 @@ public class CameraActivity extends AppCompatActivity {
                         );
             };
 
-    final private FocusActionListener listener_focus_ = new FocusActionListener() {
+    final private FocusAction.FocusEventListener listener_focus_ = new FocusAction.FocusEventListener() {
         @Override
         public void onFocusEnd(FocusAction.FocusActionResult res) {
 
@@ -457,7 +453,7 @@ public class CameraActivity extends AppCompatActivity {
 
             isRecording = true;
 
-            CameraCore.startRecording(new VideoEventListener() {
+            CameraCore.startRecording(new CameraCore.VideoEventListener() {
                 @Override
                 public void onStart(VideoRecordEvent event) {
                     lockViews(binding.btnCaptureMode);

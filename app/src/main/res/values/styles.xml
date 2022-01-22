@@ -12,7 +12,7 @@
     <style name="CameraTheme.Toggle.Button" parent="CameraTheme.Toggle">
         <item name="android:outlineAmbientShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
         <item name="android:outlineSpotShadowColor" tools:ignore="NewApi">#00FFFFFF</item>
-        <item name="android:textSize">10dp</item>
+        <item name="android:textSize">8dp</item>
         <item name="elevation">4dp</item>
         <item name="backgroundTint">@color/colorCameraButton_43</item>
         <item name="android:textColor">#FFFFFF</item>

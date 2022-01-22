@@ -148,8 +148,9 @@ public class FocusAction {
         m_request.lock();
         is_flying_change_ = true;
 
-        m_focus.lock();
         cc_.cancelFocusAndMetering(); //This would make focus() release its lock
+
+        m_focus.lock();
 
         //One of the corner cases -- wait
         while(is_busy_) condWait();

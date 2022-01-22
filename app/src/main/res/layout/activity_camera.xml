@@ -36,7 +36,7 @@
         app:layout_constraintTop_toTopOf="@id/cv_preview_wrapper"
         app:layout_constraintLeft_toLeftOf="@id/cv_preview_wrapper"
         android:foreground="@drawable/vector_focus_rect"
-        android:elevation="4dp"
+        android:elevation="3dp"
         android:alpha="0"
         />
 
@@ -64,6 +64,23 @@
         android:foreground="#FF00FF"
         android:elevation="1dp"
         android:fitsSystemWindows="true"
+        />
+
+    <View
+        android:id="@+id/v_focus_guard_left"
+        app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"
+        app:layout_constraintRight_toLeftOf="@id/v_ui_aligner_43"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:elevation="3dp"
+        />
+    <View
+        android:id="@+id/v_focus_guard_right"
+        app:layout_constraintLeft_toRightOf="@id/v_ui_aligner_43"
+        app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:elevation="3dp"
         />
 
     <ImageView
@@ -355,7 +372,7 @@
         app:layout_constraintBottom_toBottomOf="@id/v_ui_aligner_169"
         app:layout_constraintLeft_toLeftOf="@id/v_ui_aligner_169"
         app:layout_constraintRight_toRightOf="@id/v_ui_aligner_169"
-        android:elevation="6dp"
+        android:elevation="4dp"
         android:alpha="1"
         />
 

@@ -258,7 +258,7 @@ public class CameraActivity extends AppCompatActivity {
             isZooming = false;
         }
     };
-    private ScaleGestureDetector pToZDetector = null;
+    //private ScaleGestureDetector pToZDetector = null;
 
 
     @Override
@@ -296,7 +296,7 @@ public class CameraActivity extends AppCompatActivity {
 
     public void initUiListeners() {
 
-        pToZDetector = new ScaleGestureDetector(requireContext(), pToZListener);
+        //pToZDetector = new ScaleGestureDetector(requireContext(), pToZListener);
 
         binding.ivShutterPhotoBase.setOnTouchListener(this::onShutterTouched);
         binding.btnCaptureMode.setOnClickListener(this::toggleVideoMode);
@@ -304,6 +304,8 @@ public class CameraActivity extends AppCompatActivity {
         //binding.btnFocusCancel.setOnClickListener(this::cancelFocus);
         binding.toggleFocusFreq.setOnClickListener(this::toggleFocusFreqMode);
         binding.fabSwitchSide.setOnClickListener(this::toggleCameraFacing);
+        binding.vFocusGuardLeft.setOnTouchListener((view,event) -> true);
+        binding.vFocusGuardRight.setOnTouchListener((view,event) -> true);
     }
 
     @Override
@@ -423,15 +425,17 @@ public class CameraActivity extends AppCompatActivity {
     // https://stackoverflow.com/questions/63202209/camerax-how-to-add-pinch-to-zoom-and-tap-to-focus-onclicklistener-and-ontouchl
     public boolean onPreviewTouched(View v, MotionEvent event) {
 
-        mFocus.lock();
+       //mFocus.lock();
 
         //Pinch-to-zoom
         float x = event.getX(),
                 y = event.getY();
 
-        if(event.getPointerCount() > 1) pToZDetector.onTouchEvent(event);
+        //if(event.getPointerCount() > 1) pToZDetector.onTouchEvent(event);
             //Tap-to-focus
-        else if (event.getAction() == MotionEvent.ACTION_DOWN && !isZooming) {
+        if (event.getAction() == MotionEvent.ACTION_DOWN
+                //&& !isZooming
+        ) {
 
             if(binding.btnCancelFocus.getAlpha() == 0) hideAfOverlay();
 
@@ -444,16 +448,17 @@ public class CameraActivity extends AppCompatActivity {
             CameraCore.focus(
                     new FocusActionRequest(
                             isContinuousFocus ? FocusAction.FOCUS_SERVO : FocusAction.FOCUS_SINGLE,
-                            new float [] {x,y}
+                            new float [] {x + ((float)LENGTH_FOCUS_RECT) / 2,y + ((float)LENGTH_FOCUS_RECT) / 2}
                     )
             );
         }
 
-        mFocus.unlock();
+        //mFocus.unlock();
 
         return true;
     }
 
+    @SuppressLint("DefaultLocale")
     public void resetLensInfo(boolean isFrontFacing) {
 
         int camera_id = isFrontFacing ? 1 : 0;

@@ -9,7 +9,6 @@ import androidx.lifecycle.Lifecycle
 import com.lbynet.phokus.R
 import com.lbynet.phokus.global.Consts
 import com.lbynet.phokus.hardware.RotationSensor
-import com.lbynet.phokus.template.OnDimensionInfoReadyCallback
 import com.lbynet.phokus.template.RotationListener
 import com.lbynet.phokus.utils.MathTools
 import com.lbynet.phokus.utils.MovingAverage

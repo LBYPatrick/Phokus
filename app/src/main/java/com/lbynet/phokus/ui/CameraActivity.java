@@ -203,6 +203,7 @@ public class CameraActivity extends AppCompatActivity {
 
     private float currZoomRatio = 1;
 
+    @Deprecated
     final private ScaleGestureDetector.SimpleOnScaleGestureListener pToZListener = new ScaleGestureDetector.SimpleOnScaleGestureListener() {
 
         @Override
@@ -342,7 +343,6 @@ public class CameraActivity extends AppCompatActivity {
         //TODO: Add more to this when we have more camera control buttons
         controlViews = new View[]{binding.btnCaptureMode,binding.fabSwitchSide};
 
-
         onCameraBoundCallback = (int res, String extra) -> {
             if(res < 0) SAL.print(SAL.MsgType.ERROR,TAG,"Camera usecase failed to bind BEFORE a " + extra + " call!");
             else {
@@ -359,27 +359,6 @@ public class CameraActivity extends AppCompatActivity {
             }
         };
 
-        //TODO: Identify all functions that relied on this routine and modify them
-        /*
-        CameraCore.setStatusListener_(new EventListener() {
-            @Override
-            public boolean onEventUpdated(DataType dataType, Object extra) {
-                switch (dataType) {
-                    case VOID_CAMERA_BINDING:
-                        runOnUiThread(() -> lockViews(controlViews));
-                        break;
-                    case VOID_CAMERA_BOUND:
-                        runOnUiThread(() -> unlockViews(controlViews));
-                        break;
-                    default:
-                        break;
-                }
-
-                return super.onEventUpdated(dataType, extra);
-            }
-        });
-        */
-
         CameraCore.start(binding.preview);
         FocusAction.setListener(listener_focus_);
         resetLensInfo();
@@ -392,32 +371,16 @@ public class CameraActivity extends AppCompatActivity {
 
         binding.preview.post(() -> {
             new Thread(() -> {
-                SAL.sleepFor(150);
+                //SAL.sleepFor(150);
                 UIHelper.queryViewDimensions(binding.cvPreviewWrapper, (width, height) -> {
                     previewDimensions = new int[]{width,height};
                 });
             }).start();
         });
 
-        //showAfOverlay();
-
         sensorBattery = new BatterySensor(this, batteryIntent -> {
             SAL.print("Battery Level: " + batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL,-1));
         });
-
-        /*
-        sensorRotation = new RotationSensor(this,
-                (RotationListener) (azimuth, pitch, roll) -> {
-            runOnUiThread( () -> {
-                binding.drvRotation
-                        .setHorizontalAngle((float) MathTools.radianToDegrees(pitch, false))
-                        .setVerticalAngle((float) MathTools.radianToDegrees(roll,false) + 90);
-
-
-            });
-            //SAL.print("Angle: " + MathTools.radianToDegrees(pitch,false));
-        });
-         */
 
     }
 

@@ -1,5 +1,7 @@
 package com.lbynet.phokus.utils;
 
+import static com.lbynet.phokus.utils.Threading.condAwait;
+
 import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
@@ -15,6 +17,7 @@ import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.view.WindowManager;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.AccelerateInterpolator;
@@ -30,18 +33,23 @@ import androidx.core.content.ContextCompat;
 
 import com.lbynet.phokus.deprecated.DelayedAnimation;
 import com.lbynet.phokus.deprecated.listener.ColorListener;
-import com.lbynet.phokus.template.EventListener;
-import com.lbynet.phokus.template.OnDimensionInfoReadyCallback;
-
+import com.lbynet.phokus.global.Consts;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.HashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class UIHelper {
 
     final public static String TAG = UIHelper.class.getSimpleName();
+
+    public interface OnDimensionInfoReadyCallback {
+        void onDataAvailable(int width, int height);
+    }
 
     static Point screenDimensions_ = null;
     static DelayedAnimation animation = null;
@@ -262,11 +270,9 @@ public class UIHelper {
 
         ValueAnimator animator = ValueAnimator.ofArgb(colors);
         animator.setDuration(durationInMs);
-        animator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator valueAnimator) {
-                listener.onColorUpdated((int)valueAnimator.getAnimatedValue());
-            }
+
+        animator.addUpdateListener(valueAnimator -> {
+            listener.onColorUpdated((int)valueAnimator.getAnimatedValue());
         });
 
         if(isNonLinear) { animator.setInterpolator(new DecelerateInterpolator()); }
@@ -274,20 +280,47 @@ public class UIHelper {
         return animator;
     }
 
+
     public static void queryViewDimensions(View view, OnDimensionInfoReadyCallback callback) {
 
-        AtomicInteger width = new AtomicInteger(-1),
-                      height = new AtomicInteger(-1);
+        Consts.EXE_THREAD_POOL.execute(() -> {
 
-        view.post( () -> {
-            view.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            ViewTreeObserver vto = view.getViewTreeObserver();
 
-            width.set(view.getWidth());
-            height.set(view.getHeight());
+            //Wait for the ViewTreeObserver to come alive
+            while(!vto.isAlive()) SAL.sleepFor(1);
 
-            callback.onDataAvailable(view.getWidth(), view.getHeight());
+            AtomicBoolean isDone = new AtomicBoolean(false);
+            ReentrantLock mutex = new ReentrantLock();
+            Condition cond = mutex.newCondition();
 
+            mutex.lock();
+
+            ViewTreeObserver.OnGlobalLayoutListener listener = () -> {
+
+                mutex.lock();
+
+                //In case the listener did not get removed immediately (see below)
+                if(isDone.get()) {
+                    mutex.unlock();
+                    return;
+                }
+
+                isDone.set(true);
+                callback.onDataAvailable(view.getWidth(),view.getHeight());
+
+                cond.signalAll();
+                mutex.unlock();
+            };
+
+            vto.addOnGlobalLayoutListener(listener);
+
+            while(!isDone.get()) condAwait(cond);
+
+            //Remove OnGlobalLayoutListener since this method is designed to be one-shot
+            view.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
+
+            mutex.unlock();
         });
     }
 
